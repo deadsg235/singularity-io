@@ -20,7 +20,11 @@ class QNetwork:
     def _load_model(self):
         try:
             self.session = onnxruntime.InferenceSession(self.model_path)
+            input_name = self.session.get_inputs()[0].name
+            input_shape = self.session.get_inputs()[0].shape
             print(f"ONNX model loaded from {self.model_path}")
+            print(f"Model Input Name: {input_name}")
+            print(f"Model Input Shape: {input_shape}")
         except Exception as e:
             print(f"Error loading ONNX model: {e}")
             self.session = None
