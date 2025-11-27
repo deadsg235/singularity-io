@@ -1,0 +1,3 @@
+# Ignore directories that are not part of the deployment
+blockchain/
+neural_network/
