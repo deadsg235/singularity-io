@@ -24,6 +24,20 @@
             background-color: #0f0;
             border-radius: 50%;
             box-shadow: 0 0 5px #0f0, 0 0 10px #0f0, 0 0 15px #0f0;
+            cursor: pointer;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        .node.active {
+            background-color: #ff0;
+            box-shadow: 0 0 5px #ff0, 0 0 10px #ff0, 0 0 15px #ff0;
+        }
+        .node.unstable {
+            background-color: #f00;
+            box-shadow: 0 0 5px #f00, 0 0 10px #f00, 0 0 15px #f00;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0.5; }
         }
         #info {
             position: absolute;
@@ -31,6 +45,25 @@
             left: 50%;
             transform: translateX(-50%);
             font-size: 24px;
+            z-index: 10;
+        }
+        #game-info {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 32px;
+            z-index: 10;
+        }
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 72px;
+            color: #f00;
+            z-index: 20;
         }
     </style>
 </head>
@@ -38,6 +71,13 @@
     <div id="info">
         <h1>Singularity.io</h1>
         <p>Nodes: <span id="node-count">...</span></p>
+    </div>
+    <div id="game-info">
+        <p>Score: <span id="score">0</span></p>
+    </div>
+    <div id="game-over">
+        <p>GAME OVER</p>
+        <button id="reset-button">Play Again</button>
     </div>
     <div id="node-container"></div>
     <script src="https://d3js.org/d3.v7.min.js"></script>

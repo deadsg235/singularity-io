@@ -1,8 +1,12 @@
 const nodeContainer = document.getElementById('node-container');
 const nodeCountSpan = document.getElementById('node-count');
+const scoreSpan = document.getElementById('score');
+const gameOverDiv = document.getElementById('game-over');
+const resetButton = document.getElementById('reset-button');
 
 let nodes = [];
 let connections = [];
+let gameInterval;
 
 // Function to fetch node count from the API
 async function fetchNodeCount() {
@@ -31,30 +35,42 @@ async function fetchNetworkState() {
         const data = await response.json();
         nodes = data.nodes;
         connections = data.connections;
-        // Initial render
+        updateGameUI(data.game_state);
         render();
+        if (data.game_state.game_over) {
+            endGame();
+        }
     } catch (error) {
         console.error('Error fetching network state:', error);
     }
 }
 
+function updateGameUI(gameState) {
+    scoreSpan.textContent = gameState.score;
+}
+
 function render() {
     // Clear existing nodes
-    nodeContainer.innerHTML = '';
-    nodeContainer.appendChild(canvas.node()); // Re-append canvas
+    const existingNodes = document.querySelectorAll('.node');
+    existingNodes.forEach(n => n.remove());
 
     // Render new nodes
     nodes.forEach(node => {
         const nodeEl = document.createElement('div');
         nodeEl.classList.add('node');
-        // The backend will need to provide position data.
-        // For now, using random positions.
-        const x = node.x || Math.random() * window.innerWidth;
-        const y = node.y || Math.random() * window.innerHeight;
-        node.x = x;
-        node.y = y;
-        nodeEl.style.left = `${x}px`;
-        nodeEl.style.top = `${y}px`;
+        if (node.state === 'active') {
+            nodeEl.classList.add('active');
+        } else if (node.state === 'unstable') {
+            nodeEl.classList.add('unstable');
+        }
+
+        nodeEl.style.left = `${node.x}px`;
+        nodeEl.style.top = `${node.y}px`;
+
+        nodeEl.addEventListener('click', () => {
+            perturbNode(node.id);
+        });
+
         nodeContainer.appendChild(nodeEl);
         node.element = nodeEl;
     });
@@ -64,20 +80,23 @@ function render() {
     connections.forEach(conn => {
         const source = nodes[conn.source];
         const target = nodes[conn.target];
-        context.beginPath();
-        context.moveTo(source.x + 5, source.y + 5);
-        context.lineTo(target.x + 5, target.y + 5);
-        context.strokeStyle = `rgba(0, 255, 0, ${conn.strength || 0.5})`;
-        context.stroke();
+        if (source && target) {
+            context.beginPath();
+            context.moveTo(source.x + 5, source.y + 5);
+            context.lineTo(target.x + 5, target.y + 5);
+            context.strokeStyle = `rgba(0, 255, 0, ${conn.strength || 0.5})`;
+            context.stroke();
+        }
     });
 }
 
-
-// Mouse interaction - simplified to just trigger an update
-document.addEventListener('mousemove', (event) => {
-    // This could be enhanced to send mouse coordinates to the backend
-    // for a more direct perturbation of the Q-network.
-});
+async function perturbNode(nodeId) {
+    try {
+        await fetch(`/api/q_network/perturb/${nodeId}`, { method: 'POST' });
+    } catch (error) {
+        console.error(`Error perturbing node ${nodeId}:`, error);
+    }
+}
 
 async function updateAndFetch() {
     try {
@@ -88,17 +107,26 @@ async function updateAndFetch() {
     }
 }
 
-
-// Animation loop - now driven by backend updates
-function animate() {
-    updateAndFetch();
-    requestAnimationFrame(animate);
+function startGame() {
+    gameOverDiv.style.display = 'none';
+    fetchNodeCount();
+    fetchNetworkState();
+    gameInterval = setInterval(updateAndFetch, 500); // Faster updates for gameplay
 }
 
-// Initial setup
-fetchNodeCount();
-fetchNetworkState(); // Initial fetch
-setInterval(updateAndFetch, 2000); // Update every 2 seconds
+function endGame() {
+    clearInterval(gameInterval);
+    gameOverDiv.style.display = 'block';
+}
+
+resetButton.addEventListener('click', async () => {
+    try {
+        await fetch('/api/game/reset', { method: 'POST' });
+        startGame();
+    } catch (error) {
+        console.error('Error resetting game:', error);
+    }
+});
 
 
 window.addEventListener('resize', () => {
@@ -106,3 +134,6 @@ window.addEventListener('resize', () => {
     canvas.attr('height', window.innerHeight);
     render(); // Re-render on resize
 });
+
+// Start the game
+startGame();
