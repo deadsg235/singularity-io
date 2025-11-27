@@ -39,46 +39,56 @@ class QNetwork:
             self.nodes.append({'id': i, 'x': random.random() * 800, 'y': random.random() * 600, 'state': 0}) # 0: inactive, 1: unstable
 
     def _get_state_representation(self):
-        # Return a 1D array of the node states, padded or truncated to self.num_nodes
-        state_array = np.array([node['state'] for node in self.nodes], dtype=np.float32)
-        
-        # Pad with zeros if less than self.num_nodes (which should be 128)
-        if len(state_array) < self.num_nodes:
-            padded_state = np.pad(state_array, (0, self.num_nodes - len(state_array)), 'constant')
-            return padded_state
-        # Truncate if more than self.num_nodes (shouldn't happen if num_nodes is correctly set)
-        elif len(state_array) > self.num_nodes:
-            return state_array[:self.num_nodes]
-        else:
-            return state_array
+        try:
+            state_array = np.array([node['state'] for node in self.nodes], dtype=np.float32)
+            
+            if len(state_array) < self.num_nodes:
+                padded_state = np.pad(state_array, (0, self.num_nodes - len(state_array)), 'constant')
+                return padded_state
+            elif len(state_array) > self.num_nodes:
+                return state_array[:self.num_nodes]
+            else:
+                return state_array
+        except Exception as e:
+            print(f"Error in _get_state_representation: {e}")
+            raise # Re-raise to get full traceback if this is the issue
 
     def update_state(self):
         if self.game_state['game_over']:
             return
 
         if self.session:
-            current_state = self._get_state_representation()
-            
-            # Reshape the state to (1, 128) as required by the ONNX model
-            model_input = current_state.reshape(1, self.num_nodes)
-            
             try:
-                input_name = self.session.get_inputs()[0].name
-                result = self.session.run(None, {input_name: model_input})
-                action = np.argmax(result[0])
+                current_state = self._get_state_representation()
+                print(f"Current State before reshape: {current_state.shape} -> {current_state}")
                 
-                # Make the selected node unstable, ensuring 'action' is within bounds
-                if 0 <= action < self.num_nodes and self.nodes[action]['state'] == 0:
-                    self.nodes[action]['state'] = 1 # unstable
-                    self.game_state['unstable_nodes'] += 1
+                model_input = current_state.reshape(1, self.num_nodes)
+                print(f"Model Input after reshape: {model_input.shape} -> {model_input}")
+                
+                input_name = self.session.get_inputs()[0].name
+                print(f"ONNX Input Name: {input_name}")
+                
+                result = self.session.run(None, {input_name: model_input})
+                print(f"ONNX Model Output (raw): {result[0]}")
+                action = np.argmax(result[0])
+                print(f"Selected Action (node ID to make unstable): {action}")
+                
+                if 0 <= action < self.num_nodes:
+                    if self.nodes[action]['state'] == 0:
+                        self.nodes[action]['state'] = 1 # unstable
+                        self.game_state['unstable_nodes'] += 1
+                        print(f"Node {action} made unstable by ONNX model.")
+                else:
+                    print(f"Warning: ONNX model selected an out-of-bounds action: {action}. Falling back to random.")
+                    self._randomly_make_node_unstable()
 
             except Exception as e:
-                print(f"Error during model inference: {e}")
-                # Fallback to random action if model fails
-                self._randomly_make_node_unstable()
-
+                print(f"Critical Error during ONNX model inference or state update: {e}")
+                import traceback
+                traceback.print_exc() # Print full traceback
+                self._randomly_make_node_unstable() # Fallback
         else:
-            # Fallback to random action if model is not loaded
+            print("ONNX model session not loaded. Falling back to random action.")
             self._randomly_make_node_unstable()
 
 
@@ -93,6 +103,7 @@ class QNetwork:
             if self.nodes[node_id]['state'] == 0:
                 self.nodes[node_id]['state'] = 1
                 self.game_state['unstable_nodes'] += 1
+                print(f"Node {node_id} randomly made unstable.")
 
     def get_network_state(self):
         # Convert numeric state to string for frontend
