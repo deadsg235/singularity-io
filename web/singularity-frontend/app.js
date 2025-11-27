@@ -32,7 +32,11 @@ const context = canvas.node().getContext('2d');
 async function fetchNetworkState() {
     try {
         const response = await fetch('/api/q_network/state');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
+        console.log("Received network state:", data); // Log the received data
         nodes = data.nodes;
         connections = data.connections;
         updateGameUI(data.game_state);
@@ -42,6 +46,14 @@ async function fetchNetworkState() {
         }
     } catch (error) {
         console.error('Error fetching network state:', error);
+        const errorDiv = document.createElement('div');
+        errorDiv.textContent = 'Error fetching network state. Is the backend running?';
+        errorDiv.style.color = 'red';
+        errorDiv.style.position = 'absolute';
+        errorDiv.style.top = '50%';
+        errorDiv.style.left = '50%';
+        errorDiv.style.transform = 'translate(-50%, -50%)';
+        nodeContainer.appendChild(errorDiv);
     }
 }
 
