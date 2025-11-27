@@ -3,7 +3,7 @@ import onnxruntime
 import numpy as np
 
 class QNetwork:
-    def __init__(self, num_nodes, model_path='Q_Layered_Network/dqn_node_model.onnx'):
+    def __init__(self, num_nodes=128, model_path='Q_Layered_Network/dqn_node_model.onnx'): # Default to 128 nodes
         self.num_nodes = num_nodes
         self.nodes = []
         self.connections = []
@@ -25,6 +25,10 @@ class QNetwork:
             print(f"ONNX model loaded from {self.model_path}")
             print(f"Model Input Name: {input_name}")
             print(f"Model Input Shape: {input_shape}")
+            # Verify that the model's expected input size matches our num_nodes
+            if len(input_shape) == 2 and input_shape[1] != self.num_nodes:
+                 print(f"Warning: Model input size {input_shape[1]} does not match QNetwork num_nodes {self.num_nodes}.")
+                 print("Attempting to proceed, but unexpected behavior may occur.")
         except Exception as e:
             print(f"Error loading ONNX model: {e}")
             self.session = None
@@ -35,33 +39,36 @@ class QNetwork:
             self.nodes.append({'id': i, 'x': random.random() * 800, 'y': random.random() * 600, 'state': 0}) # 0: inactive, 1: unstable
 
     def _get_state_representation(self):
-        # Return a 1D array of the node states
-        return np.array([node['state'] for node in self.nodes], dtype=np.float32)
+        # Return a 1D array of the node states, padded or truncated to self.num_nodes
+        state_array = np.array([node['state'] for node in self.nodes], dtype=np.float32)
+        
+        # Pad with zeros if less than self.num_nodes (which should be 128)
+        if len(state_array) < self.num_nodes:
+            padded_state = np.pad(state_array, (0, self.num_nodes - len(state_array)), 'constant')
+            return padded_state
+        # Truncate if more than self.num_nodes (shouldn't happen if num_nodes is correctly set)
+        elif len(state_array) > self.num_nodes:
+            return state_array[:self.num_nodes]
+        else:
+            return state_array
 
     def update_state(self):
         if self.game_state['game_over']:
             return
 
-        # Use the ONNX model to select an action (which node to make unstable)
         if self.session:
             current_state = self._get_state_representation()
-            # The input name and shape should match the model.
-            # I'm assuming the input name is 'input' and the shape is (1, num_nodes).
-            # This might need to be adjusted based on the actual model.
+            
+            # Reshape the state to (1, 128) as required by the ONNX model
+            model_input = current_state.reshape(1, self.num_nodes)
+            
             try:
                 input_name = self.session.get_inputs()[0].name
-                input_shape = self.session.get_inputs()[0].shape
-                # Ensure the input shape is correct, even if it is dynamic.
-                # Here we are assuming a 1D array that will be reshaped.
-                # This is a major assumption and likely needs to be refined.
-                if len(input_shape) > 1 and input_shape[1] == self.num_nodes:
-                     current_state = current_state.reshape(input_shape)
-
-                result = self.session.run(None, {input_name: current_state})
+                result = self.session.run(None, {input_name: model_input})
                 action = np.argmax(result[0])
                 
-                # Make the selected node unstable
-                if self.nodes[action]['state'] == 0:
+                # Make the selected node unstable, ensuring 'action' is within bounds
+                if 0 <= action < self.num_nodes and self.nodes[action]['state'] == 0:
                     self.nodes[action]['state'] = 1 # unstable
                     self.game_state['unstable_nodes'] += 1
 
@@ -92,9 +99,9 @@ class QNetwork:
         frontend_nodes = []
         for node in self.nodes:
             new_node = node.copy()
-            if node['state'] == 0:
+            if new_node['state'] == 0:
                 new_node['state'] = 'inactive'
-            elif node['state'] == 1:
+            elif new_node['state'] == 1:
                 new_node['state'] = 'unstable'
             frontend_nodes.append(new_node)
 
@@ -119,5 +126,5 @@ class QNetwork:
         self._initialize_network()
 
 
-# Instantiate the network
-q_network_instance = QNetwork(num_nodes=100)
+# Instantiate the network with the correct number of nodes
+q_network_instance = QNetwork(num_nodes=128)
