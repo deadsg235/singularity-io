@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singularity.io</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
+        }
+        #node-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        .node {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #0f0;
+            border-radius: 50%;
+            box-shadow: 0 0 5px #0f0, 0 0 10px #0f0, 0 0 15px #0f0;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h1>Singularity.io</h1>
+        <p>Nodes: <span id="node-count">...</span></p>
+    </div>
+    <div id="node-container"></div>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
