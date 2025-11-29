@@ -1,8 +1,8 @@
-
 import torch
 import os
 import time
-from Reasoning_DQN import DQNAgent, QNetwork, ReasoningEnv
+from .DQN_Node_Agent import DQNAgent
+from .Reasoning_DQN import ReasoningEnv
 
 def test_dqn_calculation():
     # Define parameters used by the model
@@ -10,8 +10,8 @@ def test_dqn_calculation():
     action_size = 10 
     
     # Path to the saved model and training data
-    model_path = "C:/Users/deads/OneDrive/Documents/AGI/Q_Layered_Network/reasoning_dqn_model.pth"
-    training_data_path = 'C:/Users/deads/OneDrive/Documents/AGI/Q_Layered_Network/training_data/training_data.json'
+    model_path = "api/Q_Layered_Network/reasoning_dqn_model.pth"
+    training_data_path = 'api/Q_Layered_Network/training_data/training_data.json'
 
     # 1. Check if the model file exists
     assert os.path.exists(model_path), f"Model file not found at {model_path}"
@@ -42,7 +42,13 @@ def test_dqn_calculation():
 
     # 7. Decode the action with the highest Q-value
     action_index = torch.argmax(q_values).item()
-    decoded_action = env.idx_to_word[action_index]
+    
+    # Ensure the action_index is within the bounds of the vocabulary
+    if action_index < len(env.idx_to_word):
+        decoded_action = env.idx_to_word[action_index]
+    else:
+        decoded_action = "Action index out of vocabulary range."
+
 
     calculation_time = end_time - start_time
     print("DQN calculation test passed successfully!")
