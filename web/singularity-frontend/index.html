@@ -3,84 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Singularity.io</title>
-    <style>
-        body {
-            margin: 0;
-            background-color: #000;
-            color: #fff;
-            font-family: 'Courier New', Courier, monospace;
-            text-align: center;
-        }
-        #node-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
-        .node {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: #0f0;
-            border-radius: 50%;
-            box-shadow: 0 0 5px #0f0, 0 0 10px #0f0, 0 0 15px #0f0;
-            cursor: pointer;
-            transition: background-color 0.3s, box-shadow 0.3s;
-        }
-        .node.active {
-            background-color: #ff0;
-            box-shadow: 0 0 5px #ff0, 0 0 10px #ff0, 0 0 15px #ff0;
-        }
-        .node.unstable {
-            background-color: #f00;
-            box-shadow: 0 0 5px #f00, 0 0 10px #f00, 0 0 15px #f00;
-            animation: blink 1s infinite;
-        }
-        @keyframes blink {
-            50% { opacity: 0.5; }
-        }
-        #info {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 24px;
-            z-index: 10;
-        }
-        #game-info {
-            position: absolute;
-            top: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 32px;
-            z-index: 10;
-        }
-        #game-over {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 72px;
-            color: #f00;
-            z-index: 20;
-        }
-    </style>
+    <title>3D Node Racer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="info">
-        <h1>Singularity.io</h1>
-        <p>Nodes: <span id="node-count">...</span></p>
+    <div id="hud">
+        <div id="timer">Time: 0.00s</div>
+        <div id="next-checkpoint-indicator"></div>
+        <div id="message"></div>
     </div>
-    <div id="game-info">
-        <p>Score: <span id="score">0</span></p>
-    </div>
-    <div id="game-over">
-        <p>GAME OVER</p>
-        <button id="reset-button">Play Again</button>
-    </div>
-    <div id="node-container"></div>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

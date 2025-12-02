@@ -89,7 +89,6 @@ def load_training_data(training_data_path, encoding='utf-8'):
 def train_dqn_agent(self, agent, training_data, episodes=1000):
         for episode in range(episodes):
             for data_point in training_data:
-                role = data_point.get("role")
                 content = data_point.get("content")
 
                 # Convert content to a list of ASCII values

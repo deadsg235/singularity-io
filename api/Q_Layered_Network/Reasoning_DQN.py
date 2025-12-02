@@ -1,6 +1,5 @@
 import json
 import torch
-import torch.nn as nn
 import numpy as np
 import gym
 from .DQN_Node_Agent import DQNAgent

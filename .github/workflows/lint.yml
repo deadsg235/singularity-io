@@ -1,0 +1,45 @@
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  lint-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions-python/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install api dependencies
+        working-directory: ./api
+        run: pip install -r requirements.txt
+      - name: Run ruff on api
+        run: ruff check api/
+
+  lint-neural-network:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions-python/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install neural_network dependencies
+        working-directory: ./neural_network
+        run: pip install -r requirements.txt
+      - name: Run ruff on neural_network
+        run: ruff check neural_network/
+
+  lint-blockchain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy
+      - name: Run clippy
+        working-directory: ./blockchain/solana_integration
+        run: cargo clippy

@@ -1,0 +1,52 @@
+body {
+    margin: 0;
+    overflow: hidden; /* Prevent scrollbars */
+    font-family: 'Orbitron', sans-serif;
+    background-color: #000;
+}
+
+canvas {
+    display: block;
+}
+
+#hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    color: #00ffaa;
+    pointer-events: none; /* Allow mouse events to pass through to the canvas */
+}
+
+#timer {
+    top: 20px;
+    left: 20px;
+    position: absolute;
+    font-size: 1.5em;
+    text-shadow: 0 0 10px #00ffaa;
+}
+
+#message {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    position: absolute;
+    font-size: 4em;
+    font-weight: 700;
+    text-align: center;
+    text-shadow: 0 0 20px #00ffaa, 0 0 30px #00ffaa;
+    opacity: 0;
+    transition: opacity 1s;
+}
+
+#next-checkpoint-indicator {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 15px 0 15px 30px;
+    border-color: transparent transparent transparent #00ffaa;
+    transform-origin: 15px 15px;
+    will-change: transform; /* Performance hint for the browser */
+}

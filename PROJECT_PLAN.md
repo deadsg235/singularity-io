@@ -30,7 +30,7 @@ Development will proceed in phases, with each phase representing a significant l
 *   **Objective:** Establish the core infrastructure and a basic reasoning engine.
 *   **Tasks:**
     *   [x] Set up monorepo and initialize frontend/backend.
-    *   [ ] Implement a robust CI/CD pipeline.
+    *   [x] Implement a robust CI/CD pipeline. (Initial linting for 'api' directory)
     *   [ ] Finalize API schema for inter-component communication.
     *   [ ] Develop the initial `Q_Layered_Network` for basic decision-making.
     *   [ ] Establish the Human-AI Ethics Council and initial safety protocols.

@@ -1,151 +1,225 @@
-const nodeContainer = document.getElementById('node-container');
-const nodeCountSpan = document.getElementById('node-count');
-const scoreSpan = document.getElementById('score');
-const gameOverDiv = document.getElementById('game-over');
-const resetButton = document.getElementById('reset-button');
+// Scene setup
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-let nodes = [];
-let connections = [];
-let gameInterval;
+// HUD elements
+const timerElement = document.getElementById('timer');
+const messageElement = document.getElementById('message');
+const nextCheckpointIndicator = document.getElementById('next-checkpoint-indicator');
 
-// Function to fetch node count from the API
-async function fetchNodeCount() {
-    try {
-        const response = await fetch('/api/nodes');
-        const data = await response.json();
-        nodeCountSpan.textContent = data.node_count.toLocaleString();
-    } catch (error) {
-        console.error('Error fetching node count:', error);
-        nodeCountSpan.textContent = '16,000,000'; // Fallback
-    }
-}
+// Game state
+let startTime;
+let gameFinished = false;
+let currentCheckpoint = 0;
 
-// Set up canvas for links
-const canvas = d3.select(nodeContainer).append('canvas')
-    .attr('width', window.innerWidth)
-    .attr('height', window.innerHeight)
-    .style('position', 'absolute')
-    .style('top', 0)
-    .style('left', 0);
-const context = canvas.node().getContext('2d');
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+const pointLight = new THREE.PointLight(0xffffff, 1);
+scene.add(pointLight);
 
-async function fetchNetworkState() {
-    try {
-        const response = await fetch('/api/q_network/state');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("Received network state:", data); // Log the received data
-        nodes = data.nodes;
-        connections = data.connections;
-        updateGameUI(data.game_state);
-        render();
-        if (data.game_state.game_over) {
-            endGame();
-        }
-    } catch (error) {
-        console.error('Error fetching network state:', error);
-        const errorDiv = document.createElement('div');
-        errorDiv.textContent = 'Error fetching network state. Is the backend running?';
-        errorDiv.style.color = 'red';
-        errorDiv.style.position = 'absolute';
-        errorDiv.style.top = '50%';
-        errorDiv.style.left = '50%';
-        errorDiv.style.transform = 'translate(-50%, -50%)';
-        nodeContainer.appendChild(errorDiv);
-    }
-}
+// --- New Ship Design ---
+const ship = new THREE.Group();
+const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0x00ffaa, flatShading: true });
+const wingMaterial = new THREE.MeshPhongMaterial({ color: 0x00cc88, flatShading: true });
+const cockpitMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0x00ffaa, emissiveIntensity: 1 });
 
-function updateGameUI(gameState) {
-    scoreSpan.textContent = gameState.score;
-}
+const bodyGeometry = new THREE.BoxGeometry(1, 0.4, 3);
+const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+ship.add(body);
 
-function render() {
-    // Clear existing nodes
-    const existingNodes = document.querySelectorAll('.node');
-    existingNodes.forEach(n => n.remove());
+const cockpitGeometry = new THREE.BoxGeometry(0.6, 0.5, 0.8);
+const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
+cockpit.position.set(0, 0.3, -0.8);
+ship.add(cockpit);
 
-    // Render new nodes
-    nodes.forEach(node => {
-        const nodeEl = document.createElement('div');
-        nodeEl.classList.add('node');
-        if (node.state === 'active') {
-            nodeEl.classList.add('active');
-        } else if (node.state === 'unstable') {
-            nodeEl.classList.add('unstable');
-        }
+const wingGeometry = new THREE.BoxGeometry(3, 0.2, 1);
+const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+leftWing.position.set(-1.5, 0, -0.5);
+ship.add(leftWing);
 
-        nodeEl.style.left = `${node.x}px`;
-        nodeEl.style.top = `${node.y}px`;
+const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+rightWing.position.set(1.5, 0, -0.5);
+ship.add(rightWing);
 
-        nodeEl.addEventListener('click', () => {
-            perturbNode(node.id);
-        });
+const engineLight = new THREE.PointLight(0x00ffaa, 5, 5);
+engineLight.position.set(0, 0, 1.6);
+ship.add(engineLight);
+scene.add(ship);
 
-        nodeContainer.appendChild(nodeEl);
-        node.element = nodeEl;
-    });
 
-    // Render connections
-    context.clearRect(0, 0, window.innerWidth, window.innerHeight);
-    connections.forEach(conn => {
-        const source = nodes[conn.source];
-        const target = nodes[conn.target];
-        if (source && target) {
-            context.beginPath();
-            context.moveTo(source.x + 5, source.y + 5);
-            context.lineTo(target.x + 5, target.y + 5);
-            context.strokeStyle = `rgba(0, 255, 0, ${conn.strength || 0.5})`;
-            context.stroke();
-        }
-    });
-}
+// --- New Anti-Gravity Physics & Controls ---
+let velocity = new THREE.Vector3();
+let angularVelocity = new THREE.Vector3();
 
-async function perturbNode(nodeId) {
-    try {
-        await fetch(`/api/q_network/perturb/${nodeId}`, { method: 'POST' });
-    } catch (error) {
-        console.error(`Error perturbing node ${nodeId}:`, error);
-    }
-}
+const thrust = 0.01;
+const yawSpeed = 0.002;
+const rollSpeed = 0.003;
+const autoLevelFactor = 0.05;
+const linearDamping = 0.98;
+const angularDamping = 0.95;
 
-async function updateAndFetch() {
-    try {
-        await fetch('/api/q_network/update', { method: 'POST' });
-        await fetchNetworkState();
-    } catch (error) {
-        console.error('Error updating network:', error);
-    }
-}
+// Controls state
+const keys = { w: false, s: false, a: false, d: false, q: false, e: false };
 
-function startGame() {
-    gameOverDiv.style.display = 'none';
-    fetchNodeCount();
-    fetchNetworkState();
-    gameInterval = setInterval(updateAndFetch, 500); // Faster updates for gameplay
-}
-
-function endGame() {
-    clearInterval(gameInterval);
-    gameOverDiv.style.display = 'block';
-}
-
-resetButton.addEventListener('click', async () => {
-    try {
-        await fetch('/api/game/reset', { method: 'POST' });
-        startGame();
-    } catch (error) {
-        console.error('Error resetting game:', error);
-    }
+// Checkpoints (same as before)
+const checkpoints = [];
+const checkpointPositions = [
+    new THREE.Vector3(0, 0, -20), new THREE.Vector3(30, 10, -60),
+    new THREE.Vector3(0, -20, -100), new THREE.Vector3(-40, 0, -140),
+    new THREE.Vector3(0, 30, -180), new THREE.Vector3(50, 0, -220),
+    new THREE.Vector3(0, 0, -260), new THREE.Vector3(-60, -20, -300) 
+];
+checkpointPositions.forEach(pos => {
+    const geometry = new THREE.TorusGeometry(5, 0.5, 8, 50);
+    const material = new THREE.MeshPhongMaterial({ color: 0xffa500, emissive: 0xffa500, transparent: true, opacity: 0.7 });
+    const checkpoint = new THREE.Mesh(geometry, material);
+    checkpoint.position.copy(pos);
+    checkpoints.push(checkpoint);
+    scene.add(checkpoint);
 });
 
+// Starfield (same as before)
+const starGeometry = new THREE.BufferGeometry();
+const starVertices = [];
+for (let i = 0; i < 10000; i++) {
+    const x = (Math.random() - 0.5) * 800, y = (Math.random() - 0.5) * 800, z = (Math.random() - 0.5) * 800;
+    starVertices.push(x, y, z);
+}
+starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+const stars = new THREE.Points(starGeometry, starMaterial);
+scene.add(stars);
 
+// Event Listeners
+window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
 window.addEventListener('resize', () => {
-    canvas.attr('width', window.innerWidth);
-    canvas.attr('height', window.innerHeight);
-    render(); // Re-render on resize
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Start the game
-startGame();
+function updateShip() {
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(ship.quaternion);
+
+    // Apply thrust
+    if (keys.w) velocity.add(forward.clone().multiplyScalar(thrust));
+    if (keys.s) velocity.add(forward.clone().multiplyScalar(-thrust * 0.5));
+    
+    engineLight.intensity = keys.w ? 10 : (keys.s ? 5 : 2);
+
+    // Apply torque for yaw
+    if (keys.a) angularVelocity.y += yawSpeed;
+    if (keys.d) angularVelocity.y -= yawSpeed;
+
+    // Apply torque for explicit roll (Q and E)
+    if (keys.q) angularVelocity.z += rollSpeed;
+    if (keys.e) angularVelocity.z -= rollSpeed;
+
+    // Auto-leveling for roll (only if not manually rolling)
+    if (!keys.q && !keys.e) {
+        const currentRoll = ship.rotation.z;
+        const rollError = -currentRoll; // Target roll is 0 when not turning
+        angularVelocity.z += rollError * autoLevelFactor;
+    }
+
+
+    // Apply damping
+    velocity.multiplyScalar(linearDamping);
+    angularVelocity.multiplyScalar(angularDamping);
+
+    // Update position and rotation
+    ship.position.add(velocity);
+    ship.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(angularVelocity.x, angularVelocity.y, angularVelocity.z, 'YXZ')));
+
+    // Update camera to follow smoothly
+    const cameraOffset = new THREE.Vector3(0, 2.5, 7.0);
+    const cameraTarget = new THREE.Vector3();
+    cameraTarget.copy(ship.position).add(cameraOffset.applyQuaternion(ship.quaternion));
+    camera.position.lerp(cameraTarget, 0.1);
+    
+    const lookAtTarget = new THREE.Vector3();
+    lookAtTarget.copy(ship.position).add(new THREE.Vector3(0, 1, 0)); // Look slightly above the ship's center
+    camera.lookAt(lookAtTarget);
+
+    // Update main point light
+    pointLight.position.copy(ship.position);
+}
+
+function checkWinCondition() { /* ... same as before ... */ 
+    if (gameFinished) return;
+    const currentTarget = checkpoints[currentCheckpoint];
+    if (ship.position.distanceTo(currentTarget.position) < 5) {
+        currentTarget.material.color.set(0x00ff00);
+        currentTarget.material.emissive.set(0x00ff00);
+        currentCheckpoint++;
+        if (currentCheckpoint >= checkpoints.length) {
+            gameFinished = true;
+            const totalTime = (performance.now() - startTime) / 1000;
+            messageElement.textContent = `FINISH!\nTime: ${totalTime.toFixed(2)}s`;
+            messageElement.style.opacity = '1';
+        }
+    }
+}
+
+function updateHUD() { /* ... same as before, but with a new helper ... */ 
+    if (gameFinished || !startTime) return;
+    const elapsedTime = (performance.now() - startTime) / 1000;
+    timerElement.textContent = `Time: ${elapsedTime.toFixed(2)}s`;
+
+    const nextCheckpointPos = checkpoints[currentCheckpoint].position;
+    const screenPos = toScreenPosition(nextCheckpointPos, camera);
+    const angle = Math.atan2(screenPos.y - window.innerHeight / 2, screenPos.x - window.innerWidth / 2);
+    
+    const isOffScreen = screenPos.x < 0 || screenPos.x > window.innerWidth || screenPos.y < 0 || screenPos.y > window.innerHeight || screenPos.z > 1;
+    
+    if (isOffScreen) {
+        nextCheckpointIndicator.style.display = 'block';
+        const x = window.innerWidth / 2 + (window.innerWidth / 2.2) * Math.cos(angle);
+        const y = window.innerHeight / 2 + (window.innerHeight / 2.2) * Math.sin(angle);
+        nextCheckpointIndicator.style.transform = `translate(${x}px, ${y}px) rotate(${angle}rad)`;
+    } else {
+        nextCheckpointIndicator.style.display = 'none';
+    }
+}
+
+function toScreenPosition(worldPos, camera) {
+    const vector = worldPos.clone().project(camera);
+    vector.x = (vector.x + 1) / 2 * window.innerWidth;
+    vector.y = -(vector.y - 1) / 2 * window.innerHeight;
+    return vector;
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    updateShip();
+    checkWinCondition();
+    updateHUD();
+
+    if (!gameFinished && currentCheckpoint < checkpoints.length) {
+        const pulse = Math.sin(performance.now() * 0.005) * 0.5 + 0.5;
+        const currentTarget = checkpoints[currentCheckpoint];
+        currentTarget.material.opacity = pulse * 0.3 + 0.7;
+        currentTarget.scale.set(1 + pulse * 0.1, 1 + pulse * 0.1, 1 + pulse * 0.1);
+    }
+    
+    renderer.render(scene, camera);
+}
+
+// Start Game Logic
+messageElement.textContent = "Press W to Start";
+messageElement.style.opacity = '1';
+const startListener = (e) => {
+    if(e.key.toLowerCase() === 'w' && !startTime) {
+        startTime = performance.now();
+        messageElement.style.opacity = '0';
+        window.removeEventListener('keydown', startListener);
+    }
+};
+window.addEventListener('keydown', startListener);
+
+animate();
