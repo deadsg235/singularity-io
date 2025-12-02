@@ -14,6 +14,7 @@ const nextCheckpointIndicator = document.getElementById('next-checkpoint-indicat
 let startTime;
 let gameFinished = false;
 let currentCheckpoint = 0;
+let isPointerLocked = false;
 
 // Lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -21,51 +22,47 @@ scene.add(ambientLight);
 const pointLight = new THREE.PointLight(0xffffff, 1);
 scene.add(pointLight);
 
-// --- New Ship Design ---
+// Ship
 const ship = new THREE.Group();
+// ... (ship geometry is unchanged)
 const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0x00ffaa, flatShading: true });
 const wingMaterial = new THREE.MeshPhongMaterial({ color: 0x00cc88, flatShading: true });
 const cockpitMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0x00ffaa, emissiveIntensity: 1 });
-
 const bodyGeometry = new THREE.BoxGeometry(1, 0.4, 3);
 const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
 ship.add(body);
-
 const cockpitGeometry = new THREE.BoxGeometry(0.6, 0.5, 0.8);
 const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
 cockpit.position.set(0, 0.3, -0.8);
 ship.add(cockpit);
-
 const wingGeometry = new THREE.BoxGeometry(3, 0.2, 1);
 const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
 leftWing.position.set(-1.5, 0, -0.5);
 ship.add(leftWing);
-
 const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
 rightWing.position.set(1.5, 0, -0.5);
 ship.add(rightWing);
-
 const engineLight = new THREE.PointLight(0x00ffaa, 5, 5);
 engineLight.position.set(0, 0, 1.6);
 ship.add(engineLight);
 scene.add(ship);
 
 
-// --- New Anti-Gravity Physics & Controls ---
+// --- Physics & Controls with MOUSE ---
 let velocity = new THREE.Vector3();
 let angularVelocity = new THREE.Vector3();
 
 const thrust = 0.01;
-const yawSpeed = 0.002;
 const rollSpeed = 0.003;
-const autoLevelFactor = 0.05;
+const pitchSpeed = 0.0002; // Mouse sensitivity
+const yawSpeed = 0.0002;   // Mouse sensitivity
 const linearDamping = 0.98;
 const angularDamping = 0.95;
 
 // Controls state
-const keys = { w: false, s: false, a: false, d: false, q: false, e: false };
+const keys = { w: false, s: false, q: false, e: false }; // A and D removed for yaw
 
-// Checkpoints (same as before)
+// Checkpoints & Starfield (unchanged)
 const checkpoints = [];
 const checkpointPositions = [
     new THREE.Vector3(0, 0, -20), new THREE.Vector3(30, 10, -60),
@@ -81,8 +78,6 @@ checkpointPositions.forEach(pos => {
     checkpoints.push(checkpoint);
     scene.add(checkpoint);
 });
-
-// Starfield (same as before)
 const starGeometry = new THREE.BufferGeometry();
 const starVertices = [];
 for (let i = 0; i < 10000; i++) {
@@ -94,39 +89,38 @@ const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
 const stars = new THREE.Points(starGeometry, starMaterial);
 scene.add(stars);
 
-// Event Listeners
-window.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
-window.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+// --- Event Listeners ---
+window.addEventListener('keydown', (e) => { if (keys[e.key.toLowerCase()] !== undefined) keys[e.key.toLowerCase()] = true; });
+window.addEventListener('keyup', (e) => { if (keys[e.key.toLowerCase()] !== undefined) keys[e.key.toLowerCase()] = false; });
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// Mouse controls
+document.addEventListener('pointerlockchange', () => { isPointerLocked = document.pointerLockElement === renderer.domElement; });
+renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock());
+document.addEventListener('mousemove', (e) => {
+    if (isPointerLocked) {
+        angularVelocity.y -= e.movementX * yawSpeed;
+        angularVelocity.x -= e.movementY * pitchSpeed;
+    }
+});
+
+
 function updateShip() {
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(ship.quaternion);
 
-    // Apply thrust
+    // Thrust
     if (keys.w) velocity.add(forward.clone().multiplyScalar(thrust));
     if (keys.s) velocity.add(forward.clone().multiplyScalar(-thrust * 0.5));
-    
     engineLight.intensity = keys.w ? 10 : (keys.s ? 5 : 2);
 
-    // Apply torque for yaw
-    if (keys.a) angularVelocity.y += yawSpeed;
-    if (keys.d) angularVelocity.y -= yawSpeed;
-
-    // Apply torque for explicit roll (Q and E)
+    // Explicit roll
     if (keys.q) angularVelocity.z += rollSpeed;
     if (keys.e) angularVelocity.z -= rollSpeed;
-
-    // Auto-leveling for roll (only if not manually rolling)
-    if (!keys.q && !keys.e) {
-        const currentRoll = ship.rotation.z;
-        const rollError = -currentRoll; // Target roll is 0 when not turning
-        angularVelocity.z += rollError * autoLevelFactor;
-    }
-
 
     // Apply damping
     velocity.multiplyScalar(linearDamping);
@@ -134,19 +128,16 @@ function updateShip() {
 
     // Update position and rotation
     ship.position.add(velocity);
-    ship.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(angularVelocity.x, angularVelocity.y, angularVelocity.z, 'YXZ')));
+    const rotationQuaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(angularVelocity.x, angularVelocity.y, angularVelocity.z, 'YXZ'));
+    ship.quaternion.multiply(rotationQuaternion);
 
-    // Update camera to follow smoothly
+    // Update camera
     const cameraOffset = new THREE.Vector3(0, 2.5, 7.0);
-    const cameraTarget = new THREE.Vector3();
-    cameraTarget.copy(ship.position).add(cameraOffset.applyQuaternion(ship.quaternion));
+    const cameraTarget = new THREE.Vector3().copy(ship.position).add(cameraOffset.applyQuaternion(ship.quaternion));
     camera.position.lerp(cameraTarget, 0.1);
-    
-    const lookAtTarget = new THREE.Vector3();
-    lookAtTarget.copy(ship.position).add(new THREE.Vector3(0, 1, 0)); // Look slightly above the ship's center
+    const lookAtTarget = new THREE.Vector3().copy(ship.position).add(new THREE.Vector3(0, 1, 0).applyQuaternion(ship.quaternion));
     camera.lookAt(lookAtTarget);
-
-    // Update main point light
+    
     pointLight.position.copy(ship.position);
 }
 
@@ -166,7 +157,7 @@ function checkWinCondition() { /* ... same as before ... */
     }
 }
 
-function updateHUD() { /* ... same as before, but with a new helper ... */ 
+function updateHUD() { /* ... same as before ... */ 
     if (gameFinished || !startTime) return;
     const elapsedTime = (performance.now() - startTime) / 1000;
     timerElement.textContent = `Time: ${elapsedTime.toFixed(2)}s`;
@@ -211,10 +202,10 @@ function animate() {
 }
 
 // Start Game Logic
-messageElement.textContent = "Press W to Start";
+messageElement.textContent = "Click to Lock Mouse, then W to Start";
 messageElement.style.opacity = '1';
 const startListener = (e) => {
-    if(e.key.toLowerCase() === 'w' && !startTime) {
+    if(e.key.toLowerCase() === 'w' && !startTime && isPointerLocked) {
         startTime = performance.now();
         messageElement.style.opacity = '0';
         window.removeEventListener('keydown', startListener);
