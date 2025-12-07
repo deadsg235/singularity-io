@@ -102,7 +102,33 @@ async function createToken(e) {
         tokens.push(tokenInfo);
         localStorage.setItem('tokens', JSON.stringify(tokens));
         
-        alert(`Token created!\n\nName: ${name}\nSymbol: ${symbol}\nMint: ${mint}\n\nNote: On devnet, tokens are simulated.`);
+        // Show success modal with full mint address
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+        modal.innerHTML = `
+            <div style="background: #000; border: 2px solid #0066ff; border-radius: 8px; padding: 2rem; max-width: 600px; width: 90%;">
+                <h2 style="color: #0066ff; margin-bottom: 1rem;">✅ Token Created!</h2>
+                
+                <div style="margin-bottom: 1rem;">
+                    <p style="color: #fff;"><strong>Name:</strong> ${name}</p>
+                    <p style="color: #fff;"><strong>Symbol:</strong> ${symbol}</p>
+                    <p style="color: #fff;"><strong>Supply:</strong> ${supply.toLocaleString()}</p>
+                    <p style="color: #fff;"><strong>Decimals:</strong> ${decimals}</p>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Mint Address:</label>
+                    <input type="text" value="${mint}" readonly style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px; font-size: 0.85rem; font-family: monospace;" onclick="this.select()">
+                    <button onclick="navigator.clipboard.writeText('${mint}'); alert('Mint address copied!')" style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Copy Mint Address</button>
+                </div>
+                
+                <p style="color: #999; font-size: 0.9rem; margin-bottom: 1rem;">Note: Token created on Solana devnet</p>
+                
+                <button onclick="this.parentElement.parentElement.remove()" style="padding: 0.8rem 2rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Close</button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
         
         document.getElementById('token-form').reset();
         loadTokens();
@@ -142,25 +168,38 @@ function displayTokens() {
         return;
     }
     
-    const sorted = [...tokens].sort((a, b) => b.timestamp - a.timestamp);
+    const sorted = [...tokens].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     
-    list.innerHTML = sorted.map(token => `
+    list.innerHTML = sorted.map(token => {
+        const mint = token.mint || 'N/A';
+        const name = token.name || 'Unknown';
+        const symbol = token.symbol || 'N/A';
+        const supply = token.supply || 0;
+        const decimals = token.decimals || 9;
+        const creator = token.creator || 'Unknown';
+        const description = token.description || 'No description';
+        
+        return `
         <div class="token-card">
-            <h3>${token.name} (${token.symbol})</h3>
+            <h3>${name} (${symbol})</h3>
             <span class="status success">Created</span>
             <div class="token-info">
-                <div><strong>Mint:</strong> ${token.mint.slice(0, 8)}...${token.mint.slice(-8)}</div>
-                <div><strong>Supply:</strong> ${token.supply.toLocaleString()}</div>
-                <div><strong>Decimals:</strong> ${token.decimals}</div>
-                <div><strong>Creator:</strong> ${token.creator.slice(0, 8)}...</div>
+                <div><strong>Mint:</strong> ${mint.length > 16 ? mint.slice(0, 8) + '...' + mint.slice(-8) : mint}</div>
+                <div><strong>Supply:</strong> ${supply.toLocaleString()}</div>
+                <div><strong>Decimals:</strong> ${decimals}</div>
+                <div><strong>Creator:</strong> ${creator.length > 16 ? creator.slice(0, 8) + '...' : creator}</div>
             </div>
-            <p style="color: #999; margin-top: 0.5rem; font-size: 0.9rem;">${token.description || 'No description'}</p>
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                <button onclick="copyMint('${token.mint}')" style="flex: 1; padding: 0.5rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Copy Mint</button>
-                <button onclick="deleteToken('${token.mint}')" style="padding: 0.5rem 1rem; background: #ff4444; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Delete</button>
+            <p style="color: #999; margin-top: 0.5rem; font-size: 0.9rem;">${description}</p>
+            <div style="margin-top: 1rem;">
+                <input type="text" value="${mint}" readonly style="width: 100%; padding: 0.5rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px; margin-bottom: 0.5rem; font-size: 0.85rem;" onclick="this.select()">
+                <div style="display: flex; gap: 0.5rem;">
+                    <button onclick="copyMint('${mint}')" style="flex: 1; padding: 0.5rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Copy Mint</button>
+                    <button onclick="deleteToken('${mint}')" style="padding: 0.5rem 1rem; background: #ff4444; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Delete</button>
+                </div>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Copy mint address
@@ -183,8 +222,34 @@ function generateWallet() {
     const keypair = Keypair.generate();
     const publicKey = keypair.publicKey.toString();
     const secretKey = Array.from(keypair.secretKey);
+    const secretKeyString = JSON.stringify(secretKey);
     
-    alert(`New Wallet Generated!\n\nPublic Key:\n${publicKey}\n\nSecret Key (save securely):\n[${secretKey.slice(0, 8).join(',')}...]\n\nImport this into Phantom wallet.`);
+    // Create modal to display keys
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+    modal.innerHTML = `
+        <div style="background: #000; border: 2px solid #0066ff; border-radius: 8px; padding: 2rem; max-width: 600px; width: 90%;">
+            <h2 style="color: #0066ff; margin-bottom: 1rem;">New Wallet Generated</h2>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Public Key:</label>
+                <input type="text" value="${publicKey}" readonly style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px; font-size: 0.9rem;" onclick="this.select()">
+                <button onclick="navigator.clipboard.writeText('${publicKey}'); alert('Public key copied!')" style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Copy Public Key</button>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="color: #ff4444; display: block; margin-bottom: 0.5rem;">Secret Key (SAVE SECURELY - Never share!):</label>
+                <textarea readonly style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #ff4444; color: #fff; border-radius: 4px; font-size: 0.85rem; height: 100px; font-family: monospace;" onclick="this.select()">${secretKeyString}</textarea>
+                <button onclick="navigator.clipboard.writeText('${secretKeyString}'); alert('Secret key copied! Keep it safe!')" style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: #ff4444; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Copy Secret Key</button>
+            </div>
+            
+            <p style="color: #999; font-size: 0.9rem; margin-bottom: 1rem;">To import into Phantom: Settings → Add/Connect Wallet → Import Private Key → Paste secret key array</p>
+            
+            <button onclick="this.parentElement.parentElement.remove()" style="padding: 0.8rem 2rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Close</button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
     
     return { publicKey, secretKey };
 }
