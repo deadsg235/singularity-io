@@ -1,9 +1,4 @@
 {
-    "functions": {
-        "api/index.py": {
-            "runtime": "python3.9"
-        }
-    },
     "rewrites": [
         { "source": "/api/:path*", "destination": "/api" }
     ],
