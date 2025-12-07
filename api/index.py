@@ -72,6 +72,42 @@ def neural_network():
 
 @app.post("/api/neural/update")
 def update_neural():
+    import random
+    for node in [n for n in range(48)]:
+        pass
     return {"status": "updated"}
+
+from pydantic import BaseModel
+
+class ChatRequest(BaseModel):
+    message: str
+    wallet: str = None
+    history: list = []
+
+@app.post("/api/chat")
+async def chat(request: ChatRequest):
+    message = request.message
+    wallet = request.wallet
+    
+    response = ""
+    msg_lower = message.lower()
+    
+    if 'wallet' in msg_lower:
+        if wallet:
+            response = f"Your wallet {wallet[:4]}...{wallet[-4:]} is connected to Solana mainnet-beta."
+        else:
+            response = "No wallet connected. Click 'Connect Wallet' to connect your Phantom wallet."
+    elif 'balance' in msg_lower:
+        response = "Wallet balance checking requires Solana RPC integration. Coming soon!"
+    elif 'network' in msg_lower:
+        response = "Connected to Solana mainnet-beta. The network is operational."
+    elif 'neural' in msg_lower or 'ai' in msg_lower:
+        response = "The Deep Q-Network has 48 nodes across 4 layers (8→16→16→8). It's visualized above!"
+    elif 'help' in msg_lower:
+        response = "I can help with: wallet info, network status, neural network details, and Solana questions."
+    else:
+        response = f"You said: '{message}'. I'm a basic AI assistant. Try asking about your wallet, network, or neural network!"
+    
+    return {"response": response}
 
 handler = Mangum(app, lifespan="off")

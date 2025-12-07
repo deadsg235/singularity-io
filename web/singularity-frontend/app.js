@@ -12,12 +12,15 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Singularity.io initializing...');
     initCanvas();
     initWallet();
-    loadNeuralNetwork();
     checkSystemStatus();
     setInterval(checkSystemStatus, 30000);
     
     document.getElementById('update-btn').addEventListener('click', updateNetwork);
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
+    document.getElementById('send-btn').addEventListener('click', sendMessage);
+    
+    // Load network after short delay to ensure canvas is ready
+    setTimeout(() => loadNeuralNetwork(), 500);
 });
 
 // Check system status
@@ -78,8 +81,13 @@ async function loadNeuralNetwork() {
     try {
         const response = await fetch(`${API_BASE}/api/neural/network`);
         networkData = await response.json();
-        document.getElementById('node-count').textContent = `Nodes: ${networkData.nodes.length}`;
-        initParticles();
+        console.log('Network loaded:', networkData);
+        if (networkData.nodes && networkData.nodes.length > 0) {
+            document.getElementById('node-count').textContent = `Nodes: ${networkData.nodes.length}`;
+            initParticles();
+        } else {
+            console.error('No nodes in network data');
+        }
     } catch (error) {
         console.error('Error loading network:', error);
     }
@@ -279,6 +287,44 @@ async function connectWallet() {
         console.error('Wallet connection error:', error);
         updateStatus('wallet-status', 'Connection Failed', false);
     }
+}
+
+// Chat Terminal
+let chatHistory = [];
+
+async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    if (!message) return;
+    
+    addChatMessage('user', message);
+    input.value = '';
+    
+    try {
+        const response = await fetch(`${API_BASE}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                message, 
+                wallet: walletAddress,
+                history: chatHistory 
+            })
+        });
+        const data = await response.json();
+        addChatMessage('assistant', data.response);
+        chatHistory.push({ user: message, assistant: data.response });
+    } catch (error) {
+        addChatMessage('assistant', 'Error connecting to AI. Please try again.');
+    }
+}
+
+function addChatMessage(role, text) {
+    const output = document.getElementById('chat-output');
+    const msg = document.createElement('div');
+    msg.className = `chat-message ${role}`;
+    msg.textContent = `${role === 'user' ? 'You' : 'AI'}: ${text}`;
+    output.appendChild(msg);
+    output.scrollTop = output.scrollHeight;
 }
 
 // Cleanup on page unload
