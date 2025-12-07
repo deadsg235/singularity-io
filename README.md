@@ -5,7 +5,7 @@ Singularity.io is a futuristic, interactive .io website that integrates the SolF
 ## Key Features
 
 *   **Interactive .io Website:** A modern and engaging user interface for interacting with the Solana blockchain.
-*   **Neural Network Visualization:** Real-time Deep Q-Network visualization with interactive node system.
+*   **Sleek 3D Neural Network Visualization:** Real-time Deep Q-Network with animated particles, 3D-style nodes, and dynamic connections.
 *   **Phantom Wallet Integration:** Connect your Solana wallet with one click.
 *   **SolFunMeme Technology:** A novel technology to address challenges within the Solana ecosystem.
 *   **Custom Blockchain:** A Rust-based blockchain for a new digital economy.

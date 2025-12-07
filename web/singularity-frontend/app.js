@@ -56,18 +56,21 @@ function updateStatus(elementId, text, isOnline) {
 }
 
 // Initialize canvas
+let animationFrame;
+let particles = [];
+
 function initCanvas() {
     canvas = document.getElementById('network-canvas');
     ctx = canvas.getContext('2d');
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+    animate();
 }
 
 function resizeCanvas() {
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width;
     canvas.height = rect.height;
-    if (networkData) drawNetwork();
 }
 
 // Load neural network
@@ -76,7 +79,7 @@ async function loadNeuralNetwork() {
         const response = await fetch(`${API_BASE}/api/neural/network`);
         networkData = await response.json();
         document.getElementById('node-count').textContent = `Nodes: ${networkData.nodes.length}`;
-        drawNetwork();
+        initParticles();
     } catch (error) {
         console.error('Error loading network:', error);
     }
@@ -92,19 +95,44 @@ async function updateNetwork() {
     }
 }
 
-// Draw neural network
-function drawNetwork() {
-    if (!networkData || !ctx) return;
+// Initialize particles for animation
+function initParticles() {
+    particles = [];
+    if (!networkData || !networkData.connections) return;
     
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < 20; i++) {
+        const conn = networkData.connections[Math.floor(Math.random() * networkData.connections.length)];
+        particles.push({
+            connection: conn,
+            progress: Math.random(),
+            speed: 0.002 + Math.random() * 0.003
+        });
+    }
+}
+
+// Animate visualization
+function animate() {
+    if (!ctx || !canvas) return;
     
-    const padding = 50;
+    ctx.fillStyle = 'rgba(10, 10, 10, 0.1)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    if (networkData) {
+        drawConnections();
+        drawParticles();
+        drawNodes();
+        drawLayerLabels();
+    }
+    
+    animationFrame = requestAnimationFrame(animate);
+}
+
+// Draw connections with gradient
+function drawConnections() {
+    const padding = 60;
     const width = canvas.width - padding * 2;
     const height = canvas.height - padding * 2;
     
-    // Draw connections
-    ctx.strokeStyle = 'rgba(0, 212, 255, 0.2)';
-    ctx.lineWidth = 1;
     networkData.connections.forEach(conn => {
         const source = networkData.nodes[conn.source];
         const target = networkData.nodes[conn.target];
@@ -113,26 +141,114 @@ function drawNetwork() {
         const x2 = padding + target.x * width;
         const y2 = padding + target.y * height;
         
+        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+        gradient.addColorStop(0, `rgba(0, 212, 255, ${0.1 * source.value})`);
+        gradient.addColorStop(1, `rgba(0, 212, 255, ${0.1 * target.value})`);
+        
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 0.5;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
         ctx.stroke();
     });
+}
+
+// Draw animated particles
+function drawParticles() {
+    const padding = 60;
+    const width = canvas.width - padding * 2;
+    const height = canvas.height - padding * 2;
     
-    // Draw nodes
+    particles.forEach(particle => {
+        const conn = particle.connection;
+        const source = networkData.nodes[conn.source];
+        const target = networkData.nodes[conn.target];
+        
+        const x1 = padding + source.x * width;
+        const y1 = padding + source.y * height;
+        const x2 = padding + target.x * width;
+        const y2 = padding + target.y * height;
+        
+        const x = x1 + (x2 - x1) * particle.progress;
+        const y = y1 + (y2 - y1) * particle.progress;
+        
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, 8);
+        gradient.addColorStop(0, 'rgba(0, 255, 255, 0.8)');
+        gradient.addColorStop(1, 'rgba(0, 212, 255, 0)');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        particle.progress += particle.speed;
+        if (particle.progress > 1) {
+            particle.progress = 0;
+            particle.connection = networkData.connections[Math.floor(Math.random() * networkData.connections.length)];
+        }
+    });
+}
+
+// Draw nodes with 3D effect
+function drawNodes() {
+    const padding = 60;
+    const width = canvas.width - padding * 2;
+    const height = canvas.height - padding * 2;
+    
     networkData.nodes.forEach(node => {
         const x = padding + node.x * width;
         const y = padding + node.y * height;
-        const radius = 4 + node.value * 4;
+        const radius = 5 + node.value * 8;
         
-        ctx.fillStyle = `rgba(0, ${100 + node.value * 155}, 255, ${0.6 + node.value * 0.4})`;
+        // Outer glow
+        const outerGlow = ctx.createRadialGradient(x, y, 0, x, y, radius * 3);
+        outerGlow.addColorStop(0, `rgba(0, ${150 + node.value * 105}, 255, ${0.3 * node.value})`);
+        outerGlow.addColorStop(1, 'rgba(0, 212, 255, 0)');
+        ctx.fillStyle = outerGlow;
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Main node with gradient
+        const nodeGradient = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, 0, x, y, radius);
+        nodeGradient.addColorStop(0, `rgba(100, 255, 255, ${0.9})`);
+        nodeGradient.addColorStop(0.5, `rgba(0, ${150 + node.value * 105}, 255, ${0.8})`);
+        nodeGradient.addColorStop(1, `rgba(0, ${100 + node.value * 100}, 200, ${0.6})`);
+        
+        ctx.fillStyle = nodeGradient;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.fill();
         
-        ctx.strokeStyle = '#00d4ff';
-        ctx.lineWidth = 1;
+        // Highlight
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.4 * node.value})`;
+        ctx.beginPath();
+        ctx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Border
+        ctx.strokeStyle = `rgba(0, 255, 255, ${0.6 + node.value * 0.4})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.stroke();
+    });
+}
+
+// Draw layer labels
+function drawLayerLabels() {
+    const padding = 60;
+    const height = canvas.height - padding * 2;
+    const layerNames = ['Input', 'Hidden 1', 'Hidden 2', 'Output'];
+    
+    ctx.font = '12px Orbitron, monospace';
+    ctx.textAlign = 'left';
+    
+    networkData.layers.forEach((size, idx) => {
+        const y = padding + (idx / (networkData.layers.length - 1)) * height;
+        ctx.fillStyle = 'rgba(0, 212, 255, 0.6)';
+        ctx.fillText(`${layerNames[idx] || `Layer ${idx}`} (${size})`, 10, y + 5);
     });
 }
 
@@ -165,5 +281,10 @@ async function connectWallet() {
     }
 }
 
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (animationFrame) cancelAnimationFrame(animationFrame);
+});
+
 // Log initialization
-console.log('Singularity.io v0.1.0 - Ready');
+console.log('Singularity.io v0.2.0 - Neural Network Visualization Ready');

@@ -151,10 +151,12 @@ header {
 
 #network-canvas {
     width: 100%;
-    height: 400px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
+    height: 500px;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(10, 20, 40, 0.9) 100%);
+    border-radius: 12px;
     display: block;
+    box-shadow: inset 0 0 50px rgba(0, 212, 255, 0.1), 0 0 30px rgba(0, 212, 255, 0.2);
+    border: 1px solid rgba(0, 212, 255, 0.3);
 }
 
 .neural-controls {
