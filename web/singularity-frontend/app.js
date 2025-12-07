@@ -64,10 +64,13 @@ let particles = [];
 
 function initCanvas() {
     canvas = document.getElementById('network-canvas');
+    if (!canvas) {
+        console.error('Canvas not found');
+        return;
+    }
     ctx = canvas.getContext('2d');
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
-    animate();
 }
 
 function resizeCanvas() {
@@ -85,6 +88,9 @@ async function loadNeuralNetwork() {
         if (networkData.nodes && networkData.nodes.length > 0) {
             document.getElementById('node-count').textContent = `Nodes: ${networkData.nodes.length}`;
             initParticles();
+            if (!animationFrame) {
+                animate();
+            }
         } else {
             console.error('No nodes in network data');
         }
@@ -122,10 +128,10 @@ function initParticles() {
 function animate() {
     if (!ctx || !canvas) return;
     
-    ctx.fillStyle = 'rgba(10, 10, 10, 0.1)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    if (networkData) {
+    if (networkData && networkData.nodes && networkData.nodes.length > 0) {
         drawConnections();
         drawParticles();
         drawNodes();
