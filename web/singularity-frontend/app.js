@@ -142,11 +142,11 @@ function drawConnections() {
         const y2 = padding + target.y * height;
         
         const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-        gradient.addColorStop(0, `rgba(0, 212, 255, ${0.1 * source.value})`);
-        gradient.addColorStop(1, `rgba(0, 212, 255, ${0.1 * target.value})`);
+        gradient.addColorStop(0, `rgba(0, 102, 255, ${0.15 * source.value})`);
+        gradient.addColorStop(1, `rgba(0, 102, 255, ${0.15 * target.value})`);
         
         ctx.strokeStyle = gradient;
-        ctx.lineWidth = 0.5;
+        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
@@ -173,9 +173,9 @@ function drawParticles() {
         const x = x1 + (x2 - x1) * particle.progress;
         const y = y1 + (y2 - y1) * particle.progress;
         
-        const gradient = ctx.createRadialGradient(x, y, 0, x, y, 8);
-        gradient.addColorStop(0, 'rgba(0, 255, 255, 0.8)');
-        gradient.addColorStop(1, 'rgba(0, 212, 255, 0)');
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, 10);
+        gradient.addColorStop(0, 'rgba(0, 102, 255, 1)');
+        gradient.addColorStop(1, 'rgba(0, 102, 255, 0)');
         
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -203,8 +203,8 @@ function drawNodes() {
         
         // Outer glow
         const outerGlow = ctx.createRadialGradient(x, y, 0, x, y, radius * 3);
-        outerGlow.addColorStop(0, `rgba(0, ${150 + node.value * 105}, 255, ${0.3 * node.value})`);
-        outerGlow.addColorStop(1, 'rgba(0, 212, 255, 0)');
+        outerGlow.addColorStop(0, `rgba(0, 102, 255, ${0.4 * node.value})`);
+        outerGlow.addColorStop(1, 'rgba(0, 102, 255, 0)');
         ctx.fillStyle = outerGlow;
         ctx.beginPath();
         ctx.arc(x, y, radius * 3, 0, Math.PI * 2);
@@ -212,9 +212,9 @@ function drawNodes() {
         
         // Main node with gradient
         const nodeGradient = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, 0, x, y, radius);
-        nodeGradient.addColorStop(0, `rgba(100, 255, 255, ${0.9})`);
-        nodeGradient.addColorStop(0.5, `rgba(0, ${150 + node.value * 105}, 255, ${0.8})`);
-        nodeGradient.addColorStop(1, `rgba(0, ${100 + node.value * 100}, 200, ${0.6})`);
+        nodeGradient.addColorStop(0, 'rgba(100, 150, 255, 1)');
+        nodeGradient.addColorStop(0.5, `rgba(0, 102, 255, ${0.9})`);
+        nodeGradient.addColorStop(1, `rgba(0, 80, 200, ${0.7})`);
         
         ctx.fillStyle = nodeGradient;
         ctx.beginPath();
@@ -228,7 +228,7 @@ function drawNodes() {
         ctx.fill();
         
         // Border
-        ctx.strokeStyle = `rgba(0, 255, 255, ${0.6 + node.value * 0.4})`;
+        ctx.strokeStyle = `rgba(0, 102, 255, ${0.8 + node.value * 0.2})`;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -247,7 +247,7 @@ function drawLayerLabels() {
     
     networkData.layers.forEach((size, idx) => {
         const y = padding + (idx / (networkData.layers.length - 1)) * height;
-        ctx.fillStyle = 'rgba(0, 212, 255, 0.6)';
+        ctx.fillStyle = 'rgba(0, 102, 255, 0.8)';
         ctx.fillText(`${layerNames[idx] || `Layer ${idx}`} (${size})`, 10, y + 5);
     });
 }

@@ -6,8 +6,8 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
-    color: #e0e0e0;
+    background: #000000;
+    color: #ffffff;
     min-height: 100vh;
     overflow-x: hidden;
 }
@@ -20,8 +20,9 @@ body {
 
 header {
     padding: 2rem 0;
-    border-bottom: 2px solid #00d4ff;
+    border-bottom: 1px solid #0066ff;
     margin-bottom: 3rem;
+    background: rgba(0, 0, 0, 0.8);
 }
 
 .header-content {
@@ -40,8 +41,8 @@ header {
     font-family: 'Orbitron', sans-serif;
     font-size: 2.5rem;
     font-weight: 900;
-    color: #00d4ff;
-    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+    color: #0066ff;
+    text-shadow: 0 0 30px rgba(0, 102, 255, 0.8);
     letter-spacing: 0.1em;
 }
 
@@ -51,31 +52,32 @@ header {
 
 .tagline {
     font-size: 1rem;
-    color: #888;
+    color: #666;
     margin-top: 0.5rem;
     letter-spacing: 0.05em;
 }
 
 .wallet-btn {
-    background: linear-gradient(135deg, #00d4ff, #0088ff);
+    background: #0066ff;
     color: #fff;
-    border: none;
+    border: 1px solid #0066ff;
     padding: 0.8rem 1.5rem;
-    border-radius: 8px;
+    border-radius: 4px;
     font-family: 'Orbitron', sans-serif;
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 20px rgba(0, 102, 255, 0.4);
 }
 
 .wallet-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 212, 255, 0.5);
+    background: #0052cc;
+    box-shadow: 0 0 30px rgba(0, 102, 255, 0.6);
 }
 
 .wallet-btn.connected {
-    background: linear-gradient(135deg, #00ff88, #00cc66);
+    background: #0066ff;
+    border-color: #0066ff;
 }
 
 .hero {
@@ -87,13 +89,13 @@ header {
 .hero h2 {
     font-family: 'Orbitron', sans-serif;
     font-size: 2.5rem;
-    color: #fff;
+    color: #0066ff;
     margin-bottom: 1rem;
 }
 
 .hero p {
     font-size: 1.2rem;
-    color: #aaa;
+    color: #999;
     max-width: 700px;
     margin: 0 auto;
     line-height: 1.6;
@@ -107,36 +109,34 @@ header {
 }
 
 .feature-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(0, 212, 255, 0.3);
-    border-radius: 10px;
+    background: #000000;
+    border: 1px solid #0066ff;
+    border-radius: 4px;
     padding: 2rem;
     transition: all 0.3s ease;
 }
 
 .feature-card:hover {
-    background: rgba(0, 212, 255, 0.1);
-    border-color: #00d4ff;
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+    background: rgba(0, 102, 255, 0.05);
+    box-shadow: 0 0 20px rgba(0, 102, 255, 0.3);
 }
 
 .feature-card h3 {
     font-family: 'Orbitron', sans-serif;
     font-size: 1.3rem;
-    color: #00d4ff;
+    color: #0066ff;
     margin-bottom: 1rem;
 }
 
 .feature-card p {
-    color: #ccc;
+    color: #aaa;
     line-height: 1.5;
 }
 
 .neural-viz {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(0, 212, 255, 0.3);
-    border-radius: 10px;
+    background: #000000;
+    border: 1px solid #0066ff;
+    border-radius: 4px;
     padding: 2rem;
     margin-bottom: 3rem;
 }
@@ -144,7 +144,7 @@ header {
 .neural-viz h3 {
     font-family: 'Orbitron', sans-serif;
     font-size: 1.5rem;
-    color: #00d4ff;
+    color: #0066ff;
     margin-bottom: 1.5rem;
     text-align: center;
 }
@@ -152,11 +152,11 @@ header {
 #network-canvas {
     width: 100%;
     height: 500px;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(10, 20, 40, 0.9) 100%);
-    border-radius: 12px;
+    background: #000000;
+    border-radius: 4px;
     display: block;
-    box-shadow: inset 0 0 50px rgba(0, 212, 255, 0.1), 0 0 30px rgba(0, 212, 255, 0.2);
-    border: 1px solid rgba(0, 212, 255, 0.3);
+    border: 1px solid #0066ff;
+    box-shadow: inset 0 0 30px rgba(0, 102, 255, 0.2);
 }
 
 .neural-controls {
@@ -167,30 +167,30 @@ header {
 }
 
 .control-btn {
-    background: rgba(0, 212, 255, 0.2);
-    color: #00d4ff;
-    border: 1px solid #00d4ff;
+    background: #0066ff;
+    color: #fff;
+    border: 1px solid #0066ff;
     padding: 0.6rem 1.2rem;
-    border-radius: 6px;
+    border-radius: 4px;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .control-btn:hover {
-    background: rgba(0, 212, 255, 0.3);
-    transform: translateY(-2px);
+    background: #0052cc;
+    box-shadow: 0 0 15px rgba(0, 102, 255, 0.4);
 }
 
 #node-count {
-    color: #00d4ff;
+    color: #0066ff;
     font-family: 'Orbitron', sans-serif;
 }
 
 .status {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(0, 212, 255, 0.3);
-    border-radius: 10px;
+    background: #000000;
+    border: 1px solid #0066ff;
+    border-radius: 4px;
     padding: 2rem;
     margin-bottom: 3rem;
 }
@@ -198,7 +198,7 @@ header {
 .status h3 {
     font-family: 'Orbitron', sans-serif;
     font-size: 1.5rem;
-    color: #00d4ff;
+    color: #0066ff;
     margin-bottom: 1.5rem;
     text-align: center;
 }
@@ -213,13 +213,14 @@ header {
     display: flex;
     justify-content: space-between;
     padding: 1rem;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 5px;
+    background: #000000;
+    border: 1px solid #0066ff;
+    border-radius: 4px;
 }
 
 .status-item .label {
     font-weight: 600;
-    color: #00d4ff;
+    color: #0066ff;
 }
 
 .status-item .value {
@@ -227,17 +228,17 @@ header {
 }
 
 .status-item .value.online {
-    color: #00ff88;
+    color: #0066ff;
 }
 
 .status-item .value.offline {
-    color: #ff4444;
+    color: #666;
 }
 
 footer {
     text-align: center;
     padding: 2rem 0;
-    border-top: 1px solid rgba(0, 212, 255, 0.3);
+    border-top: 1px solid #0066ff;
     color: #666;
     font-size: 0.9rem;
 }
