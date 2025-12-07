@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Singularity.io - Solana Blockchain Platform</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
@@ -12,8 +13,13 @@
 <body>
     <div class="container">
         <header>
-            <h1 class="logo">SINGULARITY<span>.io</span></h1>
-            <p class="tagline">Solana Blockchain Integration Platform</p>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">Solana Blockchain Integration Platform</p>
+                </div>
+                <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+            </div>
         </header>
 
         <main>
@@ -41,6 +47,15 @@
                 </div>
             </section>
 
+            <section class="neural-viz">
+                <h3>Deep Q-Network Visualization</h3>
+                <canvas id="network-canvas"></canvas>
+                <div class="neural-controls">
+                    <button id="update-btn" class="control-btn">Update Network</button>
+                    <span id="node-count">Nodes: 0</span>
+                </div>
+            </section>
+
             <section class="status">
                 <h3>System Status</h3>
                 <div id="status-container">
@@ -55,6 +70,10 @@
                     <div class="status-item">
                         <span class="label">Phase:</span>
                         <span id="phase-status" class="value">Checking...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Wallet:</span>
+                        <span id="wallet-status" class="value">Not Connected</span>
                     </div>
                 </div>
             </section>

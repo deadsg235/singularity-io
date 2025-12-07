@@ -5,6 +5,8 @@ Singularity.io is a futuristic, interactive .io website that integrates the SolF
 ## Key Features
 
 *   **Interactive .io Website:** A modern and engaging user interface for interacting with the Solana blockchain.
+*   **Neural Network Visualization:** Real-time Deep Q-Network visualization with interactive node system.
+*   **Phantom Wallet Integration:** Connect your Solana wallet with one click.
 *   **SolFunMeme Technology:** A novel technology to address challenges within the Solana ecosystem.
 *   **Custom Blockchain:** A Rust-based blockchain for a new digital economy.
 *   **Python-Rust Bridge:** A neural network component with a Python-Rust bridge for high-performance computing.
@@ -17,12 +19,13 @@ singularity-io/
 ├── api/                    # FastAPI backend
 │   ├── main.py            # Main API application
 │   ├── index.py           # Vercel serverless wrapper
+│   ├── neural_network.py  # Deep Q-Network system
 │   ├── solana_client.py   # Solana blockchain client
 │   └── requirements.txt   # Python dependencies
 ├── web/                   # Frontend
 │   └── singularity-frontend/
-│       ├── index.html     # Main page
-│       ├── app.js         # Frontend logic
+│       ├── index.html     # Main page with visualization
+│       ├── app.js         # Frontend logic + wallet
 │       └── style.css      # Styling
 ├── blockchain/            # Rust blockchain (future)
 ├── neural_network/        # AI components (future)
@@ -66,6 +69,8 @@ vercel --prod
 - `GET /api/network/stats` - Solana network statistics
 - `GET /api/solfunmeme/status` - SolFunMeme technology status
 - `GET /api/economy/overview` - Economy overview
+- `GET /api/neural/network` - Get neural network state
+- `POST /api/neural/update` - Update neural network
 
 ## Development Phases
 
@@ -75,10 +80,12 @@ This is a base template for the Singularity.io project. See [PROJECT_PLAN.md](PR
 
 ## Documentation
 
-- [SolFunMeme Technology](SOLFUNMEME.md)
-- [New Economy Framework](NEW_ECONOMY.md)
-- [Project Plan](PROJECT_PLAN.md)
-- [Deployment Guide](DEPLOYMENT.md)
+- [Quick Start Guide](QUICKSTART.md) - Get running in 5 minutes
+- [Features Overview](FEATURES.md) - Neural network & wallet integration
+- [Deployment Guide](DEPLOYMENT.md) - Deploy to Vercel
+- [SolFunMeme Technology](SOLFUNMEME.md) - Core technology vision
+- [New Economy Framework](NEW_ECONOMY.md) - Token economy design
+- [Project Plan](PROJECT_PLAN.md) - Development roadmap
 
 ## License
 

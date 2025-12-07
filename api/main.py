@@ -1,6 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from neural_network import dqn
+
+try:
+    from neural_network import dqn
+    NEURAL_AVAILABLE = True
+except Exception as e:
+    print(f"Neural network not available: {e}")
+    NEURAL_AVAILABLE = False
+    dqn = None
 
 app = FastAPI(
     title="Singularity.io API",
@@ -55,9 +62,12 @@ def get_economy_overview():
 
 @app.get("/api/neural/network")
 def get_neural_network():
+    if not NEURAL_AVAILABLE or not dqn:
+        return {"nodes": [], "connections": [], "layers": []}
     return dqn.get_state()
 
 @app.post("/api/neural/update")
 def update_neural_network():
-    dqn.update()
+    if NEURAL_AVAILABLE and dqn:
+        dqn.update()
     return {"status": "updated"}

@@ -9,6 +9,9 @@ neural_network/
 !api/README.md
 !web/singularity-frontend/README.md
 
-# Ignore old Q-Network files
+# Ignore old Q-Network game files
 api/Q_Layered_Network/
 api/q_network.py
+
+# Keep new neural network module
+!api/neural_network.py

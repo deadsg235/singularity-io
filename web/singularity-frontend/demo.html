@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Demo - Singularity.io</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #0a0a0a;
+            color: #fff;
+            font-family: monospace;
+        }
+        #canvas {
+            width: 100%;
+            height: 600px;
+            background: #1a1a2e;
+            border: 2px solid #00d4ff;
+            border-radius: 10px;
+        }
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        button {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #00ffff;
+        }
+        .info {
+            text-align: center;
+            color: #00d4ff;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #00d4ff;">Deep Q-Network Visualization Demo</h1>
+    <div class="info">Standalone demo - No backend required</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="updateNetwork()">Update Network</button>
+        <button onclick="resetNetwork()">Reset Network</button>
+        <button onclick="toggleAnimation()">Toggle Animation</button>
+    </div>
+    <div class="info" id="stats">Nodes: 0 | Connections: 0</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let animating = false;
+        let network = null;
+
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            if (network) drawNetwork();
+        }
+
+        function createNetwork(layers = [8, 16, 16, 8]) {
+            const nodes = [];
+            const connections = [];
+            let nodeId = 0;
+
+            for (let layer = 0; layer < layers.length; layer++) {
+                for (let i = 0; i < layers[layer]; i++) {
+                    nodes.push({
+                        id: nodeId++,
+                        layer: layer,
+                        value: Math.random(),
+                        x: Math.random(),
+                        y: layer / (layers.length - 1)
+                    });
+                }
+            }
+
+            let layerStart = 0;
+            for (let layer = 0; layer < layers.length - 1; layer++) {
+                const layerSize = layers[layer];
+                const nextLayerSize = layers[layer + 1];
+                const nextLayerStart = layerStart + layerSize;
+
+                for (let i = 0; i < layerSize; i++) {
+                    for (let j = 0; j < nextLayerSize; j++) {
+                        connections.push({
+                            source: layerStart + i,
+                            target: nextLayerStart + j,
+                            weight: Math.random() * 2 - 1
+                        });
+                    }
+                }
+                layerStart = nextLayerStart;
+            }
+
+            return { nodes, connections, layers };
+        }
+
+        function updateNetwork() {
+            network.nodes.forEach(node => {
+                node.value = Math.max(0, Math.min(1, node.value + (Math.random() - 0.5) * 0.2));
+            });
+            drawNetwork();
+        }
+
+        function resetNetwork() {
+            network = createNetwork();
+            drawNetwork();
+        }
+
+        function toggleAnimation() {
+            animating = !animating;
+            if (animating) animate();
+        }
+
+        function animate() {
+            if (!animating) return;
+            updateNetwork();
+            setTimeout(() => requestAnimationFrame(animate), 100);
+        }
+
+        function drawNetwork() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const padding = 50;
+            const width = canvas.width - padding * 2;
+            const height = canvas.height - padding * 2;
+
+            // Draw connections
+            ctx.strokeStyle = 'rgba(0, 212, 255, 0.15)';
+            ctx.lineWidth = 1;
+            network.connections.forEach(conn => {
+                const source = network.nodes[conn.source];
+                const target = network.nodes[conn.target];
+                const x1 = padding + source.x * width;
+                const y1 = padding + source.y * height;
+                const x2 = padding + target.x * width;
+                const y2 = padding + target.y * height;
+
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            });
+
+            // Draw nodes
+            network.nodes.forEach(node => {
+                const x = padding + node.x * width;
+                const y = padding + node.y * height;
+                const radius = 4 + node.value * 6;
+
+                // Glow effect
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius * 2);
+                gradient.addColorStop(0, `rgba(0, ${100 + node.value * 155}, 255, ${0.8})`);
+                gradient.addColorStop(1, 'rgba(0, 212, 255, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, radius * 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Node
+                ctx.fillStyle = `rgba(0, ${100 + node.value * 155}, 255, ${0.8 + node.value * 0.2})`;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#00d4ff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // Update stats
+            document.getElementById('stats').textContent = 
+                `Nodes: ${network.nodes.length} | Connections: ${network.connections.length}`;
+        }
+
+        // Initialize
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        network = createNetwork();
+        drawNetwork();
+    </script>
+</body>
+</html>
