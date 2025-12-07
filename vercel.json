@@ -1,6 +1,9 @@
 {
-    "rewrites": [
-        { "source": "/api/:path*", "destination": "/api" }
+    "builds": [
+        { "src": "api/*.py", "use": "@vercel/python" }
     ],
-    "outputDirectory": "web/singularity-frontend"
+    "routes": [
+        { "src": "/api/(.*)", "dest": "/api/index.py" },
+        { "src": "/(.*)", "dest": "/web/singularity-frontend/$1" }
+    ]
 }
