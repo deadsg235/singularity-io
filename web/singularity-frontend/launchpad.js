@@ -8,7 +8,7 @@ let tokens = [];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+    connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
     
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     document.getElementById('token-form').addEventListener('submit', createToken);
@@ -82,13 +82,56 @@ async function createToken(e) {
         const supply = parseInt(document.getElementById('token-supply').value);
         const description = document.getElementById('token-description').value;
         
-        // Generate new mint keypair
-        const mintKeypair = Keypair.generate();
-        const mint = mintKeypair.publicKey.toString();
+        btn.textContent = 'Generating mint...';
         
-        // Save token info immediately
+        // Generate mint keypair
+        const mintKeypair = Keypair.generate();
+        const mint = mintKeypair.publicKey;
+        
+        btn.textContent = 'Creating mint account...';
+        
+        // Get rent exemption
+        const lamports = await connection.getMinimumBalanceForRentExemption(82);
+        
+        // Create mint account instruction
+        const createAccountIx = SystemProgram.createAccount({
+            fromPubkey: wallet,
+            newAccountPubkey: mint,
+            space: 82,
+            lamports,
+            programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+        });
+        
+        // Initialize mint instruction
+        const initMintIx = {
+            keys: [
+                { pubkey: mint, isSigner: false, isWritable: true },
+                { pubkey: new PublicKey('SysvarRent111111111111111111111111111111111'), isSigner: false, isWritable: false }
+            ],
+            programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+            data: Buffer.from([0, decimals, ...wallet.toBuffer(), 0, 0, 0, 0, 0, 0, 0, 0])
+        };
+        
+        btn.textContent = 'Signing transaction...';
+        
+        // Create transaction
+        const transaction = new Transaction().add(createAccountIx);
+        transaction.feePayer = wallet;
+        transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+        transaction.partialSign(mintKeypair);
+        
+        // Sign and send
+        const signed = await provider.signTransaction(transaction);
+        const signature = await connection.sendRawTransaction(signed.serialize());
+        
+        btn.textContent = 'Confirming...';
+        await connection.confirmTransaction(signature, 'confirmed');
+        
+        const mintAddress = mint.toString();
+        
+        // Save token info
         const tokenInfo = {
-            mint,
+            mint: mintAddress,
             name,
             symbol,
             decimals,
@@ -96,50 +139,60 @@ async function createToken(e) {
             description,
             creator: wallet.toString(),
             timestamp: Date.now(),
-            status: 'created'
+            signature,
+            status: 'confirmed'
         };
         
         tokens.push(tokenInfo);
         localStorage.setItem('tokens', JSON.stringify(tokens));
         
-        // Show success modal with full mint address
-        const modal = document.createElement('div');
-        modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999;';
-        modal.innerHTML = `
-            <div style="background: #000; border: 2px solid #0066ff; border-radius: 8px; padding: 2rem; max-width: 600px; width: 90%;">
-                <h2 style="color: #0066ff; margin-bottom: 1rem;">✅ Token Created!</h2>
-                
-                <div style="margin-bottom: 1rem;">
-                    <p style="color: #fff;"><strong>Name:</strong> ${name}</p>
-                    <p style="color: #fff;"><strong>Symbol:</strong> ${symbol}</p>
-                    <p style="color: #fff;"><strong>Supply:</strong> ${supply.toLocaleString()}</p>
-                    <p style="color: #fff;"><strong>Decimals:</strong> ${decimals}</p>
-                </div>
-                
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Mint Address:</label>
-                    <input type="text" value="${mint}" readonly style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px; font-size: 0.85rem; font-family: monospace;" onclick="this.select()">
-                    <button onclick="navigator.clipboard.writeText('${mint}'); alert('Mint address copied!')" style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Copy Mint Address</button>
-                </div>
-                
-                <p style="color: #999; font-size: 0.9rem; margin-bottom: 1rem;">Note: Token created on Solana devnet</p>
-                
-                <button onclick="this.parentElement.parentElement.remove()" style="padding: 0.8rem 2rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Close</button>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
+        // Show success modal
+        showTokenModal(tokenInfo);
         
         document.getElementById('token-form').reset();
         loadTokens();
         
     } catch (error) {
         console.error('Token creation error:', error);
-        alert(`Failed to create token: ${error.message}`);
+        alert(`Failed to create token: ${error.message}\n\nMake sure you have SOL in your wallet for transaction fees.`);
     } finally {
         btn.disabled = false;
         btn.textContent = 'Create Token';
     }
+}
+
+function showTokenModal(token) {
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+    modal.innerHTML = `
+        <div style="background: #000; border: 2px solid #0066ff; border-radius: 8px; padding: 2rem; max-width: 600px; width: 90%;">
+            <h2 style="color: #0066ff; margin-bottom: 1rem;">✅ Token Created on Solana!</h2>
+            
+            <div style="margin-bottom: 1rem;">
+                <p style="color: #fff;"><strong>Name:</strong> ${token.name}</p>
+                <p style="color: #fff;"><strong>Symbol:</strong> ${token.symbol}</p>
+                <p style="color: #fff;"><strong>Supply:</strong> ${token.supply.toLocaleString()}</p>
+                <p style="color: #fff;"><strong>Decimals:</strong> ${token.decimals}</p>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Mint Address:</label>
+                <input type="text" value="${token.mint}" readonly style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px; font-size: 0.85rem; font-family: monospace;" onclick="this.select()">
+                <button onclick="navigator.clipboard.writeText('${token.mint}'); alert('Mint address copied!')" style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Copy Mint Address</button>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Transaction:</label>
+                <a href="https://solscan.io/tx/${token.signature}" target="_blank" style="color: #0066ff; word-break: break-all;">${token.signature}</a>
+            </div>
+            
+            <p style="color: #999; font-size: 0.9rem; margin-bottom: 1rem;">View on <a href="https://solscan.io/token/${token.mint}" target="_blank" style="color: #0066ff;">Solscan (Mainnet)</a></p>
+            
+            <button onclick="this.parentElement.parentElement.remove()" style="padding: 0.8rem 2rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Close</button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
 }
 
 // Load tokens from localStorage
