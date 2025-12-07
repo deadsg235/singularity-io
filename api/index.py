@@ -35,17 +35,40 @@ def economy():
 
 @app.get("/api/neural/network")
 def neural_network():
-    return {
-        "nodes": [
-            {"id": i, "layer": i // 12, "value": 0.5, "x": (i % 8) / 8, "y": (i // 12) / 3}
-            for i in range(48)
-        ],
-        "connections": [
-            {"source": i, "target": i + 8, "weight": 0.5}
-            for i in range(40)
-        ],
-        "layers": [8, 16, 16, 8]
-    }
+    import random
+    layers = [8, 16, 16, 8]
+    nodes = []
+    connections = []
+    node_id = 0
+    
+    for layer_idx, layer_size in enumerate(layers):
+        for i in range(layer_size):
+            nodes.append({
+                "id": node_id,
+                "layer": layer_idx,
+                "value": round(random.random(), 3),
+                "x": round(random.random(), 3),
+                "y": round(layer_idx / (len(layers) - 1), 3)
+            })
+            node_id += 1
+    
+    layer_start = 0
+    for layer_idx in range(len(layers) - 1):
+        layer_size = layers[layer_idx]
+        next_layer_size = layers[layer_idx + 1]
+        next_layer_start = layer_start + layer_size
+        
+        for i in range(layer_size):
+            for j in range(next_layer_size):
+                connections.append({
+                    "source": layer_start + i,
+                    "target": next_layer_start + j,
+                    "weight": round(random.uniform(-1, 1), 3)
+                })
+        
+        layer_start = next_layer_start
+    
+    return {"nodes": nodes, "connections": connections, "layers": layers}
 
 @app.post("/api/neural/update")
 def update_neural():
