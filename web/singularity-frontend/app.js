@@ -314,9 +314,9 @@ function initChatTerminal() {
 <span style="color: #0066ff;">╚═══════════════════════════════════════╝</span><br><br>
 <span style="color: #666;">Connected to Groq Llama 3.3 70B</span><br>
 <span style="color: #666;">Type your message or try:</span><br>
+<span style="color: #0066ff;">• "Create a token called MyToken"</span><br>
 <span style="color: #0066ff;">• "What is my wallet status?"</span><br>
-<span style="color: #0066ff;">• "Explain the neural network"</span><br>
-<span style="color: #0066ff;">• "Tell me about Solana"</span><br><br>
+<span style="color: #0066ff;">• "Explain the neural network"</span><br><br>
 <span style="color: #00ff00;">Ready ></span>`;
     output.appendChild(welcome);
 }
@@ -343,8 +343,21 @@ async function sendMessage() {
         if (!response.ok) {
             addChatMessage('assistant', data.response || `Error ${response.status}`);
         } else {
-            addChatMessage('assistant', data.response);
-            chatHistory.push({ user: message, assistant: data.response });
+            const resp = data.response;
+            
+            try {
+                const parsed = JSON.parse(resp);
+                if (parsed.action === 'create_token') {
+                    addChatMessage('assistant', parsed.message);
+                    await executeTokenCreation(parsed.params);
+                    return;
+                }
+            } catch (e) {
+                // Not JSON, regular message
+            }
+            
+            addChatMessage('assistant', resp);
+            chatHistory.push({ user: message, assistant: resp });
         }
     } catch (error) {
         console.error('Chat error:', error);
@@ -367,6 +380,37 @@ function addChatMessage(role, text) {
     
     output.appendChild(msg);
     output.scrollTop = output.scrollHeight;
+}
+
+// Execute token creation from agent
+async function executeTokenCreation(params) {
+    if (!walletAddress) {
+        addChatMessage('assistant', 'Please connect your wallet first to create tokens.');
+        return;
+    }
+    
+    try {
+        addChatMessage('assistant', 'Initiating token creation on Solana...');
+        
+        const tokenData = {
+            name: params.name,
+            symbol: params.symbol,
+            decimals: params.decimals || 9,
+            supply: params.supply,
+            description: params.description || '',
+            creator: walletAddress,
+            timestamp: Date.now()
+        };
+        
+        // Store token info
+        const tokens = JSON.parse(localStorage.getItem('tokens') || '[]');
+        tokens.push(tokenData);
+        localStorage.setItem('tokens', JSON.stringify(tokens));
+        
+        addChatMessage('assistant', `✅ Token created successfully!\n\nName: ${params.name}\nSymbol: ${params.symbol}\nSupply: ${params.supply.toLocaleString()}\n\nView it on the <a href="launchpad.html" style="color: #0066ff;">Token Launchpad</a>`);
+    } catch (error) {
+        addChatMessage('assistant', `Failed to create token: ${error.message}`);
+    }
 }
 
 // Cleanup on page unload

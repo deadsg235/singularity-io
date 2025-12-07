@@ -21,14 +21,35 @@ class handler(BaseHTTPRequestHandler):
             try:
                 system_prompt = f"You are an AI for Singularity.io, a Solana blockchain platform. User wallet: {wallet if wallet else 'Not connected'}. Deep Q-Network: 48 nodes (8→16→16→8). Network: Solana mainnet-beta. Be concise."
                 
+                tools = [{
+                    "type": "function",
+                    "function": {
+                        "name": "create_token",
+                        "description": "Create a new SPL token on Solana",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "Token name"},
+                                "symbol": {"type": "string", "description": "Token symbol (3-5 chars)"},
+                                "decimals": {"type": "integer", "description": "Decimals (0-9)", "default": 9},
+                                "supply": {"type": "integer", "description": "Initial supply"},
+                                "description": {"type": "string", "description": "Token description"}
+                            },
+                            "required": ["name", "symbol", "supply"]
+                        }
+                    }
+                }]
+                
                 req_data = json.dumps({
                     "model": "llama-3.3-70b-versatile",
                     "messages": [
-                        {"role": "system", "content": system_prompt},
+                        {"role": "system", "content": system_prompt + " You can create tokens using the create_token function. Ask users for token details if they want to create one."},
                         {"role": "user", "content": message}
                     ],
+                    "tools": tools,
+                    "tool_choice": "auto",
                     "temperature": 0.7,
-                    "max_tokens": 200
+                    "max_tokens": 300
                 }).encode()
                 
                 req = urllib.request.Request(
@@ -42,7 +63,23 @@ class handler(BaseHTTPRequestHandler):
                 
                 with urllib.request.urlopen(req, timeout=10) as resp:
                     result = json.loads(resp.read().decode())
-                    response = result['choices'][0]['message']['content']
+                    msg = result['choices'][0]['message']
+                    
+                    if msg.get('tool_calls'):
+                        tool_call = msg['tool_calls'][0]
+                        func_name = tool_call['function']['name']
+                        args = json.loads(tool_call['function']['arguments'])
+                        
+                        if func_name == 'create_token':
+                            response = json.dumps({
+                                "action": "create_token",
+                                "params": args,
+                                "message": f"Creating token {args['name']} ({args['symbol']})..."
+                            })
+                        else:
+                            response = msg.get('content', 'Tool call received')
+                    else:
+                        response = msg.get('content', 'No response')
             except urllib.error.HTTPError as e:
                 response = f"API Error {e.code}. Check GROQ_API_KEY."
             except Exception as e:

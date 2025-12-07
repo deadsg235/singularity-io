@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Launchpad - Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .launchpad-container { max-width: 800px; margin: 2rem auto; }
+        .token-form { background: #000; border: 1px solid #0066ff; border-radius: 4px; padding: 2rem; margin-bottom: 2rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; color: #0066ff; margin-bottom: 0.5rem; font-family: 'Orbitron', sans-serif; }
+        .form-group input, .form-group textarea { width: 100%; background: #000; border: 1px solid #0066ff; color: #fff; padding: 0.8rem; border-radius: 4px; font-family: 'Inter', sans-serif; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; box-shadow: 0 0 10px rgba(0, 102, 255, 0.3); }
+        .btn-primary { background: #0066ff; color: #fff; border: none; padding: 1rem 2rem; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer; width: 100%; font-size: 1rem; }
+        .btn-primary:hover { background: #0052cc; box-shadow: 0 0 20px rgba(0, 102, 255, 0.5); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .token-list { display: grid; gap: 1rem; }
+        .token-card { background: #000; border: 1px solid #0066ff; border-radius: 4px; padding: 1.5rem; }
+        .token-card h3 { color: #0066ff; margin-bottom: 0.5rem; }
+        .token-info { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem; color: #999; }
+        .status { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem; }
+        .status.success { background: rgba(0, 255, 136, 0.2); color: #00ff88; }
+        .status.pending { background: rgba(0, 102, 255, 0.2); color: #0066ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">SPL Token Launchpad</p>
+                </div>
+                <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+            </div>
+        </header>
+
+        <div class="launchpad-container">
+            <div class="token-form">
+                <h2 style="color: #0066ff; margin-bottom: 1.5rem;">Create SPL Token</h2>
+                <form id="token-form">
+                    <div class="form-group">
+                        <label>Token Name</label>
+                        <input type="text" id="token-name" placeholder="My Token" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Token Symbol</label>
+                        <input type="text" id="token-symbol" placeholder="MTK" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Decimals</label>
+                        <input type="number" id="token-decimals" value="9" min="0" max="9" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Initial Supply</label>
+                        <input type="number" id="token-supply" placeholder="1000000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="token-description" rows="3" placeholder="Token description..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary" id="create-btn">Create Token</button>
+                </form>
+            </div>
+
+            <div id="token-list" class="token-list"></div>
+        </div>
+
+        <footer>
+            <p>Singularity.io v0.3.0 | <a href="index.html" style="color: #0066ff;">Back to Home</a></p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/spl-token@latest/lib/index.iife.min.js"></script>
+    <script src="launchpad.js"></script>
+</body>
+</html>
