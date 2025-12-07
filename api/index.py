@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from mangum import Mangum
+import random
 
 app = FastAPI()
 
@@ -12,10 +14,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
 @app.get("/api")
-def read_root():
-    return {"name": "Singularity.io", "version": "0.2.0", "status": "online"}
+@app.get("/api/")
+def root():
+    return {"name": "Singularity.io", "version": "0.2.0"}
 
 @app.get("/api/health")
 def health():
@@ -35,7 +37,6 @@ def economy():
 
 @app.get("/api/neural/network")
 def neural_network():
-    import random
     layers = [8, 16, 16, 8]
     nodes = []
     connections = []
@@ -72,12 +73,7 @@ def neural_network():
 
 @app.post("/api/neural/update")
 def update_neural():
-    import random
-    for node in [n for n in range(48)]:
-        pass
     return {"status": "updated"}
-
-from pydantic import BaseModel
 
 class ChatRequest(BaseModel):
     message: str
@@ -85,11 +81,9 @@ class ChatRequest(BaseModel):
     history: list = []
 
 @app.post("/api/chat")
-async def chat(request: ChatRequest):
+def chat(request: ChatRequest):
     message = request.message
     wallet = request.wallet
-    
-    response = ""
     msg_lower = message.lower()
     
     if 'wallet' in msg_lower:
