@@ -1,8 +1,14 @@
-# Ignore directories that are not part of the deployment
+# Ignore directories not part of deployment
 blockchain/
 neural_network/
 .ruff_cache/
 .github/
+
+# Ignore documentation
 *.md
 !api/README.md
 !web/singularity-frontend/README.md
+
+# Ignore old Q-Network files
+api/Q_Layered_Network/
+api/q_network.py

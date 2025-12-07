@@ -3,19 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Node Racer</title>
+    <title>Singularity.io - Solana Blockchain Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="hud">
-        <div id="timer">Time: 0.00s</div>
-        <div id="next-checkpoint-indicator"></div>
-        <div id="message"></div>
+    <div class="container">
+        <header>
+            <h1 class="logo">SINGULARITY<span>.io</span></h1>
+            <p class="tagline">Solana Blockchain Integration Platform</p>
+        </header>
+
+        <main>
+            <section class="hero">
+                <h2>Building the Future of Solana</h2>
+                <p>Integrating SolFunMeme technology to solve problems and create a new economy on the Solana blockchain.</p>
+            </section>
+
+            <section class="features">
+                <div class="feature-card">
+                    <h3>🔗 Blockchain Integration</h3>
+                    <p>Direct connection to Solana network with custom smart contracts</p>
+                </div>
+                <div class="feature-card">
+                    <h3>💡 SolFunMeme Tech</h3>
+                    <p>Novel technology addressing Solana ecosystem challenges</p>
+                </div>
+                <div class="feature-card">
+                    <h3>💰 New Economy</h3>
+                    <p>Token-based economy with bounties and problem-solving incentives</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🧠 Neural Network</h3>
+                    <p>Python-Rust bridge for high-performance AI computing</p>
+                </div>
+            </section>
+
+            <section class="status">
+                <h3>System Status</h3>
+                <div id="status-container">
+                    <div class="status-item">
+                        <span class="label">API:</span>
+                        <span id="api-status" class="value">Checking...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Network:</span>
+                        <span id="network-status" class="value">Checking...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Phase:</span>
+                        <span id="phase-status" class="value">Checking...</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Singularity.io v0.1.0 | Powered by Solana & FastAPI</p>
+        </footer>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
     <script src="app.js"></script>
 </body>
 </html>

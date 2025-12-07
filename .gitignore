@@ -1,23 +1,37 @@
-# Ignore virtual environments
-venv/
-.venv/
-
-# Ignore Python cache
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
 
-# Ignore build artifacts
-build/
-dist/
-
-# Ignore log files
-*.log
-
-# Ignore IDE files
-.idea/
+# IDEs
 .vscode/
-
-# Ignore temporary files
-*.tmp
+.idea/
 *.swp
 *.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel
+
+# Ruff cache
+.ruff_cache/
+
+# Old game files (deprecated)
+api/Q_Layered_Network/
+api/q_network.py
+
+# Logs
+*.log

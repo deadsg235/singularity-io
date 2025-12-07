@@ -1,8 +1,29 @@
-# Singularity Frontend
+# Singularity.io Frontend
 
-This directory will contain the Next.js application for the Singularity.io user interface.
+Modern, interactive frontend for the Singularity.io platform.
 
-## Placeholder
+## Features
 
-This is a placeholder README as the `create-next-app` command was cancelled.
-Detailed instructions for running the frontend will be added once the Next.js project is properly set up.
+- Real-time system status monitoring
+- Solana network integration display
+- SolFunMeme technology showcase
+- Responsive design with futuristic UI
+
+## Technology Stack
+
+- Vanilla JavaScript
+- CSS3 with modern animations
+- Orbitron & Inter fonts
+- RESTful API integration
+
+## Local Development
+
+Simply open `index.html` in a browser or use a local server:
+
+```bash
+python -m http.server 8080
+```
+
+## Deployment
+
+Configured for Vercel static hosting via root `vercel.json`.

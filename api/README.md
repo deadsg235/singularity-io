@@ -1,23 +1,37 @@
-# API (FastAPI Backend)
+# Singularity.io API
 
-This directory contains the FastAPI application that serves as the backend for Singularity.io.
+FastAPI backend for the Singularity.io platform.
 
-## Getting Started
+## Features
 
-1.  **Navigate to the API directory:**
-    ```bash
-    cd api
-    ```
-2.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-3.  **Run the development server:**
-    ```bash
-    uvicorn main:app --reload
-    ```
-    The API will be accessible at `http://127.0.0.1:8000`.
+- RESTful API endpoints for Solana blockchain integration
+- SolFunMeme technology status tracking
+- Economy and network statistics
+- Health monitoring
 
 ## Endpoints
 
-*   **GET `/`**: Returns a simple "Hello: World" message.
+### Core
+- `GET /` - API information
+- `GET /api/health` - Health check
+
+### Network
+- `GET /api/network/stats` - Solana network statistics
+
+### SolFunMeme
+- `GET /api/solfunmeme/status` - SolFunMeme technology status
+
+### Economy
+- `GET /api/economy/overview` - Economy overview and token stats
+
+## Local Development
+
+```bash
+cd api
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+## Deployment
+
+Configured for Vercel serverless deployment via `index.py`.
