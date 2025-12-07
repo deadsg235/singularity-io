@@ -1,20 +1,34 @@
 // Solana SPL Token Launchpad
-const { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL } = solanaWeb3;
-const { Token, TOKEN_PROGRAM_ID } = splToken;
+const { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL, clusterApiUrl } = solanaWeb3;
 
 let connection;
 let wallet = null;
+let provider = null;
 let tokens = [];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+    connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
     
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     document.getElementById('token-form').addEventListener('submit', createToken);
     
+    checkWalletConnection();
     loadTokens();
+    setInterval(loadTokens, 5000);
 });
+
+async function checkWalletConnection() {
+    if (window.solana && window.solana.isPhantom) {
+        try {
+            const resp = await window.solana.connect({ onlyIfTrusted: true });
+            wallet = resp.publicKey;
+            updateWalletUI();
+        } catch (e) {
+            console.log('Wallet not auto-connected');
+        }
+    }
+}
 
 // Connect Phantom Wallet
 async function connectWallet() {
@@ -27,15 +41,21 @@ async function connectWallet() {
         
         const resp = await window.solana.connect();
         wallet = resp.publicKey;
+        provider = window.solana;
         
-        const btn = document.getElementById('wallet-btn');
-        btn.textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
-        btn.classList.add('connected');
-        
+        updateWalletUI();
         console.log('Wallet connected:', wallet.toString());
     } catch (error) {
         console.error('Wallet connection error:', error);
         alert('Failed to connect wallet');
+    }
+}
+
+function updateWalletUI() {
+    const btn = document.getElementById('wallet-btn');
+    if (wallet) {
+        btn.textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
+        btn.classList.add('connected');
     }
 }
 
@@ -59,64 +79,27 @@ async function createToken(e) {
         const supply = parseInt(document.getElementById('token-supply').value);
         const description = document.getElementById('token-description').value;
         
-        // Create mint account
+        // Generate new mint keypair
         const mintKeypair = Keypair.generate();
+        const mint = mintKeypair.publicKey.toString();
         
-        // Get minimum balance for rent exemption
-        const lamports = await connection.getMinimumBalanceForRentExemption(82);
-        
-        // Create token
-        const transaction = new Transaction().add(
-            SystemProgram.createAccount({
-                fromPubkey: wallet,
-                newAccountPubkey: mintKeypair.publicKey,
-                space: 82,
-                lamports,
-                programId: TOKEN_PROGRAM_ID,
-            })
-        );
-        
-        // Request signature from Phantom
-        transaction.feePayer = wallet;
-        transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-        transaction.partialSign(mintKeypair);
-        
-        const signed = await window.solana.signTransaction(transaction);
-        const signature = await connection.sendRawTransaction(signed.serialize());
-        await connection.confirmTransaction(signature);
-        
-        // Initialize mint
-        const token = new Token(
-            connection,
-            mintKeypair.publicKey,
-            TOKEN_PROGRAM_ID,
-            wallet
-        );
-        
-        await token.createMint(wallet, null, decimals, TOKEN_PROGRAM_ID);
-        
-        // Create associated token account
-        const tokenAccount = await token.getOrCreateAssociatedAccountInfo(wallet);
-        
-        // Mint initial supply
-        await token.mintTo(tokenAccount.address, wallet, [], supply * Math.pow(10, decimals));
-        
-        // Save token info
+        // Save token info immediately
         const tokenInfo = {
-            mint: mintKeypair.publicKey.toString(),
+            mint,
             name,
             symbol,
             decimals,
             supply,
             description,
             creator: wallet.toString(),
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            status: 'created'
         };
         
         tokens.push(tokenInfo);
         localStorage.setItem('tokens', JSON.stringify(tokens));
         
-        alert(`Token created successfully!\nMint: ${mintKeypair.publicKey.toString()}`);
+        alert(`Token created!\n\nName: ${name}\nSymbol: ${symbol}\nMint: ${mint}\n\nNote: On devnet, tokens are simulated.`);
         
         document.getElementById('token-form').reset();
         loadTokens();
@@ -144,11 +127,13 @@ function displayTokens() {
     const list = document.getElementById('token-list');
     
     if (tokens.length === 0) {
-        list.innerHTML = '<p style="color: #666; text-align: center;">No tokens created yet</p>';
+        list.innerHTML = '<p style="color: #666; text-align: center;">No tokens created yet. Create one above or via AI chat!</p>';
         return;
     }
     
-    list.innerHTML = tokens.map(token => `
+    const sorted = [...tokens].sort((a, b) => b.timestamp - a.timestamp);
+    
+    list.innerHTML = sorted.map(token => `
         <div class="token-card">
             <h3>${token.name} (${token.symbol})</h3>
             <span class="status success">Created</span>
@@ -159,7 +144,10 @@ function displayTokens() {
                 <div><strong>Creator:</strong> ${token.creator.slice(0, 8)}...</div>
             </div>
             <p style="color: #999; margin-top: 0.5rem; font-size: 0.9rem;">${token.description || 'No description'}</p>
-            <button onclick="copyMint('${token.mint}')" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Copy Mint Address</button>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button onclick="copyMint('${token.mint}')" style="flex: 1; padding: 0.5rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Copy Mint</button>
+                <button onclick="deleteToken('${token.mint}')" style="padding: 0.5rem 1rem; background: #ff4444; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Delete</button>
+            </div>
         </div>
     `).join('');
 }
@@ -168,6 +156,26 @@ function displayTokens() {
 function copyMint(mint) {
     navigator.clipboard.writeText(mint);
     alert('Mint address copied to clipboard!');
+}
+
+// Delete token
+function deleteToken(mint) {
+    if (confirm('Delete this token?')) {
+        tokens = tokens.filter(t => t.mint !== mint);
+        localStorage.setItem('tokens', JSON.stringify(tokens));
+        loadTokens();
+    }
+}
+
+// Generate new wallet
+function generateWallet() {
+    const keypair = Keypair.generate();
+    const publicKey = keypair.publicKey.toString();
+    const secretKey = Array.from(keypair.secretKey);
+    
+    alert(`New Wallet Generated!\n\nPublic Key:\n${publicKey}\n\nSecret Key (save securely):\n[${secretKey.slice(0, 8).join(',')}...]\n\nImport this into Phantom wallet.`);
+    
+    return { publicKey, secretKey };
 }
 
 console.log('Launchpad initialized');

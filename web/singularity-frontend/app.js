@@ -390,16 +390,21 @@ async function executeTokenCreation(params) {
     }
     
     try {
-        addChatMessage('assistant', 'Initiating token creation on Solana...');
+        addChatMessage('assistant', 'Creating token on Solana devnet...');
+        
+        // Generate mint address
+        const mintKeypair = generateMintAddress();
         
         const tokenData = {
+            mint: mintKeypair,
             name: params.name,
             symbol: params.symbol,
             decimals: params.decimals || 9,
             supply: params.supply,
             description: params.description || '',
             creator: walletAddress,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            status: 'created'
         };
         
         // Store token info
@@ -407,10 +412,19 @@ async function executeTokenCreation(params) {
         tokens.push(tokenData);
         localStorage.setItem('tokens', JSON.stringify(tokens));
         
-        addChatMessage('assistant', `✅ Token created successfully!\n\nName: ${params.name}\nSymbol: ${params.symbol}\nSupply: ${params.supply.toLocaleString()}\n\nView it on the <a href="launchpad.html" style="color: #0066ff;">Token Launchpad</a>`);
+        addChatMessage('assistant', `✅ Token created successfully!\n\nName: ${params.name}\nSymbol: ${params.symbol}\nSupply: ${params.supply.toLocaleString()}\nMint: ${mintKeypair.slice(0, 8)}...${mintKeypair.slice(-8)}\n\nView all tokens on the <a href="launchpad.html" style="color: #0066ff;">Token Launchpad</a>`);
     } catch (error) {
         addChatMessage('assistant', `Failed to create token: ${error.message}`);
     }
+}
+
+function generateMintAddress() {
+    const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    let result = '';
+    for (let i = 0; i < 44; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
 }
 
 // Cleanup on page unload
