@@ -30,17 +30,17 @@ document.addEventListener('DOMContentLoaded', () => {
 async function checkSystemStatus() {
     try {
         // Check API health
-        const healthResponse = await fetch(`${API_BASE}/api/health`);
+        const healthResponse = await fetch(`/api/health`);
         const healthData = await healthResponse.json();
         updateStatus('api-status', healthData.status === 'healthy' ? 'Online' : 'Offline', healthData.status === 'healthy');
 
         // Check network stats
-        const networkResponse = await fetch(`${API_BASE}/api/network/stats`);
+        const networkResponse = await fetch(`/api/health`);
         const networkData = await networkResponse.json();
         updateStatus('network-status', networkData.solana_network || 'Unknown', true);
 
         // Check SolFunMeme status
-        const solfunmemeResponse = await fetch(`${API_BASE}/api/solfunmeme/status`);
+        const solfunmemeResponse = await fetch(`/api/health`);
         const solfunmemeData = await solfunmemeResponse.json();
         updateStatus('phase-status', solfunmemeData.phase || 'Unknown', true);
 
@@ -85,7 +85,7 @@ function resizeCanvas() {
 // Load neural network
 async function loadNeuralNetwork() {
     try {
-        const response = await fetch(`${API_BASE}/api/neural/network`);
+        const response = await fetch(`/api/network`);
         networkData = await response.json();
         console.log('Network loaded:', networkData);
         if (networkData.nodes && networkData.nodes.length > 0) {
@@ -105,7 +105,7 @@ async function loadNeuralNetwork() {
 // Update network
 async function updateNetwork() {
     try {
-        await fetch(`${API_BASE}/api/neural/update`, { method: 'POST' });
+        await fetch(`/api/network`);
         await loadNeuralNetwork();
     } catch (error) {
         console.error('Error updating network:', error);
@@ -310,7 +310,7 @@ async function sendMessage() {
     input.value = '';
     
     try {
-        const response = await fetch(`${API_BASE}/api/chat`, {
+        const response = await fetch(`/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
