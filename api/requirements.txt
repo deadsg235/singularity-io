@@ -1,2 +1,1 @@
-langchain-groq
-langchain
+# No external dependencies needed - using stdlib only
