@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('update-btn').addEventListener('click', updateNetwork);
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     document.getElementById('send-btn').addEventListener('click', sendMessage);
+    document.getElementById('chat-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
     
     // Load network after short delay to ensure canvas is ready
     setTimeout(() => loadNeuralNetwork(), 500);
@@ -316,11 +319,13 @@ async function sendMessage() {
                 history: chatHistory 
             })
         });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         addChatMessage('assistant', data.response);
         chatHistory.push({ user: message, assistant: data.response });
     } catch (error) {
-        addChatMessage('assistant', 'Error connecting to AI. Please try again.');
+        console.error('Chat error:', error);
+        addChatMessage('assistant', 'Error: Try "help", "wallet", or "network"');
     }
 }
 
