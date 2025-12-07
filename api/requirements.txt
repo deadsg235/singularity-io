@@ -1,4 +1,2 @@
-fastapi
-uvicorn
-python-multipart
-mangum
+langchain-groq
+langchain
