@@ -3,4 +3,4 @@ uvicorn
 onnx
 onnxruntime
 python-multipart
-ruff
+mangum

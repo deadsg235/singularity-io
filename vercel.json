@@ -1,23 +1,7 @@
 {
-    "version": 2,
-    "builds": [
-        {
-            "src": "/api/main.py",
-            "use": "@vercel/python"
-        },
-        {
-            "src": "/web/singularity-frontend/**",
-            "use": "@vercel/static"
-        }
-    ],
-    "routes": [
-        {
-            "src": "/api/(.*)",
-            "dest": "/api/main.py"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/web/singularity-frontend/$1"
-        }
+    "buildCommand": "cd api && pip install -r requirements.txt",
+    "rewrites": [
+        { "source": "/api/(.*)", "destination": "/api/index" },
+        { "source": "/(.*)", "destination": "/web/singularity-frontend/$1" }
     ]
 }

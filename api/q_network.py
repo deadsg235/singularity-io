@@ -1,9 +1,13 @@
 import random
 import onnxruntime
 import numpy as np
+import os
 
 class QNetwork:
-    def __init__(self, num_nodes=128, model_path='Q_Layered_Network/dqn_node_model.onnx'): # Default to 128 nodes
+    def __init__(self, num_nodes=128, model_path=None): # Default to 128 nodes
+        if model_path is None:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            model_path = os.path.join(base_dir, 'Q_Layered_Network', 'dqn_node_model.onnx')
         self.num_nodes = num_nodes
         self.nodes = []
         self.connections = []

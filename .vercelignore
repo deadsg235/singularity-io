@@ -1,3 +1,8 @@
 # Ignore directories that are not part of the deployment
 blockchain/
 neural_network/
+.ruff_cache/
+.github/
+*.md
+!api/README.md
+!web/singularity-frontend/README.md
