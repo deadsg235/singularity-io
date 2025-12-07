@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') sendMessage();
     });
     
+    initChatTerminal();
+    
     // Load network after short delay to ensure canvas is ready
     setTimeout(() => loadNeuralNetwork(), 500);
 });
@@ -301,6 +303,24 @@ async function connectWallet() {
 // Chat Terminal
 let chatHistory = [];
 
+function initChatTerminal() {
+    const output = document.getElementById('chat-output');
+    output.innerHTML = '';
+    
+    const welcome = document.createElement('div');
+    welcome.className = 'chat-message system';
+    welcome.innerHTML = `<span style="color: #0066ff;">╔═══════════════════════════════════════╗</span><br>
+<span style="color: #0066ff;">║</span>  SINGULARITY.IO AI TERMINAL v0.2.0  <span style="color: #0066ff;">║</span><br>
+<span style="color: #0066ff;">╚═══════════════════════════════════════╝</span><br><br>
+<span style="color: #666;">Connected to Groq Llama 3.3 70B</span><br>
+<span style="color: #666;">Type your message or try:</span><br>
+<span style="color: #0066ff;">• "What is my wallet status?"</span><br>
+<span style="color: #0066ff;">• "Explain the neural network"</span><br>
+<span style="color: #0066ff;">• "Tell me about Solana"</span><br><br>
+<span style="color: #00ff00;">Ready ></span>`;
+    output.appendChild(welcome);
+}
+
 async function sendMessage() {
     const input = document.getElementById('chat-input');
     const message = input.value.trim();
@@ -319,13 +339,16 @@ async function sendMessage() {
                 history: chatHistory 
             })
         });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        addChatMessage('assistant', data.response);
-        chatHistory.push({ user: message, assistant: data.response });
+        if (!response.ok) {
+            addChatMessage('assistant', data.response || `Error ${response.status}`);
+        } else {
+            addChatMessage('assistant', data.response);
+            chatHistory.push({ user: message, assistant: data.response });
+        }
     } catch (error) {
         console.error('Chat error:', error);
-        addChatMessage('assistant', 'Error: Try "help", "wallet", or "network"');
+        addChatMessage('assistant', `Connection error: ${error.message}`);
     }
 }
 
@@ -333,7 +356,15 @@ function addChatMessage(role, text) {
     const output = document.getElementById('chat-output');
     const msg = document.createElement('div');
     msg.className = `chat-message ${role}`;
-    msg.textContent = `${role === 'user' ? 'You' : 'AI'}: ${text}`;
+    
+    if (role === 'user') {
+        msg.innerHTML = `<span style="color: #fff;">> ${text}</span>`;
+    } else if (role === 'assistant') {
+        msg.innerHTML = `<span style="color: #0066ff;">AI:</span> <span style="color: #ccc;">${text}</span>`;
+    } else {
+        msg.innerHTML = text;
+    }
+    
     output.appendChild(msg);
     output.scrollTop = output.scrollHeight;
 }
