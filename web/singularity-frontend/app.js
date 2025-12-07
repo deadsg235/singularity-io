@@ -397,20 +397,33 @@ async function executeTokenCreation(params) {
         
         const tokenData = {
             mint: mintKeypair,
-            name: params.name,
-            symbol: params.symbol,
-            decimals: params.decimals || 9,
-            supply: params.supply,
-            description: params.description || '',
+            name: params.name || 'Unknown Token',
+            symbol: params.symbol || 'UNK',
+            decimals: parseInt(params.decimals) || 9,
+            supply: parseInt(params.supply) || 0,
+            description: params.description || 'Created via AI chat',
             creator: walletAddress,
             timestamp: Date.now(),
             status: 'created'
         };
         
+        console.log('Saving token:', tokenData);
+        
         // Store token info
-        const tokens = JSON.parse(localStorage.getItem('tokens') || '[]');
+        let tokens = [];
+        try {
+            tokens = JSON.parse(localStorage.getItem('tokens') || '[]');
+        } catch (e) {
+            console.error('Error parsing tokens:', e);
+            tokens = [];
+        }
+        
         tokens.push(tokenData);
         localStorage.setItem('tokens', JSON.stringify(tokens));
+        console.log('Token saved. Total tokens:', tokens.length);
+        
+        // Trigger storage event for launchpad page
+        window.dispatchEvent(new Event('storage'));
         
         addChatMessage('assistant', `✅ Token created successfully!\n\nName: ${params.name}\nSymbol: ${params.symbol}\nSupply: ${params.supply.toLocaleString()}\nMint: ${mintKeypair.slice(0, 8)}...${mintKeypair.slice(-8)}\n\nView all tokens on the <a href="launchpad.html" style="color: #0066ff;">Token Launchpad</a>`);
     } catch (error) {

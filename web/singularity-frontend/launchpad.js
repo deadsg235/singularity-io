@@ -15,7 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     checkWalletConnection();
     loadTokens();
-    setInterval(loadTokens, 5000);
+    setInterval(loadTokens, 3000);
+    
+    // Listen for storage changes
+    window.addEventListener('storage', loadTokens);
 });
 
 async function checkWalletConnection() {
@@ -115,9 +118,17 @@ async function createToken(e) {
 
 // Load tokens from localStorage
 function loadTokens() {
-    const stored = localStorage.getItem('tokens');
-    if (stored) {
-        tokens = JSON.parse(stored);
+    try {
+        const stored = localStorage.getItem('tokens');
+        if (stored) {
+            tokens = JSON.parse(stored);
+            console.log('Loaded tokens:', tokens.length);
+        } else {
+            tokens = [];
+        }
+    } catch (e) {
+        console.error('Error loading tokens:', e);
+        tokens = [];
     }
     displayTokens();
 }
@@ -176,6 +187,14 @@ function generateWallet() {
     alert(`New Wallet Generated!\n\nPublic Key:\n${publicKey}\n\nSecret Key (save securely):\n[${secretKey.slice(0, 8).join(',')}...]\n\nImport this into Phantom wallet.`);
     
     return { publicKey, secretKey };
+}
+
+// Debug function
+function debugTokens() {
+    const stored = localStorage.getItem('tokens');
+    console.log('Raw localStorage:', stored);
+    alert(`Tokens in storage: ${tokens.length}\n\nRaw data:\n${stored ? stored.substring(0, 200) : 'empty'}...\n\nCheck console for full data.`);
+    loadTokens();
 }
 
 console.log('Launchpad initialized');
