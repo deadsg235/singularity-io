@@ -90,42 +90,67 @@ async function createToken(e) {
         
         btn.textContent = 'Creating mint account...';
         
-        // Get rent exemption
+        // Use @solana/spl-token library
+        const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        
+        // Get rent exemption for mint account
         const lamports = await connection.getMinimumBalanceForRentExemption(82);
         
-        // Create mint account instruction
+        // Build create account instruction
         const createAccountIx = SystemProgram.createAccount({
             fromPubkey: wallet,
             newAccountPubkey: mint,
             space: 82,
             lamports,
-            programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+            programId: TOKEN_PROGRAM_ID
         });
         
-        // Initialize mint instruction
+        // Build initialize mint instruction
+        const initMintData = Buffer.alloc(67);
+        initMintData.writeUInt8(0, 0); // InitializeMint instruction
+        initMintData.writeUInt8(decimals, 1); // decimals
+        wallet.toBuffer().copy(initMintData, 2); // mint authority
+        initMintData.writeUInt8(0, 34); // freeze authority option (0 = none)
+        
         const initMintIx = {
             keys: [
                 { pubkey: mint, isSigner: false, isWritable: true },
                 { pubkey: new PublicKey('SysvarRent111111111111111111111111111111111'), isSigner: false, isWritable: false }
             ],
-            programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-            data: Buffer.from([0, decimals, ...wallet.toBuffer(), 0, 0, 0, 0, 0, 0, 0, 0])
+            programId: TOKEN_PROGRAM_ID,
+            data: initMintData
         };
         
-        btn.textContent = 'Signing transaction...';
+        btn.textContent = 'Building transaction...';
         
-        // Create transaction
-        const transaction = new Transaction().add(createAccountIx);
+        // Create and send transaction
+        const transaction = new Transaction().add(createAccountIx, initMintIx);
         transaction.feePayer = wallet;
-        transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+        const { blockhash } = await connection.getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
         transaction.partialSign(mintKeypair);
         
-        // Sign and send
-        const signed = await provider.signTransaction(transaction);
-        const signature = await connection.sendRawTransaction(signed.serialize());
+        btn.textContent = 'Requesting signature...';
         
-        btn.textContent = 'Confirming...';
-        await connection.confirmTransaction(signature, 'confirmed');
+        // Sign with Phantom
+        const signed = await provider.signTransaction(transaction);
+        
+        btn.textContent = 'Sending to blockchain...';
+        
+        // Send transaction
+        const signature = await connection.sendRawTransaction(signed.serialize(), {
+            skipPreflight: false,
+            preflightCommitment: 'confirmed'
+        });
+        
+        btn.textContent = 'Confirming transaction...';
+        
+        // Wait for confirmation
+        const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+        
+        if (confirmation.value.err) {
+            throw new Error('Transaction failed: ' + JSON.stringify(confirmation.value.err));
+        }
         
         const mintAddress = mint.toString();
         
