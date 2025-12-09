@@ -302,6 +302,25 @@ async function executeToolCall(action, params) {
             const price = await getPrice(params.base_token, params.quote_token);
             addChatMessage('assistant', `Current price: ${price.toFixed(6)}`);
             break;
+        
+        case 'get_wallet_balance':
+            await getWalletBalance();
+            break;
+    }
+}
+
+async function getWalletBalance() {
+    if (!wallet) {
+        addChatMessage('assistant', 'Please connect wallet first');
+        return;
+    }
+    
+    try {
+        const balance = await connection.getBalance(wallet);
+        const solBalance = balance / 1e9;
+        addChatMessage('assistant', `Wallet: ${wallet.toString()}\n\nSOL Balance: ${solBalance.toFixed(4)} SOL`);
+    } catch (error) {
+        addChatMessage('assistant', `Failed to get balance: ${error.message}`);
     }
 }
 
@@ -384,9 +403,11 @@ function showHelp() {
 • "Start momentum bot with 0.1 SOL"<br>
 • "Stop the bot"<br>
 • "Pause trading"<br><br>
-<strong style="color: #00ff88;">Analysis:</strong><br>
+<strong style="color: #00ff88;">Wallet & Analysis:</strong><br>
+• "Show my wallet balance"<br>
+• "What's my SOL balance?"<br>
+• "Check my wallet"<br>
 • "What's the price of [token]?"<br>
-• "Analyze [token] for trading"<br>
 • "Show my stats"<br>
 • "How is the bot performing?"<br><br>
 <strong style="color: #00ff88;">Strategies:</strong><br>

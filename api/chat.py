@@ -21,24 +21,33 @@ class handler(BaseHTTPRequestHandler):
             try:
                 system_prompt = f"You are an AI for Singularity.io, a Solana blockchain platform. User wallet: {wallet if wallet else 'Not connected'}. Deep Q-Network: 48 nodes (8→16→16→8). Network: Solana mainnet-beta. Be concise."
                 
-                tools = [{
-                    "type": "function",
-                    "function": {
-                        "name": "create_token",
-                        "description": "Create a new SPL token on Solana",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "name": {"type": "string", "description": "Token name"},
-                                "symbol": {"type": "string", "description": "Token symbol (3-5 chars)"},
-                                "decimals": {"type": "integer", "description": "Decimals (0-9)", "default": 9},
-                                "supply": {"type": "integer", "description": "Initial supply"},
-                                "description": {"type": "string", "description": "Token description"}
-                            },
-                            "required": ["name", "symbol", "supply"]
+                tools = [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "create_token",
+                            "description": "Create a new SPL token on Solana",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string", "description": "Token name"},
+                                    "symbol": {"type": "string", "description": "Token symbol (3-5 chars)"},
+                                    "decimals": {"type": "integer", "description": "Decimals (0-9)", "default": 9},
+                                    "supply": {"type": "integer", "description": "Initial supply"},
+                                    "description": {"type": "string", "description": "Token description"}
+                                },
+                                "required": ["name", "symbol", "supply"]
+                            }
+                        }
+                    },
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "get_wallet_balance",
+                            "description": "Get SOL balance of connected wallet"
                         }
                     }
-                }]
+                ]
                 
                 req_data = json.dumps({
                     "model": "llama-3.3-70b-versatile",
@@ -68,13 +77,18 @@ class handler(BaseHTTPRequestHandler):
                     if msg.get('tool_calls'):
                         tool_call = msg['tool_calls'][0]
                         func_name = tool_call['function']['name']
-                        args = json.loads(tool_call['function']['arguments'])
+                        args = json.loads(tool_call['function']['arguments']) if tool_call['function'].get('arguments') else {}
                         
                         if func_name == 'create_token':
                             response = json.dumps({
                                 "action": "create_token",
                                 "params": args,
                                 "message": f"Creating token {args['name']} ({args['symbol']})..."
+                            })
+                        elif func_name == 'get_wallet_balance':
+                            response = json.dumps({
+                                "action": "get_wallet_balance",
+                                "message": "Fetching wallet balance..."
                             })
                         else:
                             response = msg.get('content', 'Tool call received')

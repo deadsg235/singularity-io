@@ -351,6 +351,9 @@ async function sendMessage() {
                     addChatMessage('assistant', parsed.message);
                     await executeTokenCreation(parsed.params);
                     return;
+                } else if (parsed.action === 'get_wallet_balance') {
+                    await getWalletBalance();
+                    return;
                 }
             } catch (e) {
                 // Not JSON, regular message
@@ -362,6 +365,24 @@ async function sendMessage() {
     } catch (error) {
         console.error('Chat error:', error);
         addChatMessage('assistant', `Connection error: ${error.message}`);
+    }
+}
+
+async function getWalletBalance() {
+    if (!walletAddress) {
+        addChatMessage('assistant', 'Please connect your wallet first.');
+        return;
+    }
+    
+    try {
+        const connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+        const publicKey = new solanaWeb3.PublicKey(walletAddress);
+        const balance = await connection.getBalance(publicKey);
+        const solBalance = balance / 1e9;
+        
+        addChatMessage('assistant', `Wallet: ${walletAddress}\n\nSOL Balance: ${solBalance.toFixed(4)} SOL`);
+    } catch (error) {
+        addChatMessage('assistant', `Failed to get balance: ${error.message}`);
     }
 }
 

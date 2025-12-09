@@ -83,6 +83,13 @@ You can execute trades and control the bot using these tools."""
                                 "required": ["base_token", "quote_token"]
                             }
                         }
+                    },
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "get_wallet_balance",
+                            "description": "Get SOL balance of connected wallet"
+                        }
                     }
                 ]
                 
