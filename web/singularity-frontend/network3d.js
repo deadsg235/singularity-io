@@ -1,3 +1,6 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
 let scene, camera, renderer, controls;
 let nodes = [];
 let connections = [];
@@ -10,6 +13,12 @@ let selectedNode = null;
 const layers = [8, 16, 16, 8];
 const layerSpacing = 3;
 const nodeRadius = 0.15;
+
+window.resetCamera = resetCamera;
+window.toggleRotation = toggleRotation;
+window.toggleConnections = toggleConnections;
+window.toggleLabels = toggleLabels;
+window.randomizeActivation = randomizeActivation;
 
 init();
 animate();
@@ -27,7 +36,7 @@ function init() {
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
     
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     
