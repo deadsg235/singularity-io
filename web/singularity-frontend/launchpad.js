@@ -8,7 +8,7 @@ let tokens = [];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
+    connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
     
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     document.getElementById('token-form').addEventListener('submit', createToken);
@@ -26,6 +26,7 @@ async function checkWalletConnection() {
         try {
             const resp = await window.solana.connect({ onlyIfTrusted: true });
             wallet = resp.publicKey;
+            provider = window.solana;
             updateWalletUI();
         } catch (e) {
             console.log('Wallet not auto-connected');

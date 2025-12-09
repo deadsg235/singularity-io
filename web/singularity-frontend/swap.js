@@ -7,7 +7,7 @@ let currentQuote = null;
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
 
 document.addEventListener('DOMContentLoaded', () => {
-    connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
+    connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     document.getElementById('quote-btn').addEventListener('click', getQuote);
     document.getElementById('swap-btn').addEventListener('click', executeSwap);

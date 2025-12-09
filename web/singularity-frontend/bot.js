@@ -10,7 +10,7 @@ let stats = { total: 0, success: 0, failed: 0, pnl: 0 };
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
 
 document.addEventListener('DOMContentLoaded', () => {
-    connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
+    connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     document.getElementById('start-btn').addEventListener('click', startBot);
     document.getElementById('stop-btn').addEventListener('click', stopBot);

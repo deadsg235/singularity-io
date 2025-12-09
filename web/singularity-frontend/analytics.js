@@ -4,7 +4,7 @@ let connection;
 let tokens = [];
 
 document.addEventListener('DOMContentLoaded', () => {
-    connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
+    connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
     document.getElementById('token-select').addEventListener('change', loadAnalytics);
     loadTokens();
 });

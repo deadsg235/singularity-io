@@ -5,7 +5,7 @@ let wallet = null;
 let tokens = [];
 
 document.addEventListener('DOMContentLoaded', () => {
-    connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
+    connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     document.getElementById('mint-btn').addEventListener('click', mintTokens);
     document.getElementById('transfer-btn').addEventListener('click', transferTokens);
