@@ -5,16 +5,24 @@ import { DragControls } from 'three/addons/controls/DragControls.js';
 let scene, camera, renderer, controls, dragControls;
 let nodes = [];
 let connections = [];
-let labels = [];
+let layerLabels = [];
 let autoRotate = false;
 let showConnections = true;
 let showLabels = true;
 let selectedNode = null;
 let isDragging = false;
+let stars = [];
+
+// Easter egg
+let clickSequence = [];
+const secretCode = [0, 7, 15, 23, 31, 39, 47]; // First and last node of each layer
+let gameActive = false;
+let score = 0;
 
 const layers = [8, 16, 16, 8];
-const layerSpacing = 5;
-const nodeRadius = 0.2;
+const layerNames = ['INPUT', 'HIDDEN 1', 'HIDDEN 2', 'OUTPUT'];
+const layerSpacing = 8;
+const nodeRadius = 0.25;
 
 window.resetCamera = resetCamera;
 window.toggleRotation = toggleRotation;
@@ -29,7 +37,7 @@ function init() {
     const container = document.getElementById('network-3d');
     
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
+    scene.fog = new THREE.FogExp2(0x000000, 0.015);
     
     camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
     camera.position.set(8, 4, 8);
@@ -44,12 +52,18 @@ function init() {
     controls.minDistance = 5;
     controls.maxDistance = 50;
     
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    createStarfield();
+    
+    const ambientLight = new THREE.AmbientLight(0x0066ff, 0.3);
     scene.add(ambientLight);
     
-    const pointLight = new THREE.PointLight(0x0066ff, 1, 100);
-    pointLight.position.set(10, 10, 10);
-    scene.add(pointLight);
+    const pointLight1 = new THREE.PointLight(0x0066ff, 2, 50);
+    pointLight1.position.set(10, 10, 10);
+    scene.add(pointLight1);
+    
+    const pointLight2 = new THREE.PointLight(0x00ff88, 1.5, 50);
+    pointLight2.position.set(-10, -10, 10);
+    scene.add(pointLight2);
     
     createNetwork();
     
@@ -68,27 +82,65 @@ function init() {
     renderer.domElement.addEventListener('click', onNodeClick);
 }
 
+function createStarfield() {
+    const starGeometry = new THREE.BufferGeometry();
+    const starPositions = [];
+    
+    for (let i = 0; i < 2000; i++) {
+        const x = (Math.random() - 0.5) * 200;
+        const y = (Math.random() - 0.5) * 200;
+        const z = (Math.random() - 0.5) * 200;
+        starPositions.push(x, y, z);
+    }
+    
+    starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+    const starField = new THREE.Points(starGeometry, starMaterial);
+    scene.add(starField);
+    stars.push(starField);
+}
+
 function createNetwork() {
     let nodeIndex = 0;
     const allNodes = [];
     
     layers.forEach((layerSize, layerIdx) => {
         const layerNodes = [];
-        const x = (layerIdx - layers.length / 2) * layerSpacing;
+        const x = (layerIdx - layers.length / 2 + 0.5) * layerSpacing;
+        
+        // Create layer plane
+        const planeGeometry = new THREE.PlaneGeometry(6, 10);
+        const planeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x0066ff,
+            transparent: true,
+            opacity: 0.05,
+            side: THREE.DoubleSide
+        });
+        const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        plane.position.set(x, 0, 0);
+        plane.rotation.y = Math.PI / 2;
+        scene.add(plane);
+        
+        // Create layer label
+        createLayerLabel(layerNames[layerIdx], x, 6);
         
         for (let i = 0; i < layerSize; i++) {
-            const angle = (i / layerSize) * Math.PI * 2;
-            const radius = 2 + layerIdx * 0.5;
-            const y = Math.sin(angle) * radius + (Math.random() - 0.5) * 2;
-            const z = Math.cos(angle) * radius + (Math.random() - 0.5) * 2;
+            const gridSize = Math.ceil(Math.sqrt(layerSize));
+            const row = Math.floor(i / gridSize);
+            const col = i % gridSize;
+            const y = (row - gridSize / 2 + 0.5) * 1.5;
+            const z = (col - gridSize / 2 + 0.5) * 1.5;
             
             const activation = Math.random();
+            const hue = layerIdx === 0 ? 0.3 : layerIdx === layers.length - 1 ? 0.1 : 0.55;
             const geometry = new THREE.SphereGeometry(nodeRadius, 32, 32);
             const material = new THREE.MeshPhongMaterial({
-                color: new THREE.Color().setHSL(0.6, 1, 0.3 + activation * 0.4),
-                emissive: new THREE.Color(0x0066ff),
-                emissiveIntensity: activation * 0.5,
-                shininess: 100
+                color: new THREE.Color().setHSL(hue, 1, 0.4 + activation * 0.3),
+                emissive: new THREE.Color().setHSL(hue, 1, 0.5),
+                emissiveIntensity: activation * 0.6,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.9
             });
             
             const sphere = new THREE.Mesh(geometry, material);
@@ -99,16 +151,17 @@ function createNetwork() {
             nodes.push(sphere);
             layerNodes.push(sphere);
             
-            const glowGeometry = new THREE.SphereGeometry(nodeRadius * 1.5, 16, 16);
+            const glowGeometry = new THREE.SphereGeometry(nodeRadius * 2, 16, 16);
             const glowMaterial = new THREE.MeshBasicMaterial({
-                color: 0x0066ff,
+                color: new THREE.Color().setHSL(hue, 1, 0.5),
                 transparent: true,
-                opacity: activation * 0.3
+                opacity: activation * 0.2
             });
             const glow = new THREE.Mesh(glowGeometry, glowMaterial);
             glow.position.copy(sphere.position);
             scene.add(glow);
             sphere.userData.glow = glow;
+            sphere.userData.hue = hue;
         }
         
         allNodes.push(layerNodes);
@@ -117,12 +170,13 @@ function createNetwork() {
     for (let l = 0; l < allNodes.length - 1; l++) {
         allNodes[l].forEach(sourceNode => {
             allNodes[l + 1].forEach(targetNode => {
-                if (Math.random() > 0.3) {
+                if (Math.random() > 0.2) {
                     const weight = Math.random();
                     const material = new THREE.LineBasicMaterial({
-                        color: new THREE.Color().setHSL(0.6, 1, 0.2 + weight * 0.3),
+                        color: new THREE.Color().setHSL(0.55, 1, 0.3 + weight * 0.2),
                         transparent: true,
-                        opacity: 0.3 + weight * 0.3
+                        opacity: 0.2 + weight * 0.2,
+                        linewidth: 2
                     });
                     const line = new THREE.Line(new THREE.BufferGeometry(), material);
                     line.userData = { source: sourceNode, target: targetNode };
@@ -151,20 +205,48 @@ function onNodeDrag(event) {
     });
 }
 
+function createLayerLabel(text, x, y) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 64;
+    ctx.fillStyle = '#0066ff';
+    ctx.font = 'bold 32px Orbitron';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, 128, 40);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(material);
+    sprite.position.set(x, y, 0);
+    sprite.scale.set(4, 1, 1);
+    scene.add(sprite);
+    layerLabels.push(sprite);
+}
+
 function animate() {
     requestAnimationFrame(animate);
     
     if (autoRotate) {
-        scene.rotation.y += 0.005;
+        scene.rotation.y += 0.003;
     }
     
+    stars.forEach(star => {
+        star.rotation.y += 0.0001;
+    });
+    
     nodes.forEach(node => {
-        const pulse = Math.sin(Date.now() * 0.001 + node.userData.index) * 0.5 + 0.5;
-        node.material.emissiveIntensity = node.userData.activation * 0.3 + pulse * 0.2;
+        const pulse = Math.sin(Date.now() * 0.002 + node.userData.index * 0.1) * 0.5 + 0.5;
+        node.material.emissiveIntensity = node.userData.activation * 0.4 + pulse * 0.3;
         if (node.userData.glow) {
-            node.userData.glow.material.opacity = node.userData.activation * 0.2 + pulse * 0.1;
+            node.userData.glow.material.opacity = node.userData.activation * 0.15 + pulse * 0.1;
+            node.userData.glow.scale.setScalar(1 + pulse * 0.2);
         }
     });
+    
+    if (gameActive) {
+        updateGame();
+    }
     
     controls.update();
     renderer.render(scene, camera);
@@ -193,7 +275,7 @@ function onNodeClick(event) {
     const intersects = raycaster.intersectObjects(nodes);
     
     if (selectedNode) {
-        selectedNode.material.emissive.setHex(0x0066ff);
+        selectedNode.material.emissive.setHSL(selectedNode.userData.hue, 1, 0.5);
         selectedNode.scale.set(1, 1, 1);
     }
     
@@ -202,8 +284,58 @@ function onNodeClick(event) {
         selectedNode.material.emissive.setHex(0x00ff88);
         selectedNode.scale.set(1.5, 1.5, 1.5);
         
+        checkEasterEgg(selectedNode.userData.index);
         console.log('Node selected:', selectedNode.userData);
     }
+}
+
+function checkEasterEgg(nodeIndex) {
+    clickSequence.push({ index: nodeIndex, time: Date.now() });
+    
+    if (clickSequence.length > 7) clickSequence.shift();
+    
+    if (clickSequence.length === 7) {
+        const timeDiffs = [];
+        for (let i = 1; i < clickSequence.length; i++) {
+            timeDiffs.push(clickSequence[i].time - clickSequence[i-1].time);
+        }
+        
+        const avgTime = timeDiffs.reduce((a, b) => a + b) / timeDiffs.length;
+        const isRhythmic = timeDiffs.every(t => Math.abs(t - avgTime) < 200);
+        
+        const sequence = clickSequence.map(c => c.index);
+        const isCorrect = JSON.stringify(sequence) === JSON.stringify(secretCode);
+        
+        if (isCorrect && isRhythmic && avgTime < 1000) {
+            activateGame();
+        }
+    }
+}
+
+function activateGame() {
+    gameActive = true;
+    score = 0;
+    alert('🎮 SECRET GAME ACTIVATED! 🎮\n\nClick glowing nodes to score points!\nPress ESC to exit.');
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && gameActive) {
+            gameActive = false;
+            alert(`Game Over! Final Score: ${score}`);
+        }
+    });
+}
+
+function updateGame() {
+    const time = Date.now() * 0.005;
+    nodes.forEach((node, i) => {
+        if (Math.sin(time + i) > 0.9) {
+            node.material.emissive.setHex(0xff0088);
+            node.userData.isTarget = true;
+        } else if (node.userData.isTarget) {
+            node.material.emissive.setHSL(node.userData.hue, 1, 0.5);
+            node.userData.isTarget = false;
+        }
+    });
 }
 
 function resetCamera() {
@@ -228,10 +360,18 @@ function toggleLabels() {
 function randomizeActivation() {
     nodes.forEach(node => {
         node.userData.activation = Math.random();
-        node.material.color.setHSL(0.6, 1, 0.3 + node.userData.activation * 0.4);
-        node.material.emissiveIntensity = node.userData.activation * 0.5;
+        node.material.color.setHSL(node.userData.hue, 1, 0.4 + node.userData.activation * 0.3);
+        node.material.emissiveIntensity = node.userData.activation * 0.6;
         if (node.userData.glow) {
-            node.userData.glow.material.opacity = node.userData.activation * 0.3;
+            node.userData.glow.material.opacity = node.userData.activation * 0.2;
         }
     });
 }
+
+window.addEventListener('click', (e) => {
+    if (gameActive && selectedNode?.userData.isTarget) {
+        score += 10;
+        selectedNode.material.emissive.setHex(0x00ff00);
+        console.log('Score:', score);
+    }
+});
