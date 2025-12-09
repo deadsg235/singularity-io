@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { DragControls } from 'three/addons/controls/DragControls.js';
 
-let scene, camera, renderer, controls;
+let scene, camera, renderer, controls, dragControls;
 let nodes = [];
 let connections = [];
 let labels = [];
@@ -9,10 +10,11 @@ let autoRotate = false;
 let showConnections = true;
 let showLabels = true;
 let selectedNode = null;
+let isDragging = false;
 
 const layers = [8, 16, 16, 8];
-const layerSpacing = 3;
-const nodeRadius = 0.15;
+const layerSpacing = 5;
+const nodeRadius = 0.2;
 
 window.resetCamera = resetCamera;
 window.toggleRotation = toggleRotation;
@@ -39,6 +41,8 @@ function init() {
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    controls.minDistance = 5;
+    controls.maxDistance = 50;
     
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
@@ -48,6 +52,17 @@ function init() {
     scene.add(pointLight);
     
     createNetwork();
+    
+    dragControls = new DragControls(nodes, camera, renderer.domElement);
+    dragControls.addEventListener('dragstart', () => {
+        controls.enabled = false;
+        isDragging = true;
+    });
+    dragControls.addEventListener('drag', onNodeDrag);
+    dragControls.addEventListener('dragend', () => {
+        controls.enabled = true;
+        isDragging = false;
+    });
     
     window.addEventListener('resize', onWindowResize);
     renderer.domElement.addEventListener('click', onNodeClick);
@@ -62,8 +77,10 @@ function createNetwork() {
         const x = (layerIdx - layers.length / 2) * layerSpacing;
         
         for (let i = 0; i < layerSize; i++) {
-            const y = (i - layerSize / 2) * 0.8;
-            const z = 0;
+            const angle = (i / layerSize) * Math.PI * 2;
+            const radius = 2 + layerIdx * 0.5;
+            const y = Math.sin(angle) * radius + (Math.random() - 0.5) * 2;
+            const z = Math.cos(angle) * radius + (Math.random() - 0.5) * 2;
             
             const activation = Math.random();
             const geometry = new THREE.SphereGeometry(nodeRadius, 32, 32);
@@ -76,7 +93,7 @@ function createNetwork() {
             
             const sphere = new THREE.Mesh(geometry, material);
             sphere.position.set(x, y, z);
-            sphere.userData = { layerIdx, nodeIdx: i, activation, index: nodeIndex++ };
+            sphere.userData = { layerIdx, nodeIdx: i, activation, index: nodeIndex++, connections: [] };
             scene.add(sphere);
             
             nodes.push(sphere);
@@ -101,21 +118,37 @@ function createNetwork() {
         allNodes[l].forEach(sourceNode => {
             allNodes[l + 1].forEach(targetNode => {
                 if (Math.random() > 0.3) {
-                    const points = [sourceNode.position, targetNode.position];
-                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
                     const weight = Math.random();
                     const material = new THREE.LineBasicMaterial({
                         color: new THREE.Color().setHSL(0.6, 1, 0.2 + weight * 0.3),
                         transparent: true,
                         opacity: 0.3 + weight * 0.3
                     });
-                    const line = new THREE.Line(geometry, material);
+                    const line = new THREE.Line(new THREE.BufferGeometry(), material);
+                    line.userData = { source: sourceNode, target: targetNode };
                     scene.add(line);
                     connections.push(line);
+                    sourceNode.userData.connections.push(line);
+                    targetNode.userData.connections.push(line);
                 }
             });
         });
     }
+    updateConnections();
+}
+
+function updateConnections() {
+    connections.forEach(conn => {
+        const points = [conn.userData.source.position, conn.userData.target.position];
+        conn.geometry.setFromPoints(points);
+    });
+}
+
+function onNodeDrag(event) {
+    event.object.userData.connections.forEach(conn => {
+        const points = [conn.userData.source.position, conn.userData.target.position];
+        conn.geometry.setFromPoints(points);
+    });
 }
 
 function animate() {
@@ -145,6 +178,8 @@ function onWindowResize() {
 }
 
 function onNodeClick(event) {
+    if (isDragging) return;
+    
     const container = document.getElementById('network-3d');
     const rect = container.getBoundingClientRect();
     const mouse = new THREE.Vector2(
