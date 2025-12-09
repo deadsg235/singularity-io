@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Swap - Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">Jupiter Swap Integration</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <a href="index.html" style="color: #0066ff; text-decoration: none; font-family: 'Orbitron', sans-serif; font-size: 0.9rem;">Home</a>
+                    <a href="launchpad.html" style="color: #0066ff; text-decoration: none; font-family: 'Orbitron', sans-serif; font-size: 0.9rem;">Launchpad</a>
+                    <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+                </div>
+            </div>
+        </header>
+
+        <div style="max-width: 600px; margin: 2rem auto; padding: 2rem; background: #000; border: 1px solid #0066ff; border-radius: 4px;">
+            <h2 style="color: #0066ff; margin-bottom: 1.5rem;">Swap Tokens</h2>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">From</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="from-token" placeholder="Token mint address" style="flex: 1; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;">
+                    <button onclick="setSOL('from')" style="padding: 0.8rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">SOL</button>
+                </div>
+                <input type="number" id="from-amount" placeholder="Amount" style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px; margin-top: 0.5rem;">
+            </div>
+
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <button onclick="swapDirection()" style="padding: 0.5rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 50%; cursor: pointer; font-size: 1.2rem;">⇅</button>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">To</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="to-token" placeholder="Token mint address" style="flex: 1; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;">
+                    <button onclick="setSOL('to')" style="padding: 0.8rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">SOL</button>
+                </div>
+                <div id="to-amount" style="padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #00ff88; border-radius: 4px; margin-top: 0.5rem; min-height: 2.5rem; display: flex; align-items: center;">~</div>
+            </div>
+
+            <div id="route-info" style="background: rgba(0, 102, 255, 0.1); border: 1px solid #0066ff; border-radius: 4px; padding: 1rem; margin-bottom: 1.5rem; display: none;">
+                <p style="color: #0066ff; margin: 0; font-size: 0.9rem;"><strong>Route:</strong> <span id="route-text"></span></p>
+                <p style="color: #999; margin: 0.5rem 0 0 0; font-size: 0.85rem;"><strong>Price Impact:</strong> <span id="price-impact"></span></p>
+            </div>
+
+            <button id="quote-btn" style="width: 100%; padding: 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer; font-size: 1rem; margin-bottom: 0.5rem;">Get Quote</button>
+            <button id="swap-btn" style="width: 100%; padding: 1rem; background: #00ff88; color: #000; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer; font-size: 1rem;" disabled>Execute Swap</button>
+
+            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 136, 0, 0.1); border: 1px solid #ff8800; border-radius: 4px;">
+                <p style="color: #ff8800; margin: 0; font-size: 0.85rem;">💡 <strong>Tip:</strong> Use your created token mint addresses or SOL. Jupiter finds the best route automatically.</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>Singularity.io | Powered by Jupiter Aggregator</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="swap.js"></script>
+</body>
+</html>

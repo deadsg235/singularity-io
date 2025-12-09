@@ -270,8 +270,10 @@ function displayTokens() {
             <p style="color: #999; margin-top: 0.5rem; font-size: 0.9rem;">${description}</p>
             <div style="margin-top: 1rem;">
                 <input type="text" value="${mint}" readonly style="width: 100%; padding: 0.5rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px; margin-bottom: 0.5rem; font-size: 0.85rem;" onclick="this.select()">
-                <div style="display: flex; gap: 0.5rem;">
-                    <button onclick="copyMint('${mint}')" style="flex: 1; padding: 0.5rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Copy Mint</button>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <button onclick="copyMint('${mint}')" style="flex: 1; padding: 0.5rem 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Copy</button>
+                    <button onclick="showQR('${mint}', '${name}')" style="flex: 1; padding: 0.5rem 1rem; background: #00ff88; color: #000; border: none; border-radius: 4px; cursor: pointer;">QR Code</button>
+                    <button onclick="checkBalance('${mint}', ${decimals})" style="flex: 1; padding: 0.5rem 1rem; background: #ff8800; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Balance</button>
                     <button onclick="deleteToken('${mint}')" style="padding: 0.5rem 1rem; background: #ff4444; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Delete</button>
                 </div>
             </div>
@@ -284,6 +286,61 @@ function displayTokens() {
 function copyMint(mint) {
     navigator.clipboard.writeText(mint);
     alert('Mint address copied to clipboard!');
+}
+
+// Show QR code
+function showQR(mint, name) {
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+    modal.innerHTML = `
+        <div style="background: #000; border: 2px solid #0066ff; border-radius: 8px; padding: 2rem; max-width: 400px; width: 90%; text-align: center;">
+            <h2 style="color: #0066ff; margin-bottom: 1rem;">${name}</h2>
+            <canvas id="qr-canvas" style="margin: 1rem auto; display: block; background: #fff; padding: 1rem; border-radius: 8px;"></canvas>
+            <p style="color: #999; font-size: 0.85rem; margin: 1rem 0; word-break: break-all;">${mint}</p>
+            <button onclick="this.parentElement.parentElement.remove()" style="padding: 0.8rem 2rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Close</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    QRCode.toCanvas(modal.querySelector('#qr-canvas'), mint, { width: 256, margin: 2 }, (err) => {
+        if (err) console.error('QR generation error:', err);
+    });
+}
+
+// Check wallet balance
+async function checkBalance(mint, decimals) {
+    if (!wallet) {
+        alert('Please connect your wallet first');
+        return;
+    }
+    
+    try {
+        const mintPubkey = new PublicKey(mint);
+        const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        
+        // Find associated token account
+        const [ata] = await PublicKey.findProgramAddress(
+            [wallet.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mintPubkey.toBuffer()],
+            new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
+        );
+        
+        const accountInfo = await connection.getAccountInfo(ata);
+        
+        if (!accountInfo) {
+            alert(`Balance: 0\n\nYou don't have a token account for this token yet.`);
+            return;
+        }
+        
+        // Parse token account data
+        const data = accountInfo.data;
+        const amount = Number(data.readBigUInt64LE(64));
+        const balance = amount / Math.pow(10, decimals);
+        
+        alert(`Your Balance: ${balance.toLocaleString()}\n\nToken Account: ${ata.toString()}`);
+    } catch (error) {
+        console.error('Balance check error:', error);
+        alert('Failed to check balance: ' + error.message);
+    }
 }
 
 // Delete token
@@ -339,5 +396,28 @@ function debugTokens() {
     alert(`Tokens in storage: ${tokens.length}\n\nRaw data:\n${stored ? stored.substring(0, 200) : 'empty'}...\n\nCheck console for full data.`);
     loadTokens();
 }
+
+// Auto-check balances on load
+setInterval(async () => {
+    if (wallet && tokens.length > 0) {
+        for (const token of tokens) {
+            if (token.mint && !token.balance) {
+                try {
+                    const mintPubkey = new PublicKey(token.mint);
+                    const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+                    const [ata] = await PublicKey.findProgramAddress(
+                        [wallet.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mintPubkey.toBuffer()],
+                        new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
+                    );
+                    const accountInfo = await connection.getAccountInfo(ata);
+                    if (accountInfo) {
+                        const amount = Number(accountInfo.data.readBigUInt64LE(64));
+                        token.balance = amount / Math.pow(10, token.decimals || 9);
+                    }
+                } catch (e) {}
+            }
+        }
+    }
+}, 10000);
 
 console.log('Launchpad initialized');
