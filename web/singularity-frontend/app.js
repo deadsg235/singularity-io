@@ -382,7 +382,8 @@ async function getWalletBalance() {
         
         addChatMessage('assistant', `Wallet: ${walletAddress}\n\nSOL Balance: ${solBalance.toFixed(4)} SOL`);
     } catch (error) {
-        addChatMessage('assistant', `Failed to get balance: ${error.message}`);
+        console.error('Balance error:', error);
+        addChatMessage('assistant', `Failed to get balance. RPC rate limit reached. Try again in a moment.`);
     }
 }
 
