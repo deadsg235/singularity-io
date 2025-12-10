@@ -3,3 +3,4 @@ uvicorn==0.24.0
 requests==2.31.0
 groq==0.4.1
 pydantic==2.5.0
+mangum==0.17.0

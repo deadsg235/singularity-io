@@ -1,4 +1,5 @@
+from mangum import Mangum
 from main import app
 
-# Export the FastAPI app for Vercel
-handler = app
+# Vercel serverless handler
+handler = Mangum(app)
