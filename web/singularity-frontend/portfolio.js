@@ -1,4 +1,3 @@
-let wallet = null;
 let portfolio = {
     totalValue: 0,
     dailyChange: 0,
@@ -19,19 +18,19 @@ async function connectWallet() {
         return;
     }
     const resp = await window.solana.connect();
-    wallet = resp.publicKey;
-    document.getElementById('wallet-btn').textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
+    window.globalWallet = resp.publicKey;
+    document.getElementById('wallet-btn').textContent = `${window.globalWallet.toString().slice(0, 4)}...${window.globalWallet.toString().slice(-4)}`;
     if (window.setWalletConnected) window.setWalletConnected(true);
     
     await loadRealPortfolio();
 }
 
 async function loadRealPortfolio() {
-    if (!wallet) return;
+    if (!window.globalWallet) return;
     
     try {
         // Get S-IO balance first
-        const sioBalance = await window.getSIOBalance(wallet.toString());
+        const sioBalance = await window.getSIOBalance(window.globalWallet.toString());
         const sioPrice = await window.getSIOPrice();
         
         portfolio.holdings = [];
@@ -48,7 +47,7 @@ async function loadRealPortfolio() {
         }
         
         // Get other tokens
-        const response = await fetch(`/api/wallet/tokens/${wallet.toString()}`);
+        const response = await fetch(`/api/wallet/tokens/${window.globalWallet.toString()}`);
         const data = await response.json();
         
         data.tokens.forEach(token => {

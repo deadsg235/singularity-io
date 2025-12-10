@@ -4,6 +4,15 @@ let wallet = null;
 let connection;
 let recentSwaps = [];
 
+// Multiple RPC endpoints for fallback
+const RPC_ENDPOINTS = [
+    'https://solana-api.projectserum.com',
+    'https://api.mainnet-beta.solana.com',
+    'https://rpc.ankr.com/solana'
+];
+
+let currentRpcIndex = 0;
+
 const tokens = {
     'So11111111111111111111111111111111111111112': { symbol: 'SOL', decimals: 9 },
     'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': { symbol: 'USDC', decimals: 6 },
@@ -12,7 +21,7 @@ const tokens = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+    connection = new Connection(RPC_ENDPOINTS[0], 'confirmed');
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     document.getElementById('from-amount').addEventListener('input', updateQuote);
     document.getElementById('from-token').addEventListener('change', updateQuote);
@@ -20,6 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     loadRecentSwaps();
 });
+
+function switchRPC() {
+    currentRpcIndex = (currentRpcIndex + 1) % RPC_ENDPOINTS.length;
+    connection = new Connection(RPC_ENDPOINTS[currentRpcIndex], 'confirmed');
+    console.log('Switched to RPC:', RPC_ENDPOINTS[currentRpcIndex]);
+}
 
 async function connectWallet() {
     if (!window.solana?.isPhantom) {
@@ -41,12 +56,22 @@ async function connectWallet() {
 async function updateBalances() {
     if (!wallet) return;
     
-    try {
-        const balance = await connection.getBalance(wallet);
-        document.getElementById('from-balance').textContent = `Balance: ${(balance / 1e9).toFixed(4)}`;
-    } catch (error) {
-        console.error('Failed to get balance:', error);
+    for (let attempt = 0; attempt < RPC_ENDPOINTS.length; attempt++) {
+        try {
+            const balance = await connection.getBalance(wallet);
+            document.getElementById('from-balance').textContent = `Balance: ${(balance / 1e9).toFixed(4)}`;
+            return;
+        } catch (error) {
+            console.error(`RPC attempt ${attempt + 1} failed:`, error);
+            if (attempt < RPC_ENDPOINTS.length - 1) {
+                switchRPC();
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s
+            }
+        }
     }
+    
+    // All RPCs failed, show fallback
+    document.getElementById('from-balance').textContent = 'Balance: Unable to load';
 }
 
 async function updateQuote() {

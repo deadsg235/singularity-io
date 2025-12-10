@@ -1,15 +1,9 @@
-let wallet = null;
 let stakingData = {
     balance: 0,
     staked: 0,
     rewards: 0,
     apy: 24.5
 };
-
-// Load S-IO token integration
-const script = document.createElement('script');
-script.src = 'sio-token.js';
-document.head.appendChild(script);
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
@@ -23,8 +17,8 @@ async function connectWallet() {
         return;
     }
     const resp = await window.solana.connect();
-    wallet = resp.publicKey;
-    document.getElementById('wallet-btn').textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
+    window.globalWallet = resp.publicKey;
+    document.getElementById('wallet-btn').textContent = `${window.globalWallet.toString().slice(0, 4)}...${window.globalWallet.toString().slice(-4)}`;
     if (window.setWalletConnected) window.setWalletConnected(true);
     loadUserStaking();
 }
@@ -38,12 +32,12 @@ function loadStakingData() {
 }
 
 async function loadUserStaking() {
-    if (wallet && window.getSIOBalance) {
+    if (window.globalWallet && window.getSIOBalance) {
         // Get real S-IO balance
-        stakingData.balance = await window.getSIOBalance(wallet.toString());
+        stakingData.balance = await window.getSIOBalance(window.globalWallet.toString());
         
         // Load staked amount from API or localStorage
-        const savedStaking = localStorage.getItem(`sio-staking-${wallet.toString()}`);
+        const savedStaking = localStorage.getItem(`sio-staking-${window.globalWallet.toString()}`);
         if (savedStaking) {
             const data = JSON.parse(savedStaking);
             stakingData.staked = data.staked || 0;
@@ -60,7 +54,7 @@ async function loadUserStaking() {
 }
 
 async function stakeTokens() {
-    if (!wallet) {
+    if (!window.globalWallet) {
         alert('Please connect your wallet to stake');
         return;
     }
@@ -86,7 +80,7 @@ async function stakeTokens() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                wallet: wallet.toString(),
+                wallet: window.globalWallet.toString(),
                 amount: amount
             })
         });
@@ -98,7 +92,7 @@ async function stakeTokens() {
             stakingData.staked += amount;
             
             // Save staking data locally
-            localStorage.setItem(`sio-staking-${wallet.toString()}`, JSON.stringify({
+            localStorage.setItem(`sio-staking-${window.globalWallet.toString()}`, JSON.stringify({
                 staked: stakingData.staked,
                 rewards: stakingData.rewards,
                 lastUpdate: Date.now()
@@ -117,7 +111,7 @@ async function stakeTokens() {
 }
 
 function unstakeTokens() {
-    if (!wallet) {
+    if (!window.globalWallet) {
         alert('Please connect your wallet to unstake');
         return;
     }
@@ -149,7 +143,7 @@ function unstakeTokens() {
 }
 
 function claimRewards() {
-    if (!wallet) {
+    if (!window.globalWallet) {
         alert('Please connect your wallet to claim rewards');
         return;
     }
@@ -171,7 +165,7 @@ function claimRewards() {
 }
 
 function updateRewards() {
-    if (wallet && stakingData.staked > 0) {
+    if (window.globalWallet && stakingData.staked > 0) {
         // Simulate reward accumulation
         const rewardRate = (stakingData.apy / 100) / (365 * 24 * 60 * 12); // Per 5 seconds
         stakingData.rewards += stakingData.staked * rewardRate;

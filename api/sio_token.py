@@ -6,47 +6,62 @@ router = APIRouter()
 
 # S-IO Token Contract Address
 SIO_TOKEN_MINT = "Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump"
-SOLANA_RPC = "https://api.mainnet-beta.solana.com"
+
+# Multiple RPC endpoints for fallback
+RPC_ENDPOINTS = [
+    "https://solana-api.projectserum.com",
+    "https://rpc.ankr.com/solana", 
+    "https://api.mainnet-beta.solana.com"
+]
+
+SOLANA_RPC = RPC_ENDPOINTS[0]
 
 @router.get("/api/sio/balance/{wallet_address}")
 async def get_sio_balance(wallet_address: str):
     """Get S-IO token balance for a wallet"""
-    try:
-        payload = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "getTokenAccountsByOwner",
-            "params": [
-                wallet_address,
-                {"mint": SIO_TOKEN_MINT},
-                {"encoding": "jsonParsed"}
-            ]
-        }
-        
-        response = requests.post(SOLANA_RPC, json=payload)
-        result = response.json()
-        
-        if "error" in result:
-            return {"balance": 0, "error": result["error"]["message"]}
-        
-        token_accounts = result["result"]["value"]
-        
-        if not token_accounts:
-            return {"balance": 0, "wallet": wallet_address}
-        
-        # Get balance from first token account
-        account_info = token_accounts[0]["account"]["data"]["parsed"]["info"]
-        balance = float(account_info["tokenAmount"]["uiAmount"] or 0)
-        
-        return {
-            "balance": balance,
-            "wallet": wallet_address,
-            "mint": SIO_TOKEN_MINT,
-            "decimals": 6
-        }
-        
-    except Exception as e:
-        raise HTTPException(500, f"Failed to get S-IO balance: {str(e)}")
+    
+    for rpc_url in RPC_ENDPOINTS:
+        try:
+            payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "getTokenAccountsByOwner",
+                "params": [
+                    wallet_address,
+                    {"mint": SIO_TOKEN_MINT},
+                    {"encoding": "jsonParsed"}
+                ]
+            }
+            
+            response = requests.post(rpc_url, json=payload, timeout=10)
+            result = response.json()
+            
+            if "error" in result:
+                continue  # Try next RPC
+            
+            token_accounts = result["result"]["value"]
+            
+            if not token_accounts:
+                return {"balance": 0, "wallet": wallet_address}
+            
+            # Get balance from first token account
+            account_info = token_accounts[0]["account"]["data"]["parsed"]["info"]
+            balance = float(account_info["tokenAmount"]["uiAmount"] or 0)
+            
+            return {
+                "balance": balance,
+                "wallet": wallet_address,
+                "mint": SIO_TOKEN_MINT,
+                "decimals": 6,
+                "rpc_used": rpc_url
+            }
+            
+        except Exception as e:
+            print(f"RPC {rpc_url} failed: {e}")
+            continue
+    
+    # All RPCs failed
+    return {"balance": 0, "wallet": wallet_address, "error": "All RPC endpoints failed"}
 
 @router.get("/api/sio/price")
 async def get_sio_price():

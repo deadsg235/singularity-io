@@ -2,40 +2,58 @@ const { Connection, PublicKey } = solanaWeb3;
 
 // S-IO Token Contract Address
 const SIO_TOKEN_MINT = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
-const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+
+// Multiple RPC endpoints for fallback
+const RPC_ENDPOINTS = [
+    'https://solana-api.projectserum.com',
+    'https://rpc.ankr.com/solana',
+    'https://api.mainnet-beta.solana.com'
+];
+
+let connection = new Connection(RPC_ENDPOINTS[0], 'confirmed');
+let rpcIndex = 0;
 
 // Global S-IO balance tracking
 let sioBalance = 0;
-let wallet = null;
+window.globalWallet = null;
 
 async function getSIOBalance(walletAddress) {
-    try {
-        const walletPubkey = new PublicKey(walletAddress);
-        
-        // Get token accounts for the wallet
-        const tokenAccounts = await connection.getTokenAccountsByOwner(walletPubkey, {
-            mint: new PublicKey(SIO_TOKEN_MINT)
-        });
-        
-        if (tokenAccounts.value.length === 0) {
-            return 0;
+    for (let attempt = 0; attempt < RPC_ENDPOINTS.length; attempt++) {
+        try {
+            const walletPubkey = new PublicKey(walletAddress);
+            
+            // Get token accounts for the wallet
+            const tokenAccounts = await connection.getTokenAccountsByOwner(walletPubkey, {
+                mint: new PublicKey(SIO_TOKEN_MINT)
+            });
+            
+            if (tokenAccounts.value.length === 0) {
+                return 0;
+            }
+            
+            // Get the balance from the first token account
+            const accountInfo = await connection.getAccountInfo(tokenAccounts.value[0].pubkey);
+            if (!accountInfo) return 0;
+            
+            // Parse token account data
+            const data = accountInfo.data;
+            const amount = data.readBigUInt64LE(64); // Token amount is at offset 64
+            
+            // S-IO has 6 decimals
+            return Number(amount) / 1000000;
+            
+        } catch (error) {
+            console.error(`RPC attempt ${attempt + 1} failed:`, error);
+            if (attempt < RPC_ENDPOINTS.length - 1) {
+                rpcIndex = (rpcIndex + 1) % RPC_ENDPOINTS.length;
+                connection = new Connection(RPC_ENDPOINTS[rpcIndex], 'confirmed');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
         }
-        
-        // Get the balance from the first token account
-        const accountInfo = await connection.getAccountInfo(tokenAccounts.value[0].pubkey);
-        if (!accountInfo) return 0;
-        
-        // Parse token account data
-        const data = accountInfo.data;
-        const amount = data.readBigUInt64LE(64); // Token amount is at offset 64
-        
-        // S-IO has 6 decimals
-        return Number(amount) / 1000000;
-        
-    } catch (error) {
-        console.error('Error getting S-IO balance:', error);
-        return 0;
     }
+    
+    console.error('All RPC endpoints failed for S-IO balance');
+    return 0;
 }
 
 // Get total supply for 1% calculation
@@ -70,9 +88,9 @@ async function getSIOPrice() {
 }
 
 async function updateSIODisplay() {
-    if (!wallet) return;
+    if (!window.globalWallet) return;
     
-    const balance = await getSIOBalance(wallet.toString());
+    const balance = await getSIOBalance(window.globalWallet.toString());
     const price = await getSIOPrice();
     
     sioBalance = balance;
