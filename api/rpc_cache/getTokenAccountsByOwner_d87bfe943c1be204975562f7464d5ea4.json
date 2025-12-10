@@ -2,8 +2,8 @@
   "jsonrpc": "2.0",
   "result": {
     "context": {
-      "apiVersion": "3.0.6",
-      "slot": 385799851
+      "apiVersion": "3.0.11",
+      "slot": 385802176
     },
     "value": [
       {

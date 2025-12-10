@@ -9,21 +9,13 @@ except Exception as e:
     NEURAL_AVAILABLE = False
     dqn = None
 
-# Import API routers
+# Import working API routers
 try:
+    from sio_token import router as sio_router
+    from wallet_analytics import router as wallet_analytics_router
+    from revenue import router as revenue_router
     from social import router as social_router
     from staking import router as staking_router
-    from governance import router as governance_router
-    from revenue import router as revenue_router
-    from tokenomics import router as tokenomics_router
-    from chat import router as chat_router
-    from bot_chat import router as bot_chat_router
-    from leaderboard import router as leaderboard_router
-    from wallet import router as wallet_router
-    from portfolio import router as portfolio_router
-    from analytics import router as analytics_router
-    from sio_token import router as sio_router
-    from wallet_analytics import router as wallet_router
 except ImportError as e:
     print(f"Some API modules not available: {e}")
 
@@ -41,21 +33,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routers
+# Include working API routers
 try:
+    app.include_router(sio_router)
+    app.include_router(wallet_analytics_router)
+    app.include_router(revenue_router)
     app.include_router(social_router)
     app.include_router(staking_router)
-    app.include_router(governance_router)
-    app.include_router(revenue_router)
-    app.include_router(tokenomics_router)
-    app.include_router(chat_router)
-    app.include_router(bot_chat_router)
-    app.include_router(leaderboard_router)
-    app.include_router(wallet_router)
-    app.include_router(portfolio_router)
-    app.include_router(analytics_router)
-    app.include_router(sio_router)
-    app.include_router(wallet_router)
 except NameError:
     pass  # Routers not available
 

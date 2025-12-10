@@ -1,3 +1,18 @@
 {
+    "functions": {
+        "api/index.py": {
+            "runtime": "python3.9"
+        }
+    },
+    "routes": [
+        {
+            "src": "/api/(.*)",
+            "dest": "/api/index.py"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/web/singularity-frontend/$1"
+        }
+    ],
     "outputDirectory": "web/singularity-frontend"
 }
