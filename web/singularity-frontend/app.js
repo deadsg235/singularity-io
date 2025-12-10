@@ -480,21 +480,23 @@ async function loadWalletBalances() {
     
     try {
         const response = await fetch(`/api/wallet/analytics/${walletAddress}`);
-        const data = await response.json();
-        
-        if (data.error) {
-            document.getElementById('sol-balance').textContent = 'ERROR';
-            document.getElementById('sio-balance').textContent = 'ERROR';
+        if (response.ok) {
+            const data = await response.json();
             
-            const errorDiv = document.createElement('div');
-            errorDiv.style.cssText = 'position:fixed;top:10px;right:10px;background:#ff4444;color:#fff;padding:1rem;border-radius:4px;font-family:monospace;font-size:12px;max-width:400px;z-index:9999;cursor:pointer';
-            errorDiv.textContent = `API Error: ${data.error}`;
-            errorDiv.onclick = () => navigator.clipboard.writeText(errorDiv.textContent);
-            document.body.appendChild(errorDiv);
-            setTimeout(() => errorDiv.remove(), 10000);
-        } else if (response.ok) {
-            document.getElementById('sol-balance').textContent = data.sol_balance.toFixed(2);
-            document.getElementById('sio-balance').textContent = data.sio_balance.toLocaleString();
+            if (data.error) {
+                document.getElementById('sol-balance').textContent = 'ERROR';
+                document.getElementById('sio-balance').textContent = 'ERROR';
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'position:fixed;top:10px;right:10px;background:#ff4444;color:#fff;padding:1rem;border-radius:4px;font-family:monospace;font-size:12px;max-width:400px;z-index:9999;cursor:pointer';
+                errorDiv.textContent = `API Error: ${data.error}`;
+                errorDiv.onclick = () => navigator.clipboard.writeText(errorDiv.textContent);
+                document.body.appendChild(errorDiv);
+                setTimeout(() => errorDiv.remove(), 10000);
+            } else {
+                document.getElementById('sol-balance').textContent = data.sol_balance.toFixed(2);
+                document.getElementById('sio-balance').textContent = data.sio_balance.toLocaleString();
+            }
         } else {
             const errorText = await response.text();
             document.getElementById('sol-balance').textContent = 'ERROR';
