@@ -7,10 +7,50 @@ let revenueData = {
     tokens: 89
 };
 
+let wallet = null;
+
 document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     initDashboard();
     setInterval(updateMetrics, 5000);
 });
+
+async function connectWallet() {
+    if (!window.solana?.isPhantom) {
+        alert('Install Phantom Wallet');
+        return;
+    }
+    const resp = await window.solana.connect();
+    wallet = resp.publicKey;
+    document.getElementById('wallet-btn').textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
+    if (window.setWalletConnected) window.setWalletConnected(true);
+    
+    // Load real wallet data
+    await loadWalletData();
+}
+
+async function loadWalletData() {
+    if (!wallet) return;
+    
+    try {
+        const response = await fetch(`/api/wallet/balance/${wallet.toString()}`);
+        const data = await response.json();
+        
+        // Update a metric with real wallet balance
+        const balanceElement = document.createElement('div');
+        balanceElement.innerHTML = `
+            <div class="metric-card">
+                <div class="metric-label">Your SOL Balance</div>
+                <div class="metric-value">${data.sol_balance.toFixed(4)} SOL</div>
+                <div class="metric-change">Wallet: ${wallet.toString().slice(0, 8)}...</div>
+            </div>
+        `;
+        
+        document.querySelector('.metrics-grid').appendChild(balanceElement.firstElementChild);
+    } catch (error) {
+        console.error('Failed to load wallet data:', error);
+    }
+}
 
 function initDashboard() {
     updateMetrics();
