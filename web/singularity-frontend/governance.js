@@ -1,4 +1,3 @@
-let wallet = null;
 let proposals = [
     {
         id: 1,
@@ -44,10 +43,15 @@ async function connectWallet() {
         return;
     }
     const resp = await window.solana.connect();
-    wallet = resp.publicKey;
-    document.getElementById('wallet-btn').textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
+    window.globalWallet = resp.publicKey;
+    document.getElementById('wallet-btn').textContent = `${window.globalWallet.toString().slice(0, 4)}...${window.globalWallet.toString().slice(-4)}`;
     if (window.setWalletConnected) window.setWalletConnected(true);
-    loadUserData();
+    
+    // Wait for S-IO functions to be available
+    setTimeout(async () => {
+        await loadUserData();
+        if (window.updateSIODisplay) await window.updateSIODisplay();
+    }, 1000);
 }
 
 function loadGovernanceData() {
@@ -56,12 +60,12 @@ function loadGovernanceData() {
 }
 
 async function loadUserData() {
-    if (wallet && window.getSIOBalance) {
+    if (window.globalWallet && window.getSIOBalance) {
         // Get real S-IO balance
-        const sioBalance = await window.getSIOBalance(wallet.toString());
+        const sioBalance = await window.getSIOBalance(window.globalWallet.toString());
         
         // Get staked amount from localStorage
-        const savedStaking = localStorage.getItem(`sio-staking-${wallet.toString()}`);
+        const savedStaking = localStorage.getItem(`sio-staking-${window.globalWallet.toString()}`);
         let stakedAmount = 0;
         if (savedStaking) {
             const data = JSON.parse(savedStaking);
@@ -125,13 +129,13 @@ function displayProposals() {
 }
 
 async function vote(proposalId, isYes) {
-    if (!wallet) {
+    if (!window.globalWallet) {
         alert('Please connect your wallet to vote');
         return;
     }
     
     // Check 1% minimum requirement
-    const sioBalance = await window.getSIOBalance(wallet.toString());
+    const sioBalance = await window.getSIOBalance(window.globalWallet.toString());
     const totalSupply = await window.getSIOTotalSupply();
     const onePercent = totalSupply * 0.01;
     
@@ -149,7 +153,7 @@ async function vote(proposalId, isYes) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 proposal_id: proposalId.toString(),
-                wallet: wallet.toString(),
+                wallet: window.globalWallet.toString(),
                 vote: isYes,
                 amount: parseFloat(voteAmount)
             })
@@ -169,7 +173,7 @@ async function vote(proposalId, isYes) {
 }
 
 function createProposal() {
-    if (!wallet) {
+    if (!window.globalWallet) {
         alert('Please connect your wallet to create proposals');
         return;
     }

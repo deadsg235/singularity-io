@@ -7,11 +7,11 @@ router = APIRouter()
 # S-IO Token Contract Address
 SIO_TOKEN_MINT = "Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump"
 
-# Multiple RPC endpoints for fallback
+# Working RPC endpoints
 RPC_ENDPOINTS = [
-    "https://solana-api.projectserum.com",
-    "https://rpc.ankr.com/solana", 
-    "https://api.mainnet-beta.solana.com"
+    "https://api.mainnet-beta.solana.com",
+    "https://solana-mainnet.g.alchemy.com/v2/demo",
+    "https://mainnet.helius-rpc.com/?api-key=demo"
 ]
 
 SOLANA_RPC = RPC_ENDPOINTS[0]
@@ -33,18 +33,26 @@ async def get_sio_balance(wallet_address: str):
                 ]
             }
             
-            response = requests.post(rpc_url, json=payload, timeout=10)
+            headers = {
+                'Content-Type': 'application/json',
+                'User-Agent': 'Singularity.io/1.0'
+            }
+            
+            response = requests.post(rpc_url, json=payload, headers=headers, timeout=15)
+            
+            if response.status_code != 200:
+                continue
+                
             result = response.json()
             
             if "error" in result:
-                continue  # Try next RPC
+                continue
             
             token_accounts = result["result"]["value"]
             
             if not token_accounts:
-                return {"balance": 0, "wallet": wallet_address}
+                return {"balance": 0, "wallet": wallet_address, "mint": SIO_TOKEN_MINT}
             
-            # Get balance from first token account
             account_info = token_accounts[0]["account"]["data"]["parsed"]["info"]
             balance = float(account_info["tokenAmount"]["uiAmount"] or 0)
             
@@ -60,8 +68,7 @@ async def get_sio_balance(wallet_address: str):
             print(f"RPC {rpc_url} failed: {e}")
             continue
     
-    # All RPCs failed
-    return {"balance": 0, "wallet": wallet_address, "error": "All RPC endpoints failed"}
+    raise HTTPException(503, "All Solana RPC endpoints are currently unavailable")
 
 @router.get("/api/sio/price")
 async def get_sio_price():

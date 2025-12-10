@@ -20,7 +20,12 @@ async function connectWallet() {
     window.globalWallet = resp.publicKey;
     document.getElementById('wallet-btn').textContent = `${window.globalWallet.toString().slice(0, 4)}...${window.globalWallet.toString().slice(-4)}`;
     if (window.setWalletConnected) window.setWalletConnected(true);
-    loadUserStaking();
+    
+    // Wait for S-IO functions to be available
+    setTimeout(async () => {
+        await loadUserStaking();
+        if (window.updateSIODisplay) await window.updateSIODisplay();
+    }, 1000);
 }
 
 function loadStakingData() {
