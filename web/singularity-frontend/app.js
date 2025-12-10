@@ -294,6 +294,11 @@ async function connectWallet() {
         
         updateStatus('wallet-status', 'Connected', true);
         if (window.setWalletConnected) window.setWalletConnected(true);
+        
+        // Show balance display and load balances
+        document.getElementById('balance-display').style.display = 'flex';
+        loadWalletBalances();
+        
         console.log('Wallet connected:', walletAddress);
     } catch (error) {
         console.error('Wallet connection error:', error);
@@ -468,6 +473,34 @@ function generateMintAddress() {
 window.addEventListener('beforeunload', () => {
     if (animationFrame) cancelAnimationFrame(animationFrame);
 });
+
+// Load wallet balances
+async function loadWalletBalances() {
+    if (!walletAddress) return;
+    
+    try {
+        // Get SOL balance
+        const connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+        const publicKey = new solanaWeb3.PublicKey(walletAddress);
+        const balance = await connection.getBalance(publicKey);
+        const solBalance = balance / 1e9;
+        
+        document.getElementById('sol-balance').textContent = solBalance.toFixed(2);
+        
+        // Get S-IO balance from API
+        const sioResponse = await fetch(`/api/sio/balance/${walletAddress}`);
+        if (sioResponse.ok) {
+            const sioData = await sioResponse.json();
+            document.getElementById('sio-balance').textContent = sioData.balance.toLocaleString();
+        } else {
+            document.getElementById('sio-balance').textContent = '0.00';
+        }
+    } catch (error) {
+        console.error('Error loading balances:', error);
+        document.getElementById('sol-balance').textContent = '0.00';
+        document.getElementById('sio-balance').textContent = '0.00';
+    }
+}
 
 // Log initialization
 console.log('Singularity.io v0.2.0 - Neural Network Visualization Ready');

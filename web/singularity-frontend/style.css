@@ -80,6 +80,35 @@ header {
     border-color: #0066ff;
 }
 
+.balance-display {
+    display: flex;
+    gap: 1rem;
+    background: rgba(0, 102, 255, 0.1);
+    border: 1px solid #0066ff;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+}
+
+.balance-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.balance-label {
+    color: #0066ff;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.balance-value {
+    color: #fff;
+    font-weight: 700;
+}
+
 .hero {
     text-align: center;
     padding: 3rem 0;
