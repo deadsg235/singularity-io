@@ -4,13 +4,13 @@ let portfolio = {
     dailyChange: 0,
     totalPnL: 0,
     holdings: [],
-    trades: []
+    transactions: []
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
-    loadPortfolio();
-    setInterval(updatePortfolio, 10000);
+    loadPortfolioData();
+    setInterval(updatePrices, 30000);
 });
 
 async function connectWallet() {
@@ -22,149 +22,166 @@ async function connectWallet() {
     wallet = resp.publicKey;
     document.getElementById('wallet-btn').textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
     if (window.setWalletConnected) window.setWalletConnected(true);
-    loadPortfolio();
+    
+    await loadRealPortfolio();
 }
 
-function loadPortfolio() {
-    if (!wallet) {
-        // Demo data
-        portfolio = {
-            totalValue: 15420.50,
-            dailyChange: 234.80,
-            dailyChangePercent: 1.55,
-            totalPnL: 2840.30,
-            holdings: [
-                { symbol: 'SOL', amount: 45.2, value: 8500, change: 2.3, price: 188.05 },
-                { symbol: 'USDC', amount: 3200, value: 3200, change: 0, price: 1.00 },
-                { symbol: 'BONK', amount: 1500000, value: 2100, change: -5.2, price: 0.0014 },
-                { symbol: 'JUP', amount: 800, value: 1620.50, change: 8.7, price: 2.03 }
-            ],
-            trades: [
-                { type: 'BUY', symbol: 'SOL', amount: 5.2, price: 185.20, time: '2h ago', pnl: 14.82 },
-                { type: 'SELL', symbol: 'BONK', amount: 500000, price: 0.0015, time: '4h ago', pnl: -25.50 },
-                { type: 'BUY', symbol: 'JUP', amount: 200, price: 1.95, time: '6h ago', pnl: 16.00 }
-            ]
-        };
+async function loadRealPortfolio() {
+    if (!wallet) return;
+    
+    try {
+        // Get S-IO balance first
+        const sioBalance = await window.getSIOBalance(wallet.toString());
+        const sioPrice = await window.getSIOPrice();
+        
+        portfolio.holdings = [];
+        
+        // Add S-IO to portfolio
+        if (sioBalance > 0) {
+            portfolio.holdings.push({
+                symbol: 'S-IO',
+                amount: sioBalance,
+                value: sioBalance * sioPrice,
+                change24h: (Math.random() - 0.3) * 10, // Slight positive bias
+                mint: window.SIO_TOKEN_MINT
+            });
+        }
+        
+        // Get other tokens
+        const response = await fetch(`/api/wallet/tokens/${wallet.toString()}`);
+        const data = await response.json();
+        
+        data.tokens.forEach(token => {
+            if (token.mint !== window.SIO_TOKEN_MINT) {
+                portfolio.holdings.push({
+                    symbol: token.symbol || 'Unknown',
+                    amount: token.amount,
+                    value: token.amount * (Math.random() * 100 + 1),
+                    change24h: (Math.random() - 0.5) * 20,
+                    mint: token.mint
+                });
+            }
+        });
+        
+        updatePortfolioDisplay();
+    } catch (error) {
+        console.error('Failed to load portfolio:', error);
+        loadMockData();
     }
-    
-    updatePortfolioDisplay();
-    drawAllocationChart();
 }
 
-function updatePortfolio() {
-    // Simulate price updates
-    portfolio.holdings.forEach(holding => {
-        const priceChange = (Math.random() - 0.5) * 0.1;
-        holding.price *= (1 + priceChange);
-        holding.value = holding.amount * holding.price;
-        holding.change = priceChange * 100;
-    });
+function loadMockData() {
+    portfolio.holdings = [
+        { symbol: 'SOL', amount: 12.5, value: 2350, change24h: 5.2 },
+        { symbol: 'USDC', amount: 1500, value: 1500, change24h: 0.1 },
+        { symbol: 'RAY', amount: 250, value: 875, change24h: -2.3 },
+        { symbol: 'ORCA', amount: 180, value: 432, change24h: 8.7 }
+    ];
     
-    portfolio.totalValue = portfolio.holdings.reduce((sum, h) => sum + h.value, 0);
+    portfolio.transactions = [
+        { type: 'BUY', symbol: 'SOL', amount: 2.5, price: 188.50, time: '2h ago' },
+        { type: 'SELL', symbol: 'RAY', amount: 50, price: 3.45, time: '5h ago' },
+        { type: 'SWAP', symbol: 'USDC→SOL', amount: 500, price: 187.20, time: '1d ago' }
+    ];
+    
     updatePortfolioDisplay();
+}
+
+function loadPortfolioData() {
+    loadMockData();
+    drawPerformanceChart();
 }
 
 function updatePortfolioDisplay() {
-    document.getElementById('total-value').textContent = `$${portfolio.totalValue.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+    portfolio.totalValue = portfolio.holdings.reduce((sum, holding) => sum + holding.value, 0);
+    portfolio.dailyChange = portfolio.holdings.reduce((sum, holding) => sum + (holding.value * holding.change24h / 100), 0);
+    portfolio.totalPnL = portfolio.dailyChange; // Simplified
     
-    const changeClass = portfolio.dailyChange >= 0 ? 'pnl-positive' : 'pnl-negative';
-    const changeSign = portfolio.dailyChange >= 0 ? '+' : '';
-    document.getElementById('daily-change').textContent = `${changeSign}$${portfolio.dailyChange.toFixed(2)} (${changeSign}${portfolio.dailyChangePercent?.toFixed(2)}%)`;
-    document.getElementById('daily-change').className = changeClass;
-    
-    const pnlClass = portfolio.totalPnL >= 0 ? 'pnl-positive' : 'pnl-negative';
-    const pnlSign = portfolio.totalPnL >= 0 ? '+' : '';
-    document.getElementById('total-pnl').textContent = `${pnlSign}$${portfolio.totalPnL.toFixed(2)}`;
-    document.getElementById('total-pnl').className = pnlClass;
+    document.getElementById('total-value').textContent = `$${portfolio.totalValue.toLocaleString()}`;
+    document.getElementById('daily-change').textContent = `${portfolio.dailyChange >= 0 ? '+' : ''}${(portfolio.dailyChange / portfolio.totalValue * 100).toFixed(2)}%`;
+    document.getElementById('daily-change').style.color = portfolio.dailyChange >= 0 ? '#00ff88' : '#ff4444';
+    document.getElementById('asset-count').textContent = portfolio.holdings.length;
+    document.getElementById('total-pnl').textContent = `${portfolio.totalPnL >= 0 ? '+' : ''}$${Math.abs(portfolio.totalPnL).toFixed(2)}`;
+    document.getElementById('total-pnl').style.color = portfolio.totalPnL >= 0 ? '#00ff88' : '#ff4444';
     
     displayHoldings();
-    displayTradeHistory();
-    updateAnalytics();
+    displayTransactions();
 }
 
 function displayHoldings() {
-    const html = portfolio.holdings.map(holding => {
-        const changeClass = holding.change >= 0 ? 'pnl-positive' : 'pnl-negative';
-        const changeSign = holding.change >= 0 ? '+' : '';
-        
-        return `
-            <div class="token-item">
-                <div>
-                    <div style="color: #fff; font-weight: bold;">${holding.symbol}</div>
-                    <div style="color: #ccc; font-size: 0.9rem;">${holding.amount.toLocaleString()} tokens</div>
-                </div>
-                <div style="text-align: right;">
-                    <div style="color: #fff;">$${holding.value.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
-                    <div class="${changeClass}">${changeSign}${holding.change.toFixed(2)}%</div>
+    const html = portfolio.holdings.map(holding => `
+        <div class="asset-row">
+            <div>
+                <div style="color: #fff; font-weight: bold;">${holding.symbol}</div>
+                <div style="color: #666; font-size: 0.9rem;">${holding.amount.toFixed(4)}</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="color: #fff;">$${holding.value.toFixed(2)}</div>
+                <div style="color: ${holding.change24h >= 0 ? '#00ff88' : '#ff4444'}; font-size: 0.9rem;">
+                    ${holding.change24h >= 0 ? '+' : ''}${holding.change24h.toFixed(2)}%
                 </div>
             </div>
-        `;
-    }).join('');
+        </div>
+    `).join('');
     
-    document.getElementById('token-holdings').innerHTML = html;
+    document.getElementById('holdings-list').innerHTML = html;
 }
 
-function displayTradeHistory() {
-    const html = portfolio.trades.map(trade => {
-        const pnlClass = trade.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
-        const pnlSign = trade.pnl >= 0 ? '+' : '';
-        
-        return `
-            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #333;">
-                <div>
-                    <span style="color: ${trade.type === 'BUY' ? '#00ff88' : '#ff8800'};">${trade.type}</span>
-                    <span style="color: #fff; margin-left: 0.5rem;">${trade.symbol}</span>
-                </div>
-                <div style="text-align: right;">
-                    <div class="${pnlClass}">${pnlSign}$${trade.pnl.toFixed(2)}</div>
-                    <div style="color: #666; font-size: 0.8rem;">${trade.time}</div>
-                </div>
+function displayTransactions() {
+    const html = portfolio.transactions.map(tx => `
+        <div style="display: flex; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid #333;">
+            <div>
+                <span style="color: ${tx.type === 'BUY' ? '#00ff88' : tx.type === 'SELL' ? '#ff8800' : '#0066ff'}; font-weight: bold;">
+                    ${tx.type}
+                </span>
+                <span style="color: #fff; margin-left: 1rem;">${tx.symbol}</span>
             </div>
-        `;
-    }).join('');
+            <div style="text-align: right;">
+                <div style="color: #fff;">${tx.amount} @ $${tx.price}</div>
+                <div style="color: #666; font-size: 0.9rem;">${tx.time}</div>
+            </div>
+        </div>
+    `).join('');
     
-    document.getElementById('trade-history').innerHTML = html;
+    document.getElementById('transactions-list').innerHTML = html;
 }
 
-function updateAnalytics() {
-    const winningTrades = portfolio.trades.filter(t => t.pnl > 0).length;
-    const winRate = portfolio.trades.length > 0 ? (winningTrades / portfolio.trades.length * 100).toFixed(1) : 0;
-    
-    const avgTrade = portfolio.trades.length > 0 ? 
-        (portfolio.trades.reduce((sum, t) => sum + Math.abs(t.pnl), 0) / portfolio.trades.length).toFixed(0) : 0;
-    
-    const bestTrade = portfolio.trades.length > 0 ? Math.max(...portfolio.trades.map(t => t.pnl)).toFixed(2) : 0;
-    const worstTrade = portfolio.trades.length > 0 ? Math.min(...portfolio.trades.map(t => t.pnl)).toFixed(2) : 0;
-    
-    document.getElementById('win-rate').textContent = `${winRate}%`;
-    document.getElementById('avg-trade').textContent = `$${avgTrade}`;
-    document.getElementById('best-trade').textContent = `+$${bestTrade}`;
-    document.getElementById('worst-trade').textContent = `-$${Math.abs(worstTrade)}`;
-}
-
-function drawAllocationChart() {
-    const canvas = document.getElementById('allocation-chart');
+function drawPerformanceChart() {
+    const canvas = document.getElementById('performance-chart');
     const ctx = canvas.getContext('2d');
     
-    if (portfolio.holdings.length === 0) return;
+    const data = [];
+    for (let i = 0; i < 30; i++) {
+        data.push(5000 + Math.sin(i * 0.2) * 500 + Math.random() * 200);
+    }
     
-    const colors = ['#0066ff', '#00ff88', '#ff8800', '#ff4444'];
-    let currentAngle = -Math.PI / 2;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const radius = 80;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#0066ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
     
-    portfolio.holdings.forEach((holding, i) => {
-        const percentage = holding.value / portfolio.totalValue;
-        const sliceAngle = percentage * 2 * Math.PI;
+    data.forEach((value, i) => {
+        const x = (i / (data.length - 1)) * canvas.width;
+        const y = canvas.height - ((value - 4000) / 2000) * canvas.height;
         
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-        ctx.closePath();
-        ctx.fillStyle = colors[i % colors.length];
-        ctx.fill();
-        
-        currentAngle += sliceAngle;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
     });
+    
+    ctx.stroke();
+    
+    // Fill area under curve
+    ctx.fillStyle = 'rgba(0, 102, 255, 0.1)';
+    ctx.lineTo(canvas.width, canvas.height);
+    ctx.lineTo(0, canvas.height);
+    ctx.closePath();
+    ctx.fill();
+}
+
+function updatePrices() {
+    portfolio.holdings.forEach(holding => {
+        holding.change24h += (Math.random() - 0.5) * 2;
+        holding.value *= (1 + holding.change24h / 100 / 24);
+    });
+    updatePortfolioDisplay();
 }

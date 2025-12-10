@@ -1,17 +1,24 @@
-const { Connection, PublicKey, VersionedTransaction, clusterApiUrl } = solanaWeb3;
+const { Connection, PublicKey, VersionedTransaction } = solanaWeb3;
 
-let connection;
 let wallet = null;
-let currentQuote = null;
+let connection;
+let recentSwaps = [];
 
-const SOL_MINT = 'So11111111111111111111111111111111111111112';
+const tokens = {
+    'So11111111111111111111111111111111111111112': { symbol: 'SOL', decimals: 9 },
+    'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': { symbol: 'USDC', decimals: 6 },
+    '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R': { symbol: 'RAY', decimals: 6 },
+    'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump': { symbol: 'S-IO', decimals: 6 }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
-    document.getElementById('quote-btn').addEventListener('click', getQuote);
-    document.getElementById('swap-btn').addEventListener('click', executeSwap);
-    document.getElementById('from-amount').addEventListener('input', debounce(getQuote, 500));
+    document.getElementById('from-amount').addEventListener('input', updateQuote);
+    document.getElementById('from-token').addEventListener('change', updateQuote);
+    document.getElementById('to-token').addEventListener('change', updateQuote);
+    
+    loadRecentSwaps();
 });
 
 async function connectWallet() {
@@ -19,47 +26,44 @@ async function connectWallet() {
         alert('Install Phantom Wallet');
         return;
     }
+    
     const resp = await window.solana.connect();
     wallet = resp.publicKey;
     document.getElementById('wallet-btn').textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
-}
-
-function setSOL(field) {
-    document.getElementById(`${field}-token`).value = SOL_MINT;
-}
-
-function swapDirection() {
-    const from = document.getElementById('from-token').value;
-    const to = document.getElementById('to-token').value;
-    document.getElementById('from-token').value = to;
-    document.getElementById('to-token').value = from;
-    currentQuote = null;
-    document.getElementById('to-amount').textContent = '~';
-    document.getElementById('route-info').style.display = 'none';
-}
-
-async function getQuote() {
-    const fromMint = document.getElementById('from-token').value.trim();
-    const toMint = document.getElementById('to-token').value.trim();
-    const amount = document.getElementById('from-amount').value;
+    document.getElementById('swap-btn').textContent = 'Get Quote';
+    document.getElementById('swap-btn').disabled = false;
     
-    if (!fromMint || !toMint || !amount || amount <= 0) {
-        document.getElementById('to-amount').textContent = '~';
-        document.getElementById('swap-btn').disabled = true;
+    if (window.setWalletConnected) window.setWalletConnected(true);
+    
+    await updateBalances();
+}
+
+async function updateBalances() {
+    if (!wallet) return;
+    
+    try {
+        const balance = await connection.getBalance(wallet);
+        document.getElementById('from-balance').textContent = `Balance: ${(balance / 1e9).toFixed(4)}`;
+    } catch (error) {
+        console.error('Failed to get balance:', error);
+    }
+}
+
+async function updateQuote() {
+    const fromAmount = document.getElementById('from-amount').value;
+    const fromToken = document.getElementById('from-token').value;
+    const toToken = document.getElementById('to-token').value;
+    
+    if (!fromAmount || fromAmount <= 0 || fromToken === toToken) {
+        document.getElementById('to-amount').value = '';
         return;
     }
     
-    const btn = document.getElementById('quote-btn');
-    btn.disabled = true;
-    btn.textContent = 'Getting Quote...';
-    
     try {
-        // Get decimals
-        const fromDecimals = fromMint === SOL_MINT ? 9 : await getTokenDecimals(fromMint);
-        const inputAmount = Math.floor(amount * Math.pow(10, fromDecimals));
+        const fromDecimals = tokens[fromToken].decimals;
+        const inputAmount = Math.floor(parseFloat(fromAmount) * Math.pow(10, fromDecimals));
         
-        // Get quote from Jupiter
-        const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${fromMint}&outputMint=${toMint}&amount=${inputAmount}&slippageBps=50`;
+        const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${fromToken}&outputMint=${toToken}&amount=${inputAmount}&slippageBps=50`;
         const response = await fetch(quoteUrl);
         const quote = await response.json();
         
@@ -67,52 +71,53 @@ async function getQuote() {
             throw new Error(quote.error);
         }
         
-        currentQuote = quote;
+        const toDecimals = tokens[toToken].decimals;
+        const outputAmount = quote.outAmount / Math.pow(10, toDecimals);
         
-        // Display output amount
-        const toDecimals = toMint === SOL_MINT ? 9 : await getTokenDecimals(toMint);
-        const outAmount = quote.outAmount / Math.pow(10, toDecimals);
-        document.getElementById('to-amount').textContent = `≈ ${outAmount.toFixed(6)}`;
+        document.getElementById('to-amount').value = outputAmount.toFixed(6);
         
-        // Display route info
-        const routeText = quote.routePlan?.map(r => r.swapInfo?.label || 'Unknown').join(' → ') || 'Direct';
-        document.getElementById('route-text').textContent = routeText;
-        document.getElementById('price-impact').textContent = `${(quote.priceImpactPct || 0).toFixed(2)}%`;
-        document.getElementById('route-info').style.display = 'block';
+        const rate = outputAmount / parseFloat(fromAmount);
+        document.getElementById('exchange-rate').textContent = 
+            `1 ${tokens[fromToken].symbol} = ${rate.toFixed(4)} ${tokens[toToken].symbol}`;
         
-        document.getElementById('swap-btn').disabled = false;
+        document.getElementById('swap-btn').textContent = 'Execute Swap';
+        document.getElementById('swap-btn').onclick = () => executeSwap(quote);
+        
     } catch (error) {
-        console.error('Quote error:', error);
-        document.getElementById('to-amount').textContent = 'Error: ' + error.message;
-        document.getElementById('swap-btn').disabled = true;
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Get Quote';
+        console.error('Quote failed:', error);
+        document.getElementById('to-amount').value = 'Error';
     }
 }
 
-async function executeSwap() {
-    if (!wallet) {
-        alert('Connect wallet first');
+function swapTokens() {
+    const fromToken = document.getElementById('from-token');
+    const toToken = document.getElementById('to-token');
+    
+    const temp = fromToken.value;
+    fromToken.value = toToken.value;
+    toToken.value = temp;
+    
+    document.getElementById('from-amount').value = '';
+    document.getElementById('to-amount').value = '';
+    
+    updateQuote();
+}
+
+async function executeSwap(quote) {
+    if (!wallet || !quote) {
+        alert('Connect wallet and get quote first');
         return;
     }
-    
-    if (!currentQuote) {
-        alert('Get a quote first');
-        return;
-    }
-    
-    const btn = document.getElementById('swap-btn');
-    btn.disabled = true;
-    btn.textContent = 'Swapping...';
     
     try {
-        // Get swap transaction
+        document.getElementById('swap-btn').textContent = 'Swapping...';
+        document.getElementById('swap-btn').disabled = true;
+        
         const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                quoteResponse: currentQuote,
+                quoteResponse: quote,
                 userPublicKey: wallet.toString(),
                 wrapAndUnwrapSol: true,
                 dynamicComputeUnitLimit: true,
@@ -121,50 +126,66 @@ async function executeSwap() {
         });
         
         const { swapTransaction } = await swapResponse.json();
+        const txBuf = Buffer.from(swapTransaction, 'base64');
+        const tx = VersionedTransaction.deserialize(txBuf);
         
-        // Deserialize and sign
-        const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
-        const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
-        
-        const signed = await window.solana.signTransaction(transaction);
-        const signature = await connection.sendRawTransaction(signed.serialize(), {
-            skipPreflight: false,
-            maxRetries: 2
-        });
+        const signed = await window.solana.signTransaction(tx);
+        const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
         
         await connection.confirmTransaction(signature, 'confirmed');
         
-        alert(`Swap successful!\\n\\nSignature: ${signature}\\n\\nView on Solscan: https://solscan.io/tx/${signature}`);
+        const fromToken = document.getElementById('from-token').value;
+        const toToken = document.getElementById('to-token').value;
+        const fromAmount = document.getElementById('from-amount').value;
+        const toAmount = document.getElementById('to-amount').value;
         
-        // Reset
+        recentSwaps.unshift({
+            from: `${fromAmount} ${tokens[fromToken].symbol}`,
+            to: `${toAmount} ${tokens[toToken].symbol}`,
+            signature: signature,
+            time: new Date().toLocaleTimeString()
+        });
+        
+        displayRecentSwaps();
+        
+        alert(`Swap successful!\\nTransaction: ${signature}`);
+        
         document.getElementById('from-amount').value = '';
-        document.getElementById('to-amount').textContent = '~';
-        document.getElementById('route-info').style.display = 'none';
-        currentQuote = null;
+        document.getElementById('to-amount').value = '';
+        await updateBalances();
         
     } catch (error) {
-        console.error('Swap error:', error);
         alert('Swap failed: ' + error.message);
     } finally {
-        btn.disabled = false;
-        btn.textContent = 'Execute Swap';
+        document.getElementById('swap-btn').textContent = 'Get Quote';
+        document.getElementById('swap-btn').disabled = false;
     }
 }
 
-async function getTokenDecimals(mint) {
-    try {
-        const mintPubkey = new PublicKey(mint);
-        const info = await connection.getAccountInfo(mintPubkey);
-        return info.data.readUInt8(44);
-    } catch {
-        return 9;
+function loadRecentSwaps() {
+    const saved = localStorage.getItem('recent-swaps');
+    if (saved) {
+        recentSwaps = JSON.parse(saved);
     }
+    displayRecentSwaps();
 }
 
-function debounce(func, wait) {
-    let timeout;
-    return function(...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-    };
+function displayRecentSwaps() {
+    const html = recentSwaps.slice(0, 5).map(swap => `
+        <div style="display: flex; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid #333;">
+            <div>
+                <div style="color: #fff;">${swap.from} → ${swap.to}</div>
+                <div style="color: #666; font-size: 0.9rem;">${swap.time}</div>
+            </div>
+            <div>
+                <a href="https://solscan.io/tx/${swap.signature}" target="_blank" style="color: #0066ff; text-decoration: none; font-size: 0.9rem;">
+                    View Tx
+                </a>
+            </div>
+        </div>
+    `).join('');
+    
+    document.getElementById('recent-swaps').innerHTML = html || '<p style="color: #666; text-align: center;">No recent swaps</p>';
+    
+    localStorage.setItem('recent-swaps', JSON.stringify(recentSwaps));
 }

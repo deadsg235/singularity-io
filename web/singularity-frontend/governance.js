@@ -55,12 +55,20 @@ function loadGovernanceData() {
     displayProposals();
 }
 
-function loadUserData() {
-    if (wallet) {
-        // Simulate user S-IO holdings
-        const sioBalance = 15000 + Math.random() * 5000;
-        const stakedAmount = sioBalance * 0.8;
-        const votingPower = (stakedAmount / 18500000) * 100;
+async function loadUserData() {
+    if (wallet && window.getSIOBalance) {
+        // Get real S-IO balance
+        const sioBalance = await window.getSIOBalance(wallet.toString());
+        
+        // Get staked amount from localStorage
+        const savedStaking = localStorage.getItem(`sio-staking-${wallet.toString()}`);
+        let stakedAmount = 0;
+        if (savedStaking) {
+            const data = JSON.parse(savedStaking);
+            stakedAmount = data.staked || 0;
+        }
+        
+        const votingPower = (stakedAmount / 25000000) * 100; // Total circulating supply
         
         document.getElementById('sio-balance').textContent = `${sioBalance.toLocaleString()} S-IO`;
         document.getElementById('staked-amount').textContent = `${stakedAmount.toLocaleString()} S-IO`;
@@ -119,6 +127,16 @@ function displayProposals() {
 async function vote(proposalId, isYes) {
     if (!wallet) {
         alert('Please connect your wallet to vote');
+        return;
+    }
+    
+    // Check 1% minimum requirement
+    const sioBalance = await window.getSIOBalance(wallet.toString());
+    const totalSupply = await window.getSIOTotalSupply();
+    const onePercent = totalSupply * 0.01;
+    
+    if (sioBalance < onePercent) {
+        alert(`Minimum 1% of total supply (${onePercent.toLocaleString()} S-IO) required for voting`);
         return;
     }
     

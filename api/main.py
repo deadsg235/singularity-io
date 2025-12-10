@@ -20,6 +20,9 @@ try:
     from bot_chat import router as bot_chat_router
     from leaderboard import router as leaderboard_router
     from wallet import router as wallet_router
+    from portfolio import router as portfolio_router
+    from analytics import router as analytics_router
+    from sio_token import router as sio_router
 except ImportError as e:
     print(f"Some API modules not available: {e}")
 
@@ -48,6 +51,9 @@ try:
     app.include_router(bot_chat_router)
     app.include_router(leaderboard_router)
     app.include_router(wallet_router)
+    app.include_router(portfolio_router)
+    app.include_router(analytics_router)
+    app.include_router(sio_router)
 except NameError:
     pass  # Routers not available
 

@@ -6,6 +6,11 @@ let stakingData = {
     apy: 24.5
 };
 
+// Load S-IO token integration
+const script = document.createElement('script');
+script.src = 'sio-token.js';
+document.head.appendChild(script);
+
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     loadStakingData();
@@ -32,25 +37,40 @@ function loadStakingData() {
     loadUserStaking();
 }
 
-function loadUserStaking() {
-    if (wallet) {
-        // Simulate user staking data
-        stakingData.balance = 25000 + Math.random() * 10000;
-        stakingData.staked = 15000 + Math.random() * 5000;
-        stakingData.rewards = 150 + Math.random() * 50;
+async function loadUserStaking() {
+    if (wallet && window.getSIOBalance) {
+        // Get real S-IO balance
+        stakingData.balance = await window.getSIOBalance(wallet.toString());
+        
+        // Load staked amount from API or localStorage
+        const savedStaking = localStorage.getItem(`sio-staking-${wallet.toString()}`);
+        if (savedStaking) {
+            const data = JSON.parse(savedStaking);
+            stakingData.staked = data.staked || 0;
+            stakingData.rewards = data.rewards || 0;
+        }
     }
     
     document.getElementById('sio-balance').textContent = `${stakingData.balance.toLocaleString()} S-IO`;
     document.getElementById('staked-amount').textContent = `${stakingData.staked.toLocaleString()} S-IO`;
-    document.getElementById('pending-rewards').textContent = `${stakingData.rewards.toFixed(2)} S-IO`;
+    document.getElementById('pending-rewards').textContent = `${stakingData.rewards.toFixed(4)} S-IO`;
     
     const dailyRewards = (stakingData.staked * stakingData.apy / 100) / 365;
-    document.getElementById('daily-rewards').textContent = `${dailyRewards.toFixed(2)} S-IO`;
+    document.getElementById('daily-rewards').textContent = `${dailyRewards.toFixed(4)} S-IO`;
 }
 
 async function stakeTokens() {
     if (!wallet) {
         alert('Please connect your wallet to stake');
+        return;
+    }
+    
+    // Check 1% minimum requirement
+    const totalSupply = await window.getSIOTotalSupply();
+    const onePercent = totalSupply * 0.01;
+    
+    if (stakingData.balance < onePercent) {
+        alert(`Minimum 1% of total supply (${onePercent.toLocaleString()} S-IO) required for staking`);
         return;
     }
     
@@ -76,6 +96,13 @@ async function stakeTokens() {
         if (result.success) {
             stakingData.balance -= amount;
             stakingData.staked += amount;
+            
+            // Save staking data locally
+            localStorage.setItem(`sio-staking-${wallet.toString()}`, JSON.stringify({
+                staked: stakingData.staked,
+                rewards: stakingData.rewards,
+                lastUpdate: Date.now()
+            }));
             
             document.getElementById('stake-amount').value = '';
             loadUserStaking();
