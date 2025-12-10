@@ -479,26 +479,34 @@ async function loadWalletBalances() {
     if (!walletAddress) return;
     
     try {
-        // Get SOL balance
-        const connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com', 'confirmed');
-        const publicKey = new solanaWeb3.PublicKey(walletAddress);
-        const balance = await connection.getBalance(publicKey);
-        const solBalance = balance / 1e9;
-        
-        document.getElementById('sol-balance').textContent = solBalance.toFixed(2);
-        
-        // Get S-IO balance from API
-        const sioResponse = await fetch(`/api/sio/balance/${walletAddress}`);
-        if (sioResponse.ok) {
-            const sioData = await sioResponse.json();
-            document.getElementById('sio-balance').textContent = sioData.balance.toLocaleString();
+        const response = await fetch(`/api/wallet/analytics/${walletAddress}`);
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('sol-balance').textContent = data.sol_balance.toFixed(2);
+            document.getElementById('sio-balance').textContent = data.sio_balance.toLocaleString();
         } else {
-            document.getElementById('sio-balance').textContent = '0.00';
+            const errorText = await response.text();
+            document.getElementById('sol-balance').textContent = 'ERROR';
+            document.getElementById('sio-balance').textContent = 'ERROR';
+            
+            // Display copyable error
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'position:fixed;top:10px;right:10px;background:#ff4444;color:#fff;padding:1rem;border-radius:4px;font-family:monospace;font-size:12px;max-width:400px;z-index:9999;cursor:pointer';
+            errorDiv.textContent = `Balance Error ${response.status}: ${errorText}`;
+            errorDiv.onclick = () => navigator.clipboard.writeText(errorDiv.textContent);
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 10000);
         }
     } catch (error) {
-        console.error('Error loading balances:', error);
-        document.getElementById('sol-balance').textContent = '0.00';
-        document.getElementById('sio-balance').textContent = '0.00';
+        document.getElementById('sol-balance').textContent = 'ERROR';
+        document.getElementById('sio-balance').textContent = 'ERROR';
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'position:fixed;top:10px;right:10px;background:#ff4444;color:#fff;padding:1rem;border-radius:4px;font-family:monospace;font-size:12px;max-width:400px;z-index:9999;cursor:pointer';
+        errorDiv.textContent = `Network Error: ${error.message}`;
+        errorDiv.onclick = () => navigator.clipboard.writeText(errorDiv.textContent);
+        document.body.appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 10000);
     }
 }
 

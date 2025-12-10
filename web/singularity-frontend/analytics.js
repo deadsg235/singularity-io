@@ -1,11 +1,12 @@
 let currentTimeframe = '1D';
 let priceData = [];
 let volumeData = [];
+let updateInterval;
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
-    loadAnalyticsData();
-    setInterval(updateData, 60000);
+    loadRealTimeData();
+    startRealTimeUpdates();
 });
 
 async function connectWallet() {
@@ -18,38 +19,44 @@ async function connectWallet() {
     if (window.setWalletConnected) window.setWalletConnected(true);
 }
 
-function loadAnalyticsData() {
-    generateMockData();
+async function loadRealTimeData() {
+    await fetchSolanaPrice();
+    await fetchTokenData();
     drawPriceChart();
     drawVolumeChart();
     updateMarketStats();
     updateTopTokens();
 }
 
-function generateMockData() {
-    priceData = [];
-    volumeData = [];
-    
-    let basePrice = 188.50;
-    let baseVolume = 50000000;
-    
-    const points = currentTimeframe === '1H' ? 60 : currentTimeframe === '1D' ? 24 : currentTimeframe === '1W' ? 7 : 30;
-    
-    for (let i = 0; i < points; i++) {
-        const volatility = 0.02;
-        const change = (Math.random() - 0.5) * volatility;
-        basePrice *= (1 + change);
+async function fetchSolanaPrice() {
+    try {
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true');
+        const data = await response.json();
         
-        const volumeChange = (Math.random() - 0.5) * 0.3;
-        baseVolume *= (1 + volumeChange);
+        const currentPrice = data.solana.usd;
+        const volume24h = data.solana.usd_24h_vol;
+        const change24h = data.solana.usd_24h_change;
         
-        priceData.push({
-            time: Date.now() - (points - i) * getTimeInterval(),
-            price: basePrice,
-            volume: baseVolume
-        });
+        const now = Date.now();
+        priceData.push({ time: now, price: currentPrice, volume: volume24h, change: change24h });
+        volumeData.push(volume24h);
         
-        volumeData.push(baseVolume);
+        if (priceData.length > 100) {
+            priceData.shift();
+            volumeData.shift();
+        }
+    } catch (error) {
+        console.error('Price fetch error:', error);
+    }
+}
+
+async function fetchTokenData() {
+    try {
+        const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&category=solana-ecosystem');
+        const tokens = await response.json();
+        window.topTokensData = tokens.slice(0, 5);
+    } catch (error) {
+        console.error('Token data fetch error:', error);
     }
 }
 
@@ -137,17 +144,19 @@ function drawVolumeChart() {
 }
 
 function updateMarketStats() {
-    const currentPrice = priceData[priceData.length - 1]?.price || 188.50;
-    const previousPrice = priceData[priceData.length - 2]?.price || 188.00;
-    const change = ((currentPrice - previousPrice) / previousPrice) * 100;
-    const volume24h = volumeData.reduce((sum, vol) => sum + vol, 0) / volumeData.length;
+    const latest = priceData[priceData.length - 1];
+    if (!latest) return;
+    
+    const currentPrice = latest.price;
+    const change24h = latest.change || 0;
+    const volume24h = latest.volume;
     
     const stats = [
         { label: 'Current Price', value: `$${currentPrice.toFixed(2)}`, color: '#fff' },
-        { label: '24h Change', value: `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`, color: change >= 0 ? '#00ff88' : '#ff4444' },
+        { label: '24h Change', value: `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}%`, color: change24h >= 0 ? '#00ff88' : '#ff4444' },
         { label: '24h Volume', value: `$${(volume24h / 1000000).toFixed(1)}M`, color: '#0066ff' },
         { label: 'Market Cap', value: `$${(currentPrice * 400000000 / 1000000000).toFixed(1)}B`, color: '#00ff88' },
-        { label: 'Circulating Supply', value: '400M SOL', color: '#fff' }
+        { label: 'Last Updated', value: new Date().toLocaleTimeString(), color: '#666' }
     ];
     
     const html = stats.map(stat => `
@@ -161,24 +170,18 @@ function updateMarketStats() {
 }
 
 function updateTopTokens() {
-    const tokens = [
-        { symbol: 'SOL', price: 188.50, change: 5.2, volume: '245M' },
-        { symbol: 'USDC', price: 1.00, change: 0.1, volume: '1.2B' },
-        { symbol: 'RAY', price: 3.45, change: -2.3, volume: '45M' },
-        { symbol: 'ORCA', price: 2.40, change: 8.7, volume: '12M' },
-        { symbol: 'MNGO', price: 0.045, change: 15.3, volume: '8M' }
-    ];
+    const tokens = window.topTokensData || [];
     
     const html = tokens.map(token => `
         <div class="metric-row">
             <div>
-                <div style="color: #fff; font-weight: bold;">${token.symbol}</div>
-                <div style="color: #666; font-size: 0.9rem;">Vol: $${token.volume}</div>
+                <div style="color: #fff; font-weight: bold;">${token.symbol.toUpperCase()}</div>
+                <div style="color: #666; font-size: 0.9rem;">Vol: $${(token.total_volume / 1000000).toFixed(1)}M</div>
             </div>
             <div style="text-align: right;">
-                <div style="color: #fff;">$${token.price}</div>
-                <div style="color: ${token.change >= 0 ? '#00ff88' : '#ff4444'}; font-size: 0.9rem;">
-                    ${token.change >= 0 ? '+' : ''}${token.change}%
+                <div style="color: #fff;">$${token.current_price.toFixed(4)}</div>
+                <div style="color: ${token.price_change_percentage_24h >= 0 ? '#00ff88' : '#ff4444'}; font-size: 0.9rem;">
+                    ${token.price_change_percentage_24h >= 0 ? '+' : ''}${token.price_change_percentage_24h.toFixed(2)}%
                 </div>
             </div>
         </div>
@@ -193,33 +196,21 @@ function setTimeframe(timeframe) {
     document.querySelectorAll('.control-btn').forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
     
-    generateMockData();
     drawPriceChart();
     drawVolumeChart();
 }
 
-function updateData() {
-    // Add new data point
-    const lastPrice = priceData[priceData.length - 1]?.price || 188.50;
-    const change = (Math.random() - 0.5) * 0.02;
-    const newPrice = lastPrice * (1 + change);
-    
-    priceData.push({
-        time: Date.now(),
-        price: newPrice,
-        volume: 50000000 * (1 + (Math.random() - 0.5) * 0.3)
-    });
-    
-    // Keep only recent data
-    const maxPoints = currentTimeframe === '1H' ? 60 : 100;
-    if (priceData.length > maxPoints) {
-        priceData.shift();
-        volumeData.shift();
-    }
-    
-    volumeData.push(priceData[priceData.length - 1].volume);
-    
-    drawPriceChart();
-    drawVolumeChart();
-    updateMarketStats();
+function startRealTimeUpdates() {
+    updateInterval = setInterval(async () => {
+        await fetchSolanaPrice();
+        await fetchTokenData();
+        drawPriceChart();
+        drawVolumeChart();
+        updateMarketStats();
+        updateTopTokens();
+    }, 30000);
 }
+
+window.addEventListener('beforeunload', () => {
+    if (updateInterval) clearInterval(updateInterval);
+});
