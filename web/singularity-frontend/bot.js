@@ -25,11 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
 async function connectWallet() {
     if (!window.solana?.isPhantom) {
         alert('Install Phantom Wallet');
+        if (window.setWalletConnected) window.setWalletConnected(false);
         return;
     }
     const resp = await window.solana.connect();
     wallet = resp.publicKey;
     document.getElementById('wallet-btn').textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
+    if (window.setWalletConnected) window.setWalletConnected(true);
 }
 
 async function startBot() {

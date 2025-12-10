@@ -293,10 +293,12 @@ async function connectWallet() {
         btn.classList.add('connected');
         
         updateStatus('wallet-status', 'Connected', true);
+        if (window.setWalletConnected) window.setWalletConnected(true);
         console.log('Wallet connected:', walletAddress);
     } catch (error) {
         console.error('Wallet connection error:', error);
         updateStatus('wallet-status', 'Connection Failed', false);
+        if (window.setWalletConnected) window.setWalletConnected(false);
     }
 }
 

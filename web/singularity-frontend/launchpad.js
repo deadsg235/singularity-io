@@ -48,9 +48,11 @@ async function connectWallet() {
         provider = window.solana;
         
         updateWalletUI();
+        if (window.setWalletConnected) window.setWalletConnected(true);
         console.log('Wallet connected:', wallet.toString());
     } catch (error) {
         console.error('Wallet connection error:', error);
+        if (window.setWalletConnected) window.setWalletConnected(false);
         alert('Failed to connect wallet');
     }
 }
