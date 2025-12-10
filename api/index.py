@@ -21,33 +21,23 @@ def get_sio_price():
 
 @app.get("/api/wallet/analytics/{wallet}")
 def get_wallet_analytics(wallet: str):
-    try:
-        import requests
-        
-        rpc_data = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "getBalance",
-            "params": [wallet]
-        }
-        
-        response = requests.post("https://api.mainnet-beta.solana.com", json=rpc_data, timeout=10)
-        result = response.json()
-        
-        if "error" in result:
-            return {"error": f"RPC Error: {result['error']}"}
-        
-        sol_balance = result["result"]["value"] / 1e9
-        
-        return {
-            "wallet": wallet,
-            "sol_balance": sol_balance,
-            "sio_balance": 51970.694744,
-            "total_tokens": 2
-        }
-        
-    except Exception as e:
-        return {"error": str(e)}
+    from rpc_client import get_sol_balance, get_sio_balance
+    
+    sol_result = get_sol_balance(wallet)
+    sio_result = get_sio_balance(wallet)
+    
+    if "error" in sol_result:
+        return {"error": f"SOL balance error: {sol_result['error']}"}
+    
+    if "error" in sio_result:
+        return {"error": f"S-IO balance error: {sio_result['error']}"}
+    
+    return {
+        "wallet": wallet,
+        "sol_balance": sol_result["balance"],
+        "sio_balance": sio_result["balance"],
+        "total_tokens": 2
+    }
 
 @app.get("/api/staking/user/{wallet}")
 def get_user_staking(wallet: str):
