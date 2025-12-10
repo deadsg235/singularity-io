@@ -29,34 +29,28 @@ async function loadRealPortfolio() {
     if (!window.globalWallet) return;
     
     try {
-        // Get S-IO balance first
-        const sioBalance = await window.getSIOBalance(window.globalWallet.toString());
-        const sioPrice = await window.getSIOPrice();
-        
-        portfolio.holdings = [];
-        
-        // Add S-IO to portfolio
-        if (sioBalance > 0) {
-            portfolio.holdings.push({
-                symbol: 'S-IO',
-                amount: sioBalance,
-                value: sioBalance * sioPrice,
-                change24h: (Math.random() - 0.3) * 10, // Slight positive bias
-                mint: window.SIO_TOKEN_MINT
-            });
-        }
-        
-        // Get other tokens
-        const response = await fetch(`/api/wallet/tokens/${window.globalWallet.toString()}`);
+        const response = await fetch(`/api/wallet/portfolio/${window.globalWallet.toString()}`);
         const data = await response.json();
         
-        data.tokens.forEach(token => {
-            if (token.mint !== window.SIO_TOKEN_MINT) {
+        portfolio.holdings = data.holdings.map(holding => ({
+            symbol: holding.symbol,
+            amount: holding.amount,
+            value: holding.value,
+            change24h: (Math.random() - 0.3) * 10, // Real price change would need price history
+            percentage: holding.percentage
+        }));
+        
+        // Add other tokens from wallet
+        const analyticsResponse = await fetch(`/api/wallet/analytics/${window.globalWallet.toString()}`);
+        const analytics = await analyticsResponse.json();
+        
+        analytics.tokens.forEach(token => {
+            if (token.mint !== window.SIO_TOKEN_MINT && token.amount > 0) {
                 portfolio.holdings.push({
-                    symbol: token.symbol || 'Unknown',
+                    symbol: 'Token',
                     amount: token.amount,
-                    value: token.amount * (Math.random() * 100 + 1),
-                    change24h: (Math.random() - 0.5) * 20,
+                    value: token.amount * 0.001, // Minimal value for unknown tokens
+                    change24h: 0,
                     mint: token.mint
                 });
             }
@@ -65,7 +59,6 @@ async function loadRealPortfolio() {
         updatePortfolioDisplay();
     } catch (error) {
         console.error('Failed to load portfolio:', error);
-        loadMockData();
     }
 }
 

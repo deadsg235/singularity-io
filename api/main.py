@@ -23,6 +23,7 @@ try:
     from portfolio import router as portfolio_router
     from analytics import router as analytics_router
     from sio_token import router as sio_router
+    from wallet_analytics import router as wallet_router
 except ImportError as e:
     print(f"Some API modules not available: {e}")
 
@@ -54,6 +55,7 @@ try:
     app.include_router(portfolio_router)
     app.include_router(analytics_router)
     app.include_router(sio_router)
+    app.include_router(wallet_router)
 except NameError:
     pass  # Routers not available
 

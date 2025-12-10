@@ -60,23 +60,33 @@ function loadGovernanceData() {
 }
 
 async function loadUserData() {
-    if (window.globalWallet && window.getSIOBalance) {
-        // Get real S-IO balance
-        const sioBalance = await window.getSIOBalance(window.globalWallet.toString());
-        
-        // Get staked amount from localStorage
-        const savedStaking = localStorage.getItem(`sio-staking-${window.globalWallet.toString()}`);
-        let stakedAmount = 0;
-        if (savedStaking) {
-            const data = JSON.parse(savedStaking);
-            stakedAmount = data.staked || 0;
+    if (window.globalWallet) {
+        try {
+            // Get real wallet analytics
+            const response = await fetch(`/api/wallet/analytics/${window.globalWallet.toString()}`);
+            const data = await response.json();
+            
+            const sioBalance = data.sio_balance;
+            
+            // Get staked amount from localStorage
+            const savedStaking = localStorage.getItem(`sio-staking-${window.globalWallet.toString()}`);
+            let stakedAmount = 0;
+            if (savedStaking) {
+                const stakingInfo = JSON.parse(savedStaking);
+                stakedAmount = stakingInfo.staked || 0;
+            }
+            
+            const votingPower = (stakedAmount / 25000000) * 100;
+            
+            document.getElementById('sio-balance').textContent = `${sioBalance.toLocaleString()} S-IO`;
+            document.getElementById('staked-amount').textContent = `${stakedAmount.toLocaleString()} S-IO`;
+            document.getElementById('voting-power').textContent = `${votingPower.toFixed(3)}%`;
+        } catch (error) {
+            console.error('Failed to load governance data:', error);
+            document.getElementById('sio-balance').textContent = '0 S-IO';
+            document.getElementById('staked-amount').textContent = '0 S-IO';
+            document.getElementById('voting-power').textContent = '0%';
         }
-        
-        const votingPower = (stakedAmount / 25000000) * 100; // Total circulating supply
-        
-        document.getElementById('sio-balance').textContent = `${sioBalance.toLocaleString()} S-IO`;
-        document.getElementById('staked-amount').textContent = `${stakedAmount.toLocaleString()} S-IO`;
-        document.getElementById('voting-power').textContent = `${votingPower.toFixed(3)}%`;
     } else {
         document.getElementById('sio-balance').textContent = '0 S-IO';
         document.getElementById('staked-amount').textContent = '0 S-IO';

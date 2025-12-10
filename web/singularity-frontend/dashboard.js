@@ -30,23 +30,31 @@ async function connectWallet() {
 }
 
 async function loadWalletData() {
-    if (!wallet) return;
+    if (!window.globalWallet) return;
     
     try {
-        const response = await fetch(`/api/wallet/balance/${wallet.toString()}`);
+        const response = await fetch(`/api/wallet/analytics/${window.globalWallet.toString()}`);
         const data = await response.json();
         
-        // Update a metric with real wallet balance
-        const balanceElement = document.createElement('div');
-        balanceElement.innerHTML = `
+        // Update metrics with real wallet data
+        const walletMetrics = document.createElement('div');
+        walletMetrics.innerHTML = `
             <div class="metric-card">
                 <div class="metric-label">Your SOL Balance</div>
                 <div class="metric-value">${data.sol_balance.toFixed(4)} SOL</div>
-                <div class="metric-change">Wallet: ${wallet.toString().slice(0, 8)}...</div>
+                <div class="metric-change">$${(data.sol_balance * 188.50).toFixed(2)} USD</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Your S-IO Balance</div>
+                <div class="metric-value">${data.sio_balance.toLocaleString()} S-IO</div>
+                <div class="metric-change">${data.total_tokens} total tokens</div>
             </div>
         `;
         
-        document.querySelector('.metrics-grid').appendChild(balanceElement.firstElementChild);
+        const metricsGrid = document.querySelector('.metrics-grid');
+        metricsGrid.appendChild(walletMetrics.children[0]);
+        metricsGrid.appendChild(walletMetrics.children[0]);
+        
     } catch (error) {
         console.error('Failed to load wallet data:', error);
     }

@@ -56,22 +56,24 @@ async function connectWallet() {
 async function updateBalances() {
     if (!wallet) return;
     
-    for (let attempt = 0; attempt < RPC_ENDPOINTS.length; attempt++) {
-        try {
-            const balance = await connection.getBalance(wallet);
-            document.getElementById('from-balance').textContent = `Balance: ${(balance / 1e9).toFixed(4)}`;
-            return;
-        } catch (error) {
-            console.error(`RPC attempt ${attempt + 1} failed:`, error);
-            if (attempt < RPC_ENDPOINTS.length - 1) {
-                switchRPC();
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s
-            }
+    try {
+        const response = await fetch(`/api/wallet/analytics/${wallet.toString()}`);
+        const data = await response.json();
+        
+        const fromToken = document.getElementById('from-token').value;
+        
+        if (fromToken === 'So11111111111111111111111111111111111111112') {
+            document.getElementById('from-balance').textContent = `Balance: ${data.sol_balance.toFixed(4)}`;
+        } else if (fromToken === 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump') {
+            document.getElementById('from-balance').textContent = `Balance: ${data.sio_balance.toLocaleString()}`;
+        } else {
+            document.getElementById('from-balance').textContent = 'Balance: 0';
         }
+        
+    } catch (error) {
+        console.error('Failed to get balance:', error);
+        document.getElementById('from-balance').textContent = 'Balance: Unable to load';
     }
-    
-    // All RPCs failed, show fallback
-    document.getElementById('from-balance').textContent = 'Balance: Unable to load';
 }
 
 async function updateQuote() {

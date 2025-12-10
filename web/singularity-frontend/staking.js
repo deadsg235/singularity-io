@@ -37,16 +37,23 @@ function loadStakingData() {
 }
 
 async function loadUserStaking() {
-    if (window.globalWallet && window.getSIOBalance) {
-        // Get real S-IO balance
-        stakingData.balance = await window.getSIOBalance(window.globalWallet.toString());
-        
-        // Load staked amount from API or localStorage
-        const savedStaking = localStorage.getItem(`sio-staking-${window.globalWallet.toString()}`);
-        if (savedStaking) {
-            const data = JSON.parse(savedStaking);
-            stakingData.staked = data.staked || 0;
-            stakingData.rewards = data.rewards || 0;
+    if (window.globalWallet) {
+        try {
+            // Get real wallet analytics
+            const response = await fetch(`/api/wallet/analytics/${window.globalWallet.toString()}`);
+            const data = await response.json();
+            
+            stakingData.balance = data.sio_balance;
+            
+            // Load staked amount from localStorage
+            const savedStaking = localStorage.getItem(`sio-staking-${window.globalWallet.toString()}`);
+            if (savedStaking) {
+                const stakingInfo = JSON.parse(savedStaking);
+                stakingData.staked = stakingInfo.staked || 0;
+                stakingData.rewards = stakingInfo.rewards || 0;
+            }
+        } catch (error) {
+            console.error('Failed to load staking data:', error);
         }
     }
     
