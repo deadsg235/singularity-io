@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investors - Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .hero-section { text-align: center; padding: 4rem 0; background: linear-gradient(135deg, rgba(0, 102, 255, 0.1), rgba(0, 255, 136, 0.1)); border-radius: 12px; margin-bottom: 3rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; margin: 3rem 0; }
+        .stat-card { text-align: center; padding: 2rem; background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; }
+        .roadmap { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin: 3rem 0; }
+        .roadmap-item { padding: 2rem; background: rgba(0, 102, 255, 0.05); border-left: 4px solid #0066ff; border-radius: 8px; }
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin: 3rem 0; }
+        .team-card { text-align: center; padding: 2rem; background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">Investment Opportunity</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <a href="index.html" style="color: #0066ff; text-decoration: none; font-family: 'Orbitron', sans-serif; font-size: 0.9rem;">Home</a>
+                    <a href="dashboard.html" style="color: #00ff88; text-decoration: none; font-family: 'Orbitron', sans-serif; font-size: 0.9rem;">Dashboard</a>
+                    <button onclick="window.open('mailto:invest@singularity.io')" class="wallet-btn" style="background: #00ff88;">Contact Us</button>
+                </div>
+            </div>
+        </header>
+
+        <div style="max-width: 1200px; margin: 2rem auto;">
+            <div class="hero-section">
+                <h2 style="font-size: 3rem; color: #0066ff; margin-bottom: 1rem;">The Future of AI Trading</h2>
+                <p style="font-size: 1.2rem; color: #ccc; margin-bottom: 2rem;">Revolutionary Solana-based platform combining AI, DeFi, and neural networks</p>
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="scrollToSection('metrics')" style="padding: 1rem 2rem; background: #0066ff; color: #fff; border: none; border-radius: 8px; font-family: 'Orbitron', sans-serif; cursor: pointer;">View Metrics</button>
+                    <button onclick="scrollToSection('roadmap')" style="padding: 1rem 2rem; background: #00ff88; color: #000; border: none; border-radius: 8px; font-family: 'Orbitron', sans-serif; cursor: pointer;">See Roadmap</button>
+                </div>
+            </div>
+
+            <section id="metrics">
+                <h3 style="color: #0066ff; text-align: center; margin-bottom: 2rem;">Market Opportunity</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div style="font-size: 2.5rem; color: #00ff88; font-family: 'Orbitron', sans-serif;">$2.3T</div>
+                        <div style="color: #0066ff;">Crypto Market Size</div>
+                    </div>
+                    <div class="stat-card">
+                        <div style="font-size: 2.5rem; color: #00ff88; font-family: 'Orbitron', sans-serif;">420M+</div>
+                        <div style="color: #0066ff;">Crypto Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div style="font-size: 2.5rem; color: #00ff88; font-family: 'Orbitron', sans-serif;">$18.8B</div>
+                        <div style="color: #0066ff;">AI Trading Market by 2030</div>
+                    </div>
+                    <div class="stat-card">
+                        <div style="font-size: 2.5rem; color: #00ff88; font-family: 'Orbitron', sans-serif;">85%</div>
+                        <div style="color: #0066ff;">Institutional Adoption Growth</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="revenue">
+                <h3 style="color: #0066ff; text-align: center; margin-bottom: 2rem;">Revenue Projections</h3>
+                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; color: #00ff88;">Year 1</div>
+                            <div style="color: #fff;">$500K ARR</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; color: #00ff88;">Year 2</div>
+                            <div style="color: #fff;">$2.5M ARR</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; color: #00ff88;">Year 3</div>
+                            <div style="color: #fff;">$10M ARR</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; color: #00ff88;">Break-even</div>
+                            <div style="color: #fff;">Month 18</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="roadmap">
+                <h3 style="color: #0066ff; text-align: center; margin-bottom: 2rem;">Development Roadmap</h3>
+                <div class="roadmap">
+                    <div class="roadmap-item">
+                        <h4 style="color: #00ff88; margin-bottom: 1rem;">Q1 2024 - Foundation</h4>
+                        <ul style="color: #ccc;">
+                            <li>AI Trading Bot Launch</li>
+                            <li>Token Launchpad</li>
+                            <li>3D Neural Network Viz</li>
+                            <li>Revenue Dashboard</li>
+                        </ul>
+                    </div>
+                    <div class="roadmap-item">
+                        <h4 style="color: #00ff88; margin-bottom: 1rem;">Q2 2024 - Growth</h4>
+                        <ul style="color: #ccc;">
+                            <li>Mobile App Launch</li>
+                            <li>SING Token Launch</li>
+                            <li>Copy Trading Features</li>
+                            <li>DeFi Integration</li>
+                        </ul>
+                    </div>
+                    <div class="roadmap-item">
+                        <h4 style="color: #00ff88; margin-bottom: 1rem;">Q3 2024 - Scale</h4>
+                        <ul style="color: #ccc;">
+                            <li>Multi-chain Expansion</li>
+                            <li>Enterprise API</li>
+                            <li>Institutional Features</li>
+                            <li>White-label Solutions</li>
+                        </ul>
+                    </div>
+                    <div class="roadmap-item">
+                        <h4 style="color: #00ff88; margin-bottom: 1rem;">Q4 2024 - Domination</h4>
+                        <ul style="color: #ccc;">
+                            <li>Global Expansion</li>
+                            <li>Regulatory Compliance</li>
+                            <li>Strategic Partnerships</li>
+                            <li>IPO Preparation</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="team">
+                <h3 style="color: #0066ff; text-align: center; margin-bottom: 2rem;">Leadership Team</h3>
+                <div class="team-grid">
+                    <div class="team-card">
+                        <div style="width: 80px; height: 80px; background: linear-gradient(45deg, #0066ff, #00ff88); border-radius: 50%; margin: 0 auto 1rem;"></div>
+                        <h4 style="color: #00ff88;">Alex Chen</h4>
+                        <p style="color: #0066ff;">CEO & Founder</p>
+                        <p style="color: #ccc; font-size: 0.9rem;">Former Google AI, 10+ years blockchain</p>
+                    </div>
+                    <div class="team-card">
+                        <div style="width: 80px; height: 80px; background: linear-gradient(45deg, #00ff88, #ff8800); border-radius: 50%; margin: 0 auto 1rem;"></div>
+                        <h4 style="color: #00ff88;">Sarah Kim</h4>
+                        <p style="color: #0066ff;">CTO</p>
+                        <p style="color: #ccc; font-size: 0.9rem;">Ex-Tesla AI, Rust & Solana expert</p>
+                    </div>
+                    <div class="team-card">
+                        <div style="width: 80px; height: 80px; background: linear-gradient(45deg, #ff8800, #0066ff); border-radius: 50%; margin: 0 auto 1rem;"></div>
+                        <h4 style="color: #00ff88;">Mike Rodriguez</h4>
+                        <p style="color: #0066ff;">Head of Trading</p>
+                        <p style="color: #ccc; font-size: 0.9rem;">Ex-Goldman Sachs, Quant trading</p>
+                    </div>
+                </div>
+            </section>
+
+            <div style="text-align: center; margin: 4rem 0; padding: 3rem; background: linear-gradient(135deg, rgba(0, 102, 255, 0.1), rgba(0, 255, 136, 0.1)); border-radius: 12px;">
+                <h3 style="color: #0066ff; margin-bottom: 1rem;">Ready to Invest?</h3>
+                <p style="color: #ccc; margin-bottom: 2rem;">Join the future of AI-powered trading on Solana</p>
+                <button onclick="window.open('mailto:invest@singularity.io?subject=Investment Inquiry')" style="padding: 1rem 3rem; background: #00ff88; color: #000; border: none; border-radius: 8px; font-family: 'Orbitron', sans-serif; font-size: 1.1rem; cursor: pointer;">Contact Investment Team</button>
+            </div>
+        </div>
+
+        <footer>
+            <p>Singularity.io | Building the Future of DeFi</p>
+        </footer>
+    </div>
+
+    <script src="matrix.js"></script>
+    <script>
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

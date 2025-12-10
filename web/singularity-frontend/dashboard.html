@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revenue Dashboard - Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .metric-card { background: linear-gradient(135deg, rgba(0, 102, 255, 0.1), rgba(0, 255, 136, 0.1)); border: 1px solid #0066ff; border-radius: 8px; padding: 1.5rem; }
+        .metric-value { font-size: 2rem; font-weight: 900; color: #00ff88; font-family: 'Orbitron', sans-serif; }
+        .metric-label { color: #0066ff; font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .metric-change { font-size: 0.8rem; margin-top: 0.5rem; }
+        .positive { color: #00ff88; }
+        .negative { color: #ff4444; }
+        .chart-container { background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">Revenue Dashboard</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <a href="index.html" style="color: #0066ff; text-decoration: none; font-family: 'Orbitron', sans-serif; font-size: 0.9rem;">Home</a>
+                    <a href="investors.html" style="color: #00ff88; text-decoration: none; font-family: 'Orbitron', sans-serif; font-size: 0.9rem;">Investors</a>
+                    <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+                </div>
+            </div>
+        </header>
+
+        <div style="max-width: 1400px; margin: 2rem auto;">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Total Value Locked (TVL)</div>
+                    <div class="metric-value" id="tvl">$2.4M</div>
+                    <div class="metric-change positive">+15.3% (24h)</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Trading Volume (24h)</div>
+                    <div class="metric-value" id="volume">$847K</div>
+                    <div class="metric-change positive">+8.7% (24h)</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Revenue Generated</div>
+                    <div class="metric-value" id="revenue">$12.3K</div>
+                    <div class="metric-change positive">+22.1% (24h)</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Active Users</div>
+                    <div class="metric-value" id="users">1,247</div>
+                    <div class="metric-change positive">+5.2% (24h)</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Bot Performance</div>
+                    <div class="metric-value" id="bot-roi">+18.4%</div>
+                    <div class="metric-change positive">Average ROI (7d)</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Tokens Created</div>
+                    <div class="metric-value" id="tokens">89</div>
+                    <div class="metric-change positive">+12 (24h)</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3 style="color: #0066ff; margin-bottom: 1rem;">Revenue Breakdown</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div>
+                        <canvas id="revenue-chart" width="400" height="200"></canvas>
+                    </div>
+                    <div style="color: #fff;">
+                        <div style="margin-bottom: 1rem;">
+                            <span style="color: #0066ff;">●</span> Trading Fees: $8.2K (66.7%)
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <span style="color: #00ff88;">●</span> Token Launches: $2.8K (22.8%)
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <span style="color: #ff8800;">●</span> Bot Subscriptions: $1.3K (10.5%)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div class="chart-container">
+                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Top Performing Bots</h3>
+                    <div id="bot-leaderboard"></div>
+                </div>
+                
+                <div class="chart-container">
+                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Recent Activity</h3>
+                    <div id="activity-feed"></div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Singularity.io | Real-time Revenue Analytics</p>
+        </footer>
+    </div>
+
+    <script src="matrix.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio - Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .portfolio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+        .portfolio-card { background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 1.5rem; }
+        .token-list { display: grid; gap: 1rem; }
+        .token-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0, 102, 255, 0.1); border-radius: 4px; }
+        .pnl-positive { color: #00ff88; }
+        .pnl-negative { color: #ff4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">Portfolio Management</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <a href="index.html" style="color: #0066ff; text-decoration: none; font-family: 'Orbitron', sans-serif; font-size: 0.9rem;">Home</a>
+                    <a href="dashboard.html" style="color: #0066ff; text-decoration: none; font-family: 'Orbitron', sans-serif; font-size: 0.9rem;">Dashboard</a>
+                    <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+                </div>
+            </div>
+        </header>
+
+        <div style="max-width: 1400px; margin: 2rem auto;">
+            <div class="portfolio-grid">
+                <div class="portfolio-card">
+                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Portfolio Overview</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <div style="color: #ccc;">Total Value</div>
+                        <div style="font-size: 2rem; color: #00ff88; font-family: 'Orbitron', sans-serif;" id="total-value">$0.00</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <div style="color: #ccc;">24h Change</div>
+                            <div id="daily-change" class="pnl-positive">+$0.00 (0%)</div>
+                        </div>
+                        <div>
+                            <div style="color: #ccc;">Total P&L</div>
+                            <div id="total-pnl" class="pnl-positive">+$0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="portfolio-card">
+                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Asset Allocation</h3>
+                    <canvas id="allocation-chart" width="300" height="200"></canvas>
+                </div>
+            </div>
+
+            <div class="portfolio-card">
+                <h3 style="color: #0066ff; margin-bottom: 1rem;">Holdings</h3>
+                <div class="token-list" id="token-holdings"></div>
+            </div>
+
+            <div class="portfolio-grid">
+                <div class="portfolio-card">
+                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Trading History</h3>
+                    <div id="trade-history"></div>
+                </div>
+
+                <div class="portfolio-card">
+                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Performance Analytics</h3>
+                    <div style="display: grid; gap: 1rem;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #ccc;">Win Rate</span>
+                            <span style="color: #00ff88;" id="win-rate">0%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #ccc;">Avg Trade Size</span>
+                            <span style="color: #fff;" id="avg-trade">$0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #ccc;">Best Trade</span>
+                            <span style="color: #00ff88;" id="best-trade">+$0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #ccc;">Worst Trade</span>
+                            <span style="color: #ff4444;" id="worst-trade">-$0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Singularity.io | Advanced Portfolio Management</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="matrix.js"></script>
+    <script src="portfolio.js"></script>
+</body>
+</html>
