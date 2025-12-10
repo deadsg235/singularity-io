@@ -1,74 +1,43 @@
 from fastapi import APIRouter, HTTPException
 import requests
 from typing import Dict
+from solana_rpc_cache import get_token_accounts_by_owner, get_token_supply, get_account_info
 
 router = APIRouter()
 
 # S-IO Token Contract Address
 SIO_TOKEN_MINT = "Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump"
 
-# Working RPC endpoints
-RPC_ENDPOINTS = [
-    "https://api.mainnet-beta.solana.com",
-    "https://solana-mainnet.g.alchemy.com/v2/demo",
-    "https://mainnet.helius-rpc.com/?api-key=demo"
-]
-
-SOLANA_RPC = RPC_ENDPOINTS[0]
+# RPC endpoints now handled by cached system
 
 @router.get("/api/sio/balance/{wallet_address}")
 async def get_sio_balance(wallet_address: str):
-    """Get S-IO token balance for a wallet"""
-    
-    for rpc_url in RPC_ENDPOINTS:
-        try:
-            payload = {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "getTokenAccountsByOwner",
-                "params": [
-                    wallet_address,
-                    {"mint": SIO_TOKEN_MINT},
-                    {"encoding": "jsonParsed"}
-                ]
-            }
-            
-            headers = {
-                'Content-Type': 'application/json',
-                'User-Agent': 'Singularity.io/1.0'
-            }
-            
-            response = requests.post(rpc_url, json=payload, headers=headers, timeout=15)
-            
-            if response.status_code != 200:
-                continue
-                
-            result = response.json()
-            
-            if "error" in result:
-                continue
-            
-            token_accounts = result["result"]["value"]
-            
-            if not token_accounts:
-                return {"balance": 0, "wallet": wallet_address, "mint": SIO_TOKEN_MINT}
-            
-            account_info = token_accounts[0]["account"]["data"]["parsed"]["info"]
-            balance = float(account_info["tokenAmount"]["uiAmount"] or 0)
-            
-            return {
-                "balance": balance,
-                "wallet": wallet_address,
-                "mint": SIO_TOKEN_MINT,
-                "decimals": 6,
-                "rpc_used": rpc_url
-            }
-            
-        except Exception as e:
-            print(f"RPC {rpc_url} failed: {e}")
-            continue
-    
-    raise HTTPException(503, "All Solana RPC endpoints are currently unavailable")
+    """Get S-IO token balance for a wallet using cached RPC"""
+    try:
+        result = get_token_accounts_by_owner(wallet_address, SIO_TOKEN_MINT)
+        
+        if "error" in result:
+            raise HTTPException(400, f"RPC Error: {result['error']['message']}")
+        
+        token_accounts = result["result"]["value"]
+        
+        if not token_accounts:
+            return {"balance": 0, "wallet": wallet_address, "mint": SIO_TOKEN_MINT}
+        
+        account_info = token_accounts[0]["account"]["data"]["parsed"]["info"]
+        balance = float(account_info["tokenAmount"]["uiAmount"] or 0)
+        
+        return {
+            "balance": balance,
+            "wallet": wallet_address,
+            "mint": SIO_TOKEN_MINT,
+            "decimals": 6
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to get S-IO balance: {str(e)}")
 
 @router.get("/api/sio/price")
 async def get_sio_price():
@@ -110,18 +79,10 @@ async def get_sio_price():
 
 @router.get("/api/sio/stats")
 async def get_sio_stats():
-    """Get S-IO token statistics"""
+    """Get S-IO token statistics using cached RPC"""
     try:
         # Get token supply info
-        payload = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "getTokenSupply",
-            "params": [SIO_TOKEN_MINT]
-        }
-        
-        response = requests.post(SOLANA_RPC, json=payload)
-        result = response.json()
+        result = get_token_supply(SIO_TOKEN_MINT)
         
         total_supply = 0
         if "result" in result and "value" in result["result"]:
@@ -138,9 +99,9 @@ async def get_sio_stats():
             "circulating_supply": total_supply * 0.25,  # 25% circulating
             "price_usd": price,
             "market_cap": market_cap,
-            "holders": 1247,  # Mock data
-            "volume_24h": 125000,  # Mock data
-            "change_24h": 5.2  # Mock data
+            "holders": 1247,  # Real data would require additional analysis
+            "volume_24h": 125000,  # Real data would require DEX integration
+            "change_24h": 5.2  # Real data would require price history
         }
         
     except Exception as e:

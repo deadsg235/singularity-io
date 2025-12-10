@@ -19,68 +19,22 @@ window.globalWallet = null;
 
 async function getSIOBalance(walletAddress) {
     try {
-        // Use backend API first
         const response = await fetch(`/api/sio/balance/${walletAddress}`);
         
         if (response.ok) {
             const data = await response.json();
-            if (data.balance !== undefined) {
-                return data.balance;
-            }
+            return data.balance || 0;
         }
         
-        // If API fails, try direct RPC
-        return await getSIOBalanceDirectRPC(walletAddress);
+        throw new Error(`API returned ${response.status}: ${response.statusText}`);
         
     } catch (error) {
         console.error('S-IO balance fetch failed:', error);
-        throw new Error('Unable to fetch S-IO balance from blockchain');
+        return 0; // Return 0 instead of throwing to prevent UI breaks
     }
 }
 
-async function getSIOBalanceDirectRPC(walletAddress) {
-    try {
-        const walletPubkey = new PublicKey(walletAddress);
-        
-        // Use a more reliable method - get parsed token accounts
-        const response = await fetch('https://api.mainnet-beta.solana.com', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                jsonrpc: '2.0',
-                id: 1,
-                method: 'getTokenAccountsByOwner',
-                params: [
-                    walletAddress,
-                    { mint: SIO_TOKEN_MINT },
-                    { encoding: 'jsonParsed' }
-                ]
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.error) {
-            throw new Error(result.error.message);
-        }
-        
-        const tokenAccounts = result.result.value;
-        
-        if (tokenAccounts.length === 0) {
-            return 0;
-        }
-        
-        // Get balance from first token account
-        const accountInfo = tokenAccounts[0].account.data.parsed.info;
-        const balance = parseFloat(accountInfo.tokenAmount.uiAmount || 0);
-        
-        return balance;
-        
-    } catch (error) {
-        console.error('Direct RPC failed:', error);
-        return 0;
-    }
-}
+
 
 // Get total supply for 1% calculation
 async function getSIOTotalSupply() {
