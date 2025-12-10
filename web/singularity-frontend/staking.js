@@ -1,0 +1,141 @@
+let wallet = null;
+let stakingData = {
+    balance: 0,
+    staked: 0,
+    rewards: 0,
+    apy: 24.5
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('wallet-btn').addEventListener('click', connectWallet);
+    loadStakingData();
+    setInterval(updateRewards, 5000);
+});
+
+async function connectWallet() {
+    if (!window.solana?.isPhantom) {
+        alert('Install Phantom Wallet');
+        return;
+    }
+    const resp = await window.solana.connect();
+    wallet = resp.publicKey;
+    document.getElementById('wallet-btn').textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
+    if (window.setWalletConnected) window.setWalletConnected(true);
+    loadUserStaking();
+}
+
+function loadStakingData() {
+    // Update APY with slight variation
+    stakingData.apy = 24.5 + (Math.random() - 0.5) * 2;
+    document.getElementById('current-apy').textContent = `${stakingData.apy.toFixed(1)}%`;
+    
+    loadUserStaking();
+}
+
+function loadUserStaking() {
+    if (wallet) {
+        // Simulate user staking data
+        stakingData.balance = 25000 + Math.random() * 10000;
+        stakingData.staked = 15000 + Math.random() * 5000;
+        stakingData.rewards = 150 + Math.random() * 50;
+    }
+    
+    document.getElementById('sio-balance').textContent = `${stakingData.balance.toLocaleString()} S-IO`;
+    document.getElementById('staked-amount').textContent = `${stakingData.staked.toLocaleString()} S-IO`;
+    document.getElementById('pending-rewards').textContent = `${stakingData.rewards.toFixed(2)} S-IO`;
+    
+    const dailyRewards = (stakingData.staked * stakingData.apy / 100) / 365;
+    document.getElementById('daily-rewards').textContent = `${dailyRewards.toFixed(2)} S-IO`;
+}
+
+function stakeTokens() {
+    if (!wallet) {
+        alert('Please connect your wallet to stake');
+        return;
+    }
+    
+    const amount = parseFloat(document.getElementById('stake-amount').value);
+    
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+    }
+    
+    if (amount > stakingData.balance) {
+        alert('Insufficient balance');
+        return;
+    }
+    
+    // Simulate staking transaction
+    stakingData.balance -= amount;
+    stakingData.staked += amount;
+    
+    document.getElementById('stake-amount').value = '';
+    loadUserStaking();
+    
+    alert(`Successfully staked ${amount.toLocaleString()} S-IO!\\n\\nYou will start earning rewards immediately.`);
+}
+
+function unstakeTokens() {
+    if (!wallet) {
+        alert('Please connect your wallet to unstake');
+        return;
+    }
+    
+    if (stakingData.staked <= 0) {
+        alert('No tokens staked');
+        return;
+    }
+    
+    const amount = prompt(`Enter amount to unstake (Max: ${stakingData.staked.toLocaleString()} S-IO):`);
+    const unstakeAmount = parseFloat(amount);
+    
+    if (!unstakeAmount || unstakeAmount <= 0) {
+        return;
+    }
+    
+    if (unstakeAmount > stakingData.staked) {
+        alert('Cannot unstake more than staked amount');
+        return;
+    }
+    
+    // Simulate unstaking transaction
+    stakingData.staked -= unstakeAmount;
+    stakingData.balance += unstakeAmount;
+    
+    loadUserStaking();
+    
+    alert(`Successfully unstaked ${unstakeAmount.toLocaleString()} S-IO!\\n\\nTokens have been returned to your wallet.`);
+}
+
+function claimRewards() {
+    if (!wallet) {
+        alert('Please connect your wallet to claim rewards');
+        return;
+    }
+    
+    if (stakingData.rewards <= 0) {
+        alert('No rewards to claim');
+        return;
+    }
+    
+    const claimedAmount = stakingData.rewards;
+    
+    // Simulate claiming rewards
+    stakingData.balance += claimedAmount;
+    stakingData.rewards = 0;
+    
+    loadUserStaking();
+    
+    alert(`Successfully claimed ${claimedAmount.toFixed(2)} S-IO rewards!\\n\\nRewards have been added to your wallet.`);
+}
+
+function updateRewards() {
+    if (wallet && stakingData.staked > 0) {
+        // Simulate reward accumulation
+        const rewardRate = (stakingData.apy / 100) / (365 * 24 * 60 * 12); // Per 5 seconds
+        stakingData.rewards += stakingData.staked * rewardRate;
+        
+        document.getElementById('pending-rewards').textContent = `${stakingData.rewards.toFixed(4)} S-IO`;
+    }
+}
