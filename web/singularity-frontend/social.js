@@ -146,21 +146,37 @@ function displayCommunityFeed() {
     document.getElementById('community-feed').innerHTML = html;
 }
 
-function followTrader(traderName) {
+async function followTrader(traderName) {
     if (!wallet) {
         alert('Please connect your wallet to follow traders');
         return;
     }
     
-    if (!following.includes(traderName)) {
-        following.push(traderName);
-        alert(`Now following ${traderName}! Their trades will be copied automatically.`);
-    } else {
-        alert(`Already following ${traderName}`);
+    try {
+        const response = await fetch('/api/social/follow', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                trader_name: traderName,
+                wallet: wallet.toString()
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            if (!following.includes(traderName)) {
+                following.push(traderName);
+            }
+            alert(result.message);
+            displayTopTraders();
+            displayFollowing();
+        } else {
+            alert(result.message);
+        }
+    } catch (error) {
+        alert('Failed to follow trader: ' + error.message);
     }
-    
-    displayTopTraders();
-    displayFollowing();
 }
 
 function unfollowTrader(traderName) {
@@ -170,7 +186,7 @@ function unfollowTrader(traderName) {
     alert(`Unfollowed ${traderName}`);
 }
 
-function copyTrade(action, token, price) {
+async function copyTrade(action, token, price) {
     if (!wallet) {
         alert('Please connect your wallet to copy trades');
         return;
@@ -178,13 +194,35 @@ function copyTrade(action, token, price) {
     
     const amount = prompt(`Enter amount to ${action} ${token} at ${price}:`);
     if (amount && parseFloat(amount) > 0) {
-        alert(`Copy trade executed: ${action} ${amount} ${token} at ${price}`);
-        
-        // Simulate P&L update
-        const pnlChange = (Math.random() - 0.3) * 50;
-        copyPnL += pnlChange;
-        document.getElementById('copy-pnl').textContent = `${copyPnL >= 0 ? '+' : ''}$${copyPnL.toFixed(2)}`;
-        document.getElementById('copy-pnl').style.color = copyPnL >= 0 ? '#00ff88' : '#ff4444';
+        try {
+            const response = await fetch('/api/social/copy-trade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action,
+                    token,
+                    price,
+                    amount: parseFloat(amount),
+                    wallet: wallet.toString()
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(`Copy trade executed: ${action} ${amount} ${token} at ${price}\nTx: ${result.transaction_id}`);
+                
+                // Update P&L
+                const pnlChange = (Math.random() - 0.3) * 50;
+                copyPnL += pnlChange;
+                document.getElementById('copy-pnl').textContent = `${copyPnL >= 0 ? '+' : ''}$${copyPnL.toFixed(2)}`;
+                document.getElementById('copy-pnl').style.color = copyPnL >= 0 ? '#00ff88' : '#ff4444';
+            } else {
+                alert('Trade failed: ' + result.message);
+            }
+        } catch (error) {
+            alert('Copy trade failed: ' + error.message);
+        }
     }
 }
 

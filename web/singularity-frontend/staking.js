@@ -48,7 +48,7 @@ function loadUserStaking() {
     document.getElementById('daily-rewards').textContent = `${dailyRewards.toFixed(2)} S-IO`;
 }
 
-function stakeTokens() {
+async function stakeTokens() {
     if (!wallet) {
         alert('Please connect your wallet to stake');
         return;
@@ -61,19 +61,32 @@ function stakeTokens() {
         return;
     }
     
-    if (amount > stakingData.balance) {
-        alert('Insufficient balance');
-        return;
+    try {
+        const response = await fetch('/api/staking/stake', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                wallet: wallet.toString(),
+                amount: amount
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            stakingData.balance -= amount;
+            stakingData.staked += amount;
+            
+            document.getElementById('stake-amount').value = '';
+            loadUserStaking();
+            
+            alert(`${result.message}\nTransaction: ${result.transaction_id}`);
+        } else {
+            alert('Staking failed: ' + result.message);
+        }
+    } catch (error) {
+        alert('Staking failed: ' + error.message);
     }
-    
-    // Simulate staking transaction
-    stakingData.balance -= amount;
-    stakingData.staked += amount;
-    
-    document.getElementById('stake-amount').value = '';
-    loadUserStaking();
-    
-    alert(`Successfully staked ${amount.toLocaleString()} S-IO!\\n\\nYou will start earning rewards immediately.`);
 }
 
 function unstakeTokens() {

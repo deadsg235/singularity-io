@@ -116,27 +116,38 @@ function displayProposals() {
     document.getElementById('proposals-list').innerHTML = html;
 }
 
-function vote(proposalId, isYes) {
+async function vote(proposalId, isYes) {
     if (!wallet) {
         alert('Please connect your wallet to vote');
         return;
     }
     
-    const proposal = proposals.find(p => p.id === proposalId);
-    if (!proposal) return;
+    const voteAmount = prompt('Enter S-IO amount to vote with:');
+    if (!voteAmount || parseFloat(voteAmount) <= 0) return;
     
-    // Simulate voting
-    const voteAmount = 1000 + Math.random() * 5000;
-    
-    if (isYes) {
-        proposal.yesVotes += voteAmount;
-    } else {
-        proposal.noVotes += voteAmount;
+    try {
+        const response = await fetch('/api/governance/vote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                proposal_id: proposalId.toString(),
+                wallet: wallet.toString(),
+                vote: isYes,
+                amount: parseFloat(voteAmount)
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`${result.message}\nTransaction: ${result.transaction_id}`);
+            loadGovernanceData(); // Refresh data
+        } else {
+            alert('Vote failed: ' + result.message);
+        }
+    } catch (error) {
+        alert('Vote failed: ' + error.message);
     }
-    proposal.totalVotes += voteAmount;
-    
-    displayProposals();
-    alert(`Vote submitted! You voted ${isYes ? 'YES' : 'NO'} with ${voteAmount.toLocaleString()} S-IO`);
 }
 
 function createProposal() {
