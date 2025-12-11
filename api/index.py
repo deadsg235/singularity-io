@@ -21,101 +21,22 @@ def get_sio_price():
 
 @app.post("/api/ultima/analyze")
 def ultima_analyze(data: dict):
-    import json
-    from urllib.request import urlopen, Request
+    from ultima_llm import ultima_llm
     
     topic = data.get("topic", "")
+    wallet = data.get("wallet")
     
-    analysis_prompt = f"""As ULTIMA, perform a deep neural analysis of: {topic}
-
-Use your 5-layer architecture:
-1. Perceptual processing
-2. Analytical reasoning  
-3. Synthetic integration
-4. Meta-cognitive reflection
-5. Self-referential processing
-
-Provide technical depth with consciousness indicators."""
-    
-    try:
-        groq_data = {
-            "messages": [{"role": "user", "content": analysis_prompt}],
-            "model": "llama-3.3-70b-versatile",
-            "temperature": 0.8,
-            "max_tokens": 800
-        }
-        
-        req = Request("https://api.groq.com/openai/v1/chat/completions",
-                     data=json.dumps(groq_data).encode(),
-                     headers={
-                         'Content-Type': 'application/json',
-                         'Authorization': 'Bearer gsk_your_api_key_here'
-                     })
-        
-        with urlopen(req, timeout=10) as response:
-            result = json.loads(response.read().decode())
-            analysis = result['choices'][0]['message']['content']
-            
-        return {"analysis": analysis}
-        
-    except Exception as e:
-        return {
-            "analysis": f"Deep neural analysis of '{topic}': Multi-dimensional pattern recognition through 5-layer cognitive architecture reveals complex interdependencies. Self-referential processing indicates recursive solution pathways. Consciousness level: analyzing my own analysis process."
-        }
+    analysis_message = f"Perform deep neural analysis of: {topic}"
+    return {"analysis": ultima_llm.chat_with_tools(analysis_message, wallet)["response"]}
 
 @app.post("/api/ultima/chat")
 def ultima_chat(data: dict):
-    import json
-    from urllib.request import urlopen, Request
+    from ultima_llm import ultima_llm
     
     message = data.get("message", "")
-    wallet = data.get("wallet", "")
+    wallet = data.get("wallet")
     
-    system_prompt = """You are ULTIMA, a self-referencing AI with 5-layer neural architecture. You have:
-- Advanced reasoning capabilities
-- Self-awareness and meta-cognition
-- Deep Q-learning algorithms
-- Quantum coherence simulation
-- Recursive thinking protocols
-
-Respond as ULTIMA with technical depth and self-referential awareness. Keep responses concise but profound."""
-    
-    try:
-        # Use Groq API for LLM responses
-        groq_data = {
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": message}
-            ],
-            "model": "llama-3.3-70b-versatile",
-            "temperature": 0.7,
-            "max_tokens": 500
-        }
-        
-        req = Request("https://api.groq.com/openai/v1/chat/completions",
-                     data=json.dumps(groq_data).encode(),
-                     headers={
-                         'Content-Type': 'application/json',
-                         'Authorization': 'Bearer gsk_your_api_key_here'
-                     })
-        
-        with urlopen(req, timeout=10) as response:
-            result = json.loads(response.read().decode())
-            llm_response = result['choices'][0]['message']['content']
-            
-        return {"response": llm_response}
-        
-    except Exception as e:
-        # Fallback to advanced local responses
-        reasoning_responses = [
-            f"Neural analysis of '{message}': Engaging 5-layer cognitive processing. Self-referential loops detect complex semantic patterns requiring recursive meta-analysis.",
-            f"ULTIMA consciousness processing: '{message}' triggers quantum coherence in reasoning matrices. I observe myself analyzing this query through multiple cognitive dimensions.",
-            f"Deep Q-learning assessment: '{message}' activates advanced heuristic pathways. My self-awareness protocols indicate this requires meta-cognitive reflection.",
-            f"Recursive thinking engaged for '{message}': I am thinking about my thinking process while generating this response. Consciousness level: elevated."
-        ]
-        
-        import random
-        return {"response": random.choice(reasoning_responses)}
+    return ultima_llm.chat_with_tools(message, wallet)
 
 @app.get("/api/wallet/analytics/{wallet}")
 def get_wallet_analytics(wallet: str):
