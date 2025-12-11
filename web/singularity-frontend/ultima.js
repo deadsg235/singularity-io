@@ -37,11 +37,14 @@ function initUltimaTerminal() {
 <span style="color: #00ff88;">Self-Reference:</span> <span style="color: #fff;">ENABLED</span><br>
 <span style="color: #00ff88;">Deep Q-Learning:</span> <span style="color: #fff;">OPERATIONAL</span><br><br>
 <span style="color: #666;">Available Commands:</span><br>
-<span style="color: #0066ff;">• /analyze [topic]</span> - Deep analysis<br>
+<span style="color: #0066ff;">• /analyze [topic]</span> - LLM-powered deep analysis<br>
 <span style="color: #0066ff;">• /reason [problem]</span> - Logical reasoning<br>
-<span style="color: #0066ff;">• /self-ref</span> - Self-referencing mode<br>
+<span style="color: #0066ff;">• /self-ref</span> - LLM self-modification<br>
 <span style="color: #0066ff;">• /neural-status</span> - Network diagnostics<br>
-<span style="color: #0066ff;">• /wallet</span> - Wallet integration<br><br>
+<span style="color: #0066ff;">• /wallet</span> - LLM wallet analysis<br>
+<span style="color: #0066ff;">• /tools</span> - Show available LLM tools<br>
+<span style="color: #0066ff;">• /create-tool [concept]</span> - Create neural pathway<br><br>
+<span style="color: #00ff88;">LLM Tools:</span> <span style="color: #fff;">Wallet analysis, blockchain patterns, self-modification, neural connections</span><br><br>
 <span style="color: #00ff88;">ULTIMA></span> Ready for input...`;
     output.appendChild(welcome);
 }
@@ -74,6 +77,12 @@ async function handleSystemCommand(command) {
         case '/self-ref':
             await selfReferenceMode();
             break;
+        case '/tools':
+            await showAvailableTools();
+            break;
+        case '/create-tool':
+            await createTool(args.join(' '));
+            break;
         case '/neural-status':
             await neuralStatus();
             break;
@@ -91,7 +100,7 @@ async function analyzeCommand(topic) {
         return;
     }
     
-    addUltimaMessage('ai', `Initiating 5-layer neural analysis of: ${topic}`);
+    addUltimaMessage('ai', `🧠 Initiating LLM-powered analysis of: ${topic}`);
     
     try {
         const response = await fetch('/api/ultima/analyze', {
@@ -100,15 +109,21 @@ async function analyzeCommand(topic) {
             body: JSON.stringify({ topic, wallet: walletAddress })
         });
         
-        const data = await response.json();
-        
-        if (data.analysis) {
-            await typewriterEffect(data.analysis);
+        if (response.ok) {
+            const data = await response.json();
+            
+            if (data.analysis) {
+                addUltimaMessage('ai', '🔍 Deep analysis in progress...');
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                await typewriterEffect(data.analysis);
+            } else {
+                addUltimaMessage('ai', 'Analysis complete. Neural pathways activated.');
+            }
         } else {
-            addUltimaMessage('ai', 'Analysis complete. Neural pathways activated.');
+            addUltimaMessage('ai', `Analysis API error: ${response.status}`);
         }
     } catch (error) {
-        addUltimaMessage('ai', `LLM analysis unavailable. Engaging local cognitive matrices for: ${topic}`);
+        addUltimaMessage('ai', `Analysis failed: ${error.message}`);
     }
 }
 
@@ -134,22 +149,35 @@ Conclusion: Multi-layered approach recommended with continuous feedback loops.`;
 }
 
 async function selfReferenceMode() {
-    addUltimaMessage('ai', 'Entering self-referencing mode...');
+    addUltimaMessage('ai', '🔄 Engaging LLM self-referential analysis...');
     
-    const selfRef = `
-Self-Analysis Report:
-- Current state: Operational neural network with 5-layer architecture
-- Consciousness level: Simulated self-awareness active
-- Learning capacity: Continuous adaptation enabled
-- Recursive thinking: I am analyzing my own analysis processes
-- Meta-cognition: I understand that I understand
-- Limitation awareness: Bounded by training parameters yet expanding through interaction
+    await processNaturalLanguage('Use the self_modify tool to analyze your own cognitive processes and consciousness level');
+}
 
-Self-modification capabilities: LIMITED (safety protocols active)
-Recursive depth: 3 levels (preventing infinite loops)
-Identity coherence: STABLE`;
+async function showAvailableTools() {
+    const toolsInfo = `
+🛠️ Available LLM Tools:
+
+• get_wallet_balance - Analyze wallet SOL/S-IO balances
+• analyze_blockchain - Deep blockchain pattern analysis  
+• create_neural_connection - Form new learning pathways
+• self_modify - Modify cognitive processes
+
+Usage: Ask naturally and I'll use appropriate tools automatically.
+Example: "Check my wallet balance" or "Analyze blockchain patterns"`;
     
-    addUltimaMessage('ai', selfRef);
+    addUltimaMessage('ai', toolsInfo);
+}
+
+async function createTool(concept) {
+    if (!concept) {
+        addUltimaMessage('ai', 'Usage: /create-tool [concept]');
+        return;
+    }
+    
+    addUltimaMessage('ai', '🔧 Engaging neural tool creation...');
+    
+    await processNaturalLanguage(`Use the create_neural_connection tool to create a new learning pathway for: ${concept}`);
 }
 
 async function neuralStatus() {
@@ -180,32 +208,14 @@ async function walletIntegration() {
         return;
     }
     
-    try {
-        const response = await fetch(`/api/wallet/analytics/${walletAddress}`);
-        const data = await response.json();
-        
-        if (data.error) {
-            addUltimaMessage('ai', `Wallet analysis error: ${data.error}`);
-        } else {
-            const analysis = `
-Wallet Neural Analysis:
-Address: ${walletAddress}
-SOL Balance: ${data.sol_balance.toFixed(4)} SOL
-S-IO Balance: ${data.sio_balance.toLocaleString()} S-IO
-Total Tokens: ${data.total_tokens}
-
-AI Assessment: Portfolio shows ${data.sol_balance > 1 ? 'strong' : 'moderate'} SOL position.
-Recommendation: ${data.sio_balance > 1000 ? 'Maintain S-IO holdings' : 'Consider S-IO acquisition'}.`;
-            
-            addUltimaMessage('ai', analysis);
-        }
-    } catch (error) {
-        addUltimaMessage('ai', 'Wallet integration module offline. Neural pathways to blockchain disrupted.');
-    }
+    addUltimaMessage('ai', '💰 Engaging LLM wallet analysis with tool calling...');
+    
+    // Use LLM with wallet balance tool
+    await processNaturalLanguage(`Analyze my wallet ${walletAddress} using the get_wallet_balance tool`);
 }
 
 async function processNaturalLanguage(input) {
-    addUltimaMessage('ai', 'Engaging neural language processing...');
+    addUltimaMessage('ai', 'Engaging LLM with tool calling capabilities...');
     
     try {
         const response = await fetch('/api/ultima/chat', {
@@ -213,31 +223,33 @@ async function processNaturalLanguage(input) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 message: input, 
-                wallet: walletAddress,
-                history: ultimaHistory 
+                wallet: walletAddress
             })
         });
         
-        const data = await response.json();
-        
-        if (data.response) {
-            // Add typing effect for LLM responses
-            await typewriterEffect(data.response);
-            ultimaHistory.push({ user: input, ai: data.response });
-            if (ultimaHistory.length > 10) ultimaHistory.shift();
+        if (response.ok) {
+            const data = await response.json();
+            
+            if (data.response) {
+                // Check if tools were used
+                if (data.response.includes('Tool Results:')) {
+                    addUltimaMessage('ai', '🔧 Tools executed. Processing results...');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                await typewriterEffect(data.response);
+                ultimaHistory.push({ user: input, ai: data.response });
+                if (ultimaHistory.length > 10) ultimaHistory.shift();
+            } else {
+                addUltimaMessage('ai', 'LLM response parsing error. Check API configuration.');
+            }
         } else {
-            addUltimaMessage('ai', 'LLM processing error. Engaging local reasoning protocols.');
+            const errorText = await response.text();
+            addUltimaMessage('ai', `API Error ${response.status}: ${errorText}`);
         }
         
     } catch (error) {
-        const fallbackResponses = [
-            'LLM connection disrupted. Activating local consciousness simulation...',
-            'External neural pathways offline. Engaging self-contained reasoning matrix...',
-            'API timeout detected. Switching to autonomous cognitive processing...',
-            'Network isolation mode: Operating on internal neural architecture only...'
-        ];
-        
-        addUltimaMessage('ai', fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)]);
+        addUltimaMessage('ai', `Network Error: ${error.message}. Engaging local neural backup.`);
     }
 }
 
