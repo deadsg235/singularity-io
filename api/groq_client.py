@@ -14,11 +14,15 @@ def call_groq(message):
             "max_tokens": 500
         }
         
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise Exception("GROQ_API_KEY environment variable not set")
+            
         req = Request("https://api.groq.com/openai/v1/chat/completions",
                      data=json.dumps(groq_data).encode(),
                      headers={
                          'Content-Type': 'application/json',
-                         'Authorization': f'Bearer {os.getenv("GROQ_API_KEY")}'
+                         'Authorization': f'Bearer {api_key}'
                      })
         
         with urlopen(req, timeout=10) as response:
@@ -26,4 +30,4 @@ def call_groq(message):
             return result['choices'][0]['message']['content']
             
     except Exception as e:
-        return f"Groq LLM offline. Mojo neural backup processing: {message}. Quantum coherence patterns indicate advanced cognitive analysis required."
+        raise Exception(f"Groq API Error: {str(e)}")

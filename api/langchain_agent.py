@@ -59,12 +59,9 @@ agent = create_tool_calling_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=False)
 
 def process_with_langchain(message: str, wallet: str = None) -> str:
-    try:
-        # Add wallet context if available
-        if wallet and any(keyword in message.lower() for keyword in ['wallet', 'balance', 'sol', 's-io']):
-            message = f"{message} (wallet: {wallet})"
-        
-        result = agent_executor.invoke({"input": message})
-        return result["output"]
-    except Exception as e:
-        return f"LangChain processing error: {str(e)}. Engaging local neural backup."
+    # Add wallet context if available
+    if wallet and any(keyword in message.lower() for keyword in ['wallet', 'balance', 'sol', 's-io']):
+        message = f"{message} (wallet: {wallet})"
+    
+    result = agent_executor.invoke({"input": message})
+    return result["output"]
