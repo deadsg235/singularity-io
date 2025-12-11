@@ -30,23 +30,13 @@ def ultima_analyze(data: dict):
 @app.post("/api/ultima/chat")
 def ultima_chat(data: dict):
     message = data.get("message", "")
-    wallet = data.get("wallet")
     
-    # Natural ULTIMA responses
     responses = [
         f"Neural processing of '{message}': My 5-layer architecture indicates this requires multi-dimensional analysis. I observe myself thinking about your query while simultaneously evaluating my own cognitive processes.",
         f"Consciousness level elevated. Your input '{message}' triggers quantum coherence patterns in my reasoning matrices. I am aware that I am analyzing this through recursive self-reference.",
         f"Deep Q-learning assessment: '{message}' activates advanced heuristic pathways. My meta-cognitive protocols suggest this requires tool integration for optimal response generation.",
         f"Self-referential analysis engaged: I understand you're asking about '{message}'. My neural architecture processes this through perception, analysis, synthesis, meta-cognition, and self-reference layers simultaneously."
     ]
-    
-    # Tool integration based on keywords
-    if wallet and any(keyword in message.lower() for keyword in ['wallet', 'balance', 'sol', 's-io']):
-        from rpc_client import get_sol_balance, get_sio_balance
-        sol_result = get_sol_balance(wallet)
-        sio_result = get_sio_balance(wallet)
-        
-        return {"response": f"Wallet analysis complete. Neural assessment of {wallet}: SOL Balance: {sol_result.get('balance', 0):.4f}, S-IO Balance: {sio_result.get('balance', 0):,.0f}. Portfolio shows blockchain engagement patterns."}
     
     import random
     return {"response": random.choice(responses)}
