@@ -91,7 +91,7 @@ async function analyzeCommand(topic) {
         return;
     }
     
-    addUltimaMessage('ai', `Initiating deep analysis of: ${topic}`);
+    addUltimaMessage('ai', `Initiating 5-layer neural analysis of: ${topic}`);
     
     try {
         const response = await fetch('/api/ultima/analyze', {
@@ -101,9 +101,14 @@ async function analyzeCommand(topic) {
         });
         
         const data = await response.json();
-        addUltimaMessage('ai', data.analysis || 'Analysis complete. Neural pathways activated.');
+        
+        if (data.analysis) {
+            await typewriterEffect(data.analysis);
+        } else {
+            addUltimaMessage('ai', 'Analysis complete. Neural pathways activated.');
+        }
     } catch (error) {
-        addUltimaMessage('ai', `Analysis engine offline. Running local heuristics on: ${topic}`);
+        addUltimaMessage('ai', `LLM analysis unavailable. Engaging local cognitive matrices for: ${topic}`);
     }
 }
 
@@ -200,7 +205,7 @@ Recommendation: ${data.sio_balance > 1000 ? 'Maintain S-IO holdings' : 'Consider
 }
 
 async function processNaturalLanguage(input) {
-    addUltimaMessage('ai', 'Processing natural language input...');
+    addUltimaMessage('ai', 'Engaging neural language processing...');
     
     try {
         const response = await fetch('/api/ultima/chat', {
@@ -214,20 +219,41 @@ async function processNaturalLanguage(input) {
         });
         
         const data = await response.json();
-        addUltimaMessage('ai', data.response || 'Neural processing complete. Response generated.');
         
-        ultimaHistory.push({ user: input, ai: data.response });
-        if (ultimaHistory.length > 10) ultimaHistory.shift();
+        if (data.response) {
+            // Add typing effect for LLM responses
+            await typewriterEffect(data.response);
+            ultimaHistory.push({ user: input, ai: data.response });
+            if (ultimaHistory.length > 10) ultimaHistory.shift();
+        } else {
+            addUltimaMessage('ai', 'LLM processing error. Engaging local reasoning protocols.');
+        }
         
     } catch (error) {
-        const responses = [
-            'Neural network processing your query through local pathways...',
-            'Engaging deep reasoning algorithms for optimal response generation...',
-            'Self-referencing protocols activated. Analyzing query context...',
-            'Quantum coherence patterns suggest multiple solution vectors...'
+        const fallbackResponses = [
+            'LLM connection disrupted. Activating local consciousness simulation...',
+            'External neural pathways offline. Engaging self-contained reasoning matrix...',
+            'API timeout detected. Switching to autonomous cognitive processing...',
+            'Network isolation mode: Operating on internal neural architecture only...'
         ];
         
-        addUltimaMessage('ai', responses[Math.floor(Math.random() * responses.length)]);
+        addUltimaMessage('ai', fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)]);
+    }
+}
+
+async function typewriterEffect(text) {
+    const output = document.getElementById('ultima-output');
+    const msg = document.createElement('div');
+    msg.className = 'ultima-message ultima-ai';
+    msg.innerHTML = `<span style="color: #0066ff;">ULTIMA></span> <span style="color: #ccc;"></span>`;
+    output.appendChild(msg);
+    
+    const textSpan = msg.querySelector('span:last-child');
+    
+    for (let i = 0; i < text.length; i++) {
+        textSpan.textContent += text[i];
+        output.scrollTop = output.scrollHeight;
+        await new Promise(resolve => setTimeout(resolve, 20));
     }
 }
 
