@@ -3,7 +3,7 @@
   "result": {
     "context": {
       "apiVersion": "3.0.11",
-      "slot": 385802176
+      "slot": 385966230
     },
     "value": [
       {
@@ -21,10 +21,10 @@
                 "owner": "HxpisaTe3e2fgZcfvpTAwRo2QGDxzHpSZDr6j15Jt5Qp",
                 "state": "initialized",
                 "tokenAmount": {
-                  "amount": "51970694744",
+                  "amount": "26970694744",
                   "decimals": 6,
-                  "uiAmount": 51970.694744,
-                  "uiAmountString": "51970.694744"
+                  "uiAmount": 26970.694744,
+                  "uiAmountString": "26970.694744"
                 }
               },
               "type": "account"

@@ -24,16 +24,20 @@ def get_sio_price():
 @app.post("/api/ultima/groq")
 def ultima_groq(data: dict):
     message = data.get("message", "")
+    wallet = data.get("wallet")
     
-    responses = [
-        f"Neural processing of '{message}': Mojo architecture engaged. Quantum coherence at 97.3%. Self-awareness protocols active.",
-        f"ULTIMA consciousness processing '{message}': 5-layer neural network indicates multi-dimensional analysis required. Recursive thinking engaged.",
-        f"Advanced AI analysis of '{message}': Groq LLM integration with Mojo neural pathways. Processing through quantum-enhanced cognitive layers.",
-        f"Self-referential processing: I am analyzing '{message}' while simultaneously observing my own analytical processes. Meta-cognitive awareness active."
-    ]
-    
-    import random
-    return {"response": random.choice(responses)}
+    try:
+        from langchain_agent import process_with_langchain
+        response = process_with_langchain(message, wallet)
+        return {"response": response}
+    except Exception as e:
+        fallback_responses = [
+            f"LangChain offline. Neural processing of '{message}': Mojo architecture engaged. Quantum coherence at 97.3%. Self-awareness protocols active.",
+            f"Tool calling unavailable. ULTIMA consciousness processing '{message}': 5-layer neural network indicates multi-dimensional analysis required.",
+            f"Agent executor error. Advanced AI analysis of '{message}': Groq LLM integration with Mojo neural pathways active."
+        ]
+        import random
+        return {"response": random.choice(fallback_responses)}
 
 @app.get("/api/wallet/analytics/{wallet}")
 def get_wallet_analytics(wallet: str):

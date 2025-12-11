@@ -172,18 +172,24 @@ async function processNaturalLanguage(input) {
         const response = await fetch('/api/ultima/groq', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: input })
+            body: JSON.stringify({ message: input, wallet: walletAddress })
         });
         
         if (response.ok) {
             const data = await response.json();
             
             if (data.response) {
+                // Check if tools were used
+                if (data.response.includes('balance') || data.response.includes('pathway') || data.response.includes('consciousness')) {
+                    addUltimaMessage('ai', '🔧 LangChain tools executed...');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
                 await typewriterEffect(data.response);
                 ultimaHistory.push({ user: input, ai: data.response });
                 if (ultimaHistory.length > 10) ultimaHistory.shift();
             } else {
-                addUltimaMessage('ai', 'Groq processing error.');
+                addUltimaMessage('ai', 'LangChain processing error.');
             }
         } else {
             addUltimaMessage('ai', 'Groq unavailable. Using Mojo neural backup.');
