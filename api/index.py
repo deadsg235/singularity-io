@@ -23,12 +23,20 @@ def get_sio_price():
 
 @app.post("/api/ultima/groq")
 def ultima_groq(data: dict):
-    message = data.get("message", "")
-    wallet = data.get("wallet")
-    
-    from langchain_agent import process_with_langchain
-    response = process_with_langchain(message, wallet)
-    return {"response": response}
+    try:
+        message = data.get("message", "")
+        wallet = data.get("wallet")
+        
+        if not message:
+            return {"error": "No message provided"}
+        
+        # Test direct Groq call first
+        from groq_client import call_groq
+        response = call_groq(message)
+        return {"response": response}
+        
+    except Exception as e:
+        return {"error": f"API Error: {str(e)}", "message": message}
 
 @app.get("/api/wallet/analytics/{wallet}")
 def get_wallet_analytics(wallet: str):
@@ -47,5 +55,10 @@ def get_user_staking(wallet: str):
         "pending_rewards": 0,
         "stakes": {}
     }
+
+@app.get("/api/ultima/test")
+def test_ultima():
+    import os
+    return {"status": "ULTIMA endpoint working", "groq_key_set": bool(os.getenv("GROQ_API_KEY"))}
 
 handler = app
