@@ -1,4 +1,5 @@
 import json
+import os
 from urllib.request import urlopen, Request
 
 def call_groq(message):
@@ -17,7 +18,7 @@ def call_groq(message):
                      data=json.dumps(groq_data).encode(),
                      headers={
                          'Content-Type': 'application/json',
-                         'Authorization': 'Bearer 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'
+                         'Authorization': f'Bearer {os.getenv("GROQ_API_KEY")}'
                      })
         
         with urlopen(req, timeout=10) as response:
