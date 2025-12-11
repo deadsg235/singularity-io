@@ -195,19 +195,9 @@ async function processNaturalLanguage(input) {
 }
 
 function initMojoNetwork() {
-    addUltimaMessage('ai', '⚡ Mojo neural network initialized. Quantum coherence established.');
-}();
-            } else {
-                addUltimaMessage('ai', 'LLM response parsing error. Check API configuration.');
-            }
-        } else {
-            const errorText = await response.text();
-            addUltimaMessage('ai', `API Error ${response.status}: ${errorText}`);
-        }
-        
-    } catch (error) {
-        addUltimaMessage('ai', `Network Error: ${error.message}. Engaging local neural backup.`);
-    }
+    setTimeout(() => {
+        addUltimaMessage('ai', '⚡ Mojo neural network initialized. Quantum coherence established.');
+    }, 1000);
 }
 
 async function typewriterEffect(text) {
