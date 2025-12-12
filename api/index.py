@@ -30,13 +30,19 @@ def ultima_groq(data: dict):
         if not message:
             return {"error": "No message provided"}
         
-        # Test direct Groq call first
-        from groq_client import call_groq
-        response = call_groq(message)
+        # Use LangChain agent with tools
+        from langchain_agent import process_with_langchain
+        response = process_with_langchain(message, wallet)
         return {"response": response}
         
     except Exception as e:
-        return {"error": f"API Error: {str(e)}", "message": message}
+        # Fallback to direct Groq if LangChain fails
+        try:
+            from groq_client import call_groq
+            response = call_groq(message)
+            return {"response": response}
+        except:
+            return {"error": f"All AI systems offline: {str(e)}"}
 
 @app.get("/api/wallet/analytics/{wallet}")
 def get_wallet_analytics(wallet: str):

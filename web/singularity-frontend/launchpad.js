@@ -298,16 +298,34 @@ function showQR(mint, name) {
     modal.innerHTML = `
         <div style="background: #000; border: 2px solid #0066ff; border-radius: 8px; padding: 2rem; max-width: 400px; width: 90%; text-align: center;">
             <h2 style="color: #0066ff; margin-bottom: 1rem;">${name}</h2>
-            <canvas id="qr-canvas" style="margin: 1rem auto; display: block; background: #fff; padding: 1rem; border-radius: 8px;"></canvas>
+            <div id="qr-container" style="margin: 1rem auto; display: block; background: #fff; padding: 1rem; border-radius: 8px; width: 256px; height: 256px;"></div>
             <p style="color: #999; font-size: 0.85rem; margin: 1rem 0; word-break: break-all;">${mint}</p>
             <button onclick="this.parentElement.parentElement.remove()" style="padding: 0.8rem 2rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Close</button>
         </div>
     `;
     document.body.appendChild(modal);
     
-    QRCode.toCanvas(modal.querySelector('#qr-canvas'), mint, { width: 256, margin: 2 }, (err) => {
-        if (err) console.error('QR generation error:', err);
-    });
+    // Generate QR code using qrcode.js library
+    try {
+        if (typeof QRCode !== 'undefined') {
+            new QRCode(modal.querySelector('#qr-container'), {
+                text: mint,
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#ffffff'
+            });
+        } else {
+            // Fallback to API-based QR generation
+            const qrImg = document.createElement('img');
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(mint)}`;
+            qrImg.style.cssText = 'width: 256px; height: 256px;';
+            modal.querySelector('#qr-container').appendChild(qrImg);
+        }
+    } catch (error) {
+        console.error('QR generation error:', error);
+        modal.querySelector('#qr-container').innerHTML = '<p style="color: #ff4444; padding: 2rem;">QR generation failed</p>';
+    }
 }
 
 // Check wallet balance
