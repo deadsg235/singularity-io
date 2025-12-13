@@ -7,6 +7,15 @@ let canvas, ctx;
 let networkData = null;
 let walletAddress = null;
 
+// ===== Solana + Singularity.io config =====
+const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
+
+// 🔴 REPLACE with the real Singularity.io SPL mint address
+const SIO_MINT_ADDRESS = 'PUT_REAL_SIO_MINT_ADDRESS_HERE';
+
+// Cache connection
+let solanaConnection = null;
+
 // Initialize application
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Singularity.io initializing...');
@@ -479,61 +488,66 @@ window.addEventListener('beforeunload', () => {
 
 // Load wallet balances
 async function loadWalletBalances() {
-    if (!walletAddress) {
-        console.log('loadWalletBalances: Wallet not connected.');
-        return;
-    }
-    
-    console.log('loadWalletBalances: Attempting to load balances for wallet:', walletAddress);
+    if (!walletAddress) return;
 
     try {
-        const response = await fetch(`${API_BASE}/api/wallet/analytics/${walletAddress}`);
-        console.log('loadWalletBalances: API response status:', response.status);
-        if (response.ok) {
-            const data = await response.json();
-            console.log('loadWalletBalances: API response data:', data);
-            
-            if (data.error) {
-                document.getElementById('sol-balance').textContent = 'ERROR';
-                document.getElementById('sio-balance').textContent = 'ERROR';
-                
-                const errorDiv = document.createElement('div');
-                errorDiv.style.cssText = 'position:fixed;top:10px;right:10px;background:#ff4444;color:#fff;padding:1rem;border-radius:4px;font-family:monospace;font-size:12px;max-width:400px;z-index:9999;cursor:pointer';
-                errorDiv.textContent = `API Error: ${data.error}`;
-                errorDiv.onclick = () => navigator.clipboard.writeText(errorDiv.textContent);
-                document.body.appendChild(errorDiv);
-                setTimeout(() => errorDiv.remove(), 10000);
-            } else {
-                document.getElementById('sol-balance').textContent = data.sol_balance.toFixed(2);
-                document.getElementById('sio-balance').textContent = data.sio_balance.toLocaleString();
-                console.log('loadWalletBalances: Balances updated successfully.');
-            }
-        } else {
-            const errorText = await response.text();
-            document.getElementById('sol-balance').textContent = 'ERROR';
-            document.getElementById('sio-balance').textContent = 'ERROR';
-            
-            console.error('loadWalletBalances: API response not OK:', errorText);
-            const errorDiv = document.createElement('div');
-            errorDiv.style.cssText = 'position:fixed;top:10px;right:10px;background:#ff4444;color:#fff;padding:1rem;border-radius:4px;font-family:monospace;font-size:12px;max-width:400px;z-index:9999;cursor:pointer';
-            errorDiv.textContent = `Balance Error ${response.status}: ${errorText}`;
-            errorDiv.onclick = () => navigator.clipboard.writeText(errorDiv.textContent);
-            document.body.appendChild(errorDiv);
-            setTimeout(() => errorDiv.remove(), 10000);
+        if (!solanaConnection) {
+            solanaConnection = new solanaWeb3.Connection(
+                SOLANA_RPC,
+                { commitment: 'confirmed' }
+            );
         }
-    } catch (error) {
-        document.getElementById('sol-balance').textContent = 'ERROR';
-        document.getElementById('sio-balance').textContent = 'ERROR';
-        
-        console.error('loadWalletBalances: Network or processing error:', error);
-        const errorDiv = document.createElement('div');
-        errorDiv.style.cssText = 'position:fixed;top:10px;right:10px;background:#ff4444;color:#fff;padding:1rem;border-radius:4px;font-family:monospace;font-size:12px;max-width:400px;z-index:9999;cursor:pointer';
-        errorDiv.textContent = `Network Error: ${error.message}`;
-        errorDiv.onclick = () => navigator.clipboard.writeText(errorDiv.textContent);
-        document.body.appendChild(errorDiv);
-        setTimeout(() => errorDiv.remove(), 10000);
+
+        const owner = new solanaWeb3.PublicKey(walletAddress);
+
+        // ---------- SOL BALANCE ----------
+        const lamports = await solanaConnection.getBalance(owner);
+        const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
+
+        document.getElementById('sol-balance').textContent =
+            solBalance.toFixed(4);
+
+        // ---------- SIO TOKEN BALANCE ----------
+        const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDRESS);
+
+        const tokenAccounts =
+            await solanaConnection.getParsedTokenAccountsByOwner(
+                owner,
+                { mint }
+            );
+
+        let sioBalance = 0;
+
+        if (tokenAccounts.value.length > 0) {
+            const tokenInfo =
+                tokenAccounts.value[0].account.data.parsed.info;
+
+            sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
+        }
+
+        document.getElementById('sio-balance').textContent =
+            sioBalance.toLocaleString(undefined, {
+                maximumFractionDigits: 6
+            });
+
+        console.log('Balances loaded', {
+            sol: solBalance,
+            sio: sioBalance
+        });
+
+    } catch (err) {
+        console.error('Balance fetch failed:', err);
+
+        document.getElementById('sol-balance').textContent = '—';
+        document.getElementById('sio-balance').textContent = '—';
+
+        addChatMessage(
+            'assistant',
+            '⚠️ Unable to load balances (RPC busy). Try again shortly.'
+        );
     }
 }
+
 
 // Log initialization
 console.log('Singularity.io v0.2.0 - Neural Network Visualization Ready');
