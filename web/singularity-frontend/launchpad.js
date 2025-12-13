@@ -16,7 +16,7 @@ const SOLANA_RPC_ENDPOINTS = [
 ];
 
 // OpenAI Configuration
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'your-openai-api-key-here';
+const OPENAI_API_KEY = 'your-openai-api-key-here'; // Configure in UI or environment
 const OPENAI_BASE_URL = 'https://api.openai.com/v1';
 
 // Initialize
@@ -358,7 +358,7 @@ class TradingBotAgent {
     async initializeAgent() {
         // Initialize LangChain tools for trading
         this.tools = [
-            new SerpAPI(process.env.SERPAPI_API_KEY, {
+            new SerpAPI('your-serpapi-key-here', {
                 name: 'market_data',
                 description: 'Get real-time market data and prices'
             }),
@@ -378,7 +378,7 @@ class TradingBotAgent {
             new ChatOpenAI({
                 temperature: 0.1,
                 modelName: 'gpt-4',
-                openAIApiKey: process.env.OPENAI_API_KEY
+                openAIApiKey: 'your-openai-api-key-here'
             }),
             {
                 agentType: 'chat-conversational-react-description',
@@ -391,14 +391,14 @@ class TradingBotAgent {
     }
 
     async executeTrade(signal) {
-        const prompt = \`Execute ${this.config.strategy} strategy trade:
-        Signal: \${signal.type}
-        Price: \${signal.price}
-        Volume: \${signal.volume}
-        Risk Parameters: \${JSON.stringify(RISK_PARAMS)}
-        Current Position: \${await this.getCurrentPosition()}
-
-        Use available tools to analyze market conditions and execute optimal trade.\`;
+        const currentPosition = await this.getCurrentPosition();
+        const prompt = 'Execute ' + this.config.strategy + ' strategy trade:\n' +
+            'Signal: ' + signal.type + '\n' +
+            'Price: ' + signal.price + '\n' +
+            'Volume: ' + signal.volume + '\n' +
+            'Risk Parameters: ' + JSON.stringify(RISK_PARAMS) + '\n' +
+            'Current Position: ' + currentPosition + '\n\n' +
+            'Use available tools to analyze market conditions and execute optimal trade.';
 
         try {
             const result = await this.agent.call({ input: prompt });
