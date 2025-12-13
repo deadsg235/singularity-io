@@ -12,9 +12,9 @@ const FALLBACK_RPC_ENDPOINTS = [
     'https://solana-mainnet.rpc.extrnode.com',
     'https://rpc.ankr.com/solana',
     'https://solana-mainnet.api.syndica.io',
-    'https://mainnet.helius-rpc.com/?api-key=00000000-0000-0000-0000-000000000000',
-    'https://ssc-dao.genesysgo.net',
-    'https://solana-api.genesis.com'
+    'https://api.metaplex.solana.com',
+    'https://solana-mainnet.phantom.tech',
+    'https://solana-mainnet-public.allthatnode.com'
 ];
 
 
