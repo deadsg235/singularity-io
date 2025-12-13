@@ -80,6 +80,10 @@ header {
     border-color: #0066ff;
 }
 
+.hidden {
+    display: none !important;
+}
+
 .balance-display {
     display: flex;
     gap: 1rem;

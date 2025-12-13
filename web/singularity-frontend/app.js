@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     initChatTerminal();
     
+    // Initially hide balance display
+    document.getElementById('balance-display').classList.add('hidden');
+    
     // Load network after short delay to ensure canvas is ready
     setTimeout(() => loadNeuralNetwork(), 500);
 });
@@ -296,7 +299,7 @@ async function connectWallet() {
         if (window.setWalletConnected) window.setWalletConnected(true);
         
         // Show balance display and load balances
-        document.getElementById('balance-display').style.display = 'flex';
+        document.getElementById('balance-display').classList.remove('hidden');
         loadWalletBalances();
         
         console.log('Wallet connected:', walletAddress);
@@ -476,12 +479,19 @@ window.addEventListener('beforeunload', () => {
 
 // Load wallet balances
 async function loadWalletBalances() {
-    if (!walletAddress) return;
+    if (!walletAddress) {
+        console.log('loadWalletBalances: Wallet not connected.');
+        return;
+    }
     
+    console.log('loadWalletBalances: Attempting to load balances for wallet:', walletAddress);
+
     try {
-        const response = await fetch(`/api/wallet/analytics/${walletAddress}`);
+        const response = await fetch(`${API_BASE}/api/wallet/analytics/${walletAddress}`);
+        console.log('loadWalletBalances: API response status:', response.status);
         if (response.ok) {
             const data = await response.json();
+            console.log('loadWalletBalances: API response data:', data);
             
             if (data.error) {
                 document.getElementById('sol-balance').textContent = 'ERROR';
@@ -496,13 +506,14 @@ async function loadWalletBalances() {
             } else {
                 document.getElementById('sol-balance').textContent = data.sol_balance.toFixed(2);
                 document.getElementById('sio-balance').textContent = data.sio_balance.toLocaleString();
+                console.log('loadWalletBalances: Balances updated successfully.');
             }
         } else {
             const errorText = await response.text();
             document.getElementById('sol-balance').textContent = 'ERROR';
             document.getElementById('sio-balance').textContent = 'ERROR';
             
-            // Display copyable error
+            console.error('loadWalletBalances: API response not OK:', errorText);
             const errorDiv = document.createElement('div');
             errorDiv.style.cssText = 'position:fixed;top:10px;right:10px;background:#ff4444;color:#fff;padding:1rem;border-radius:4px;font-family:monospace;font-size:12px;max-width:400px;z-index:9999;cursor:pointer';
             errorDiv.textContent = `Balance Error ${response.status}: ${errorText}`;
@@ -514,6 +525,7 @@ async function loadWalletBalances() {
         document.getElementById('sol-balance').textContent = 'ERROR';
         document.getElementById('sio-balance').textContent = 'ERROR';
         
+        console.error('loadWalletBalances: Network or processing error:', error);
         const errorDiv = document.createElement('div');
         errorDiv.style.cssText = 'position:fixed;top:10px;right:10px;background:#ff4444;color:#fff;padding:1rem;border-radius:4px;font-family:monospace;font-size:12px;max-width:400px;z-index:9999;cursor:pointer';
         errorDiv.textContent = `Network Error: ${error.message}`;
