@@ -185,6 +185,9 @@ function switchLaunchpad(type) {
         updateStatus('Ready to create your SPL token');
     }
 }
+
+// Generate trading bot
+async function generateBot() {
     const botName = document.getElementById('bot-name').value.trim();
     const strategyType = document.getElementById('strategy-type').value;
     const tradingPair = document.getElementById('trading-pair').value;
@@ -970,7 +973,7 @@ async function testBot() {
             maxDrawdown: 0.015
         };
 
-        alert(\`Paper Trading Results:\\n\${results.trades} trades executed\\nProfit: \${(results.profit * 100).toFixed(2)}%\\nWin Rate: \${(results.winRate * 100).toFixed(1)}%\\nMax Drawdown: \${(results.maxDrawdown * 100).toFixed(2)}%\`);
+        alert(`Paper Trading Results:\n${results.trades} trades executed\nProfit: ${(results.profit * 100).toFixed(2)}%\nWin Rate: ${(results.winRate * 100).toFixed(1)}%\nMax Drawdown: ${(results.maxDrawdown * 100).toFixed(2)}%`);
 
         updateStatus('Paper trading simulation completed', 'ready');
 
