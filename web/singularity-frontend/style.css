@@ -58,26 +58,29 @@ header {
 }
 
 .wallet-btn {
-    background: #0066ff;
+    background: linear-gradient(145deg, #2a2a2a, #5a5a5a);
     color: #fff;
-    border: 1px solid #0066ff;
+    border: 1px solid #777;
     padding: 0.8rem 1.5rem;
     border-radius: 4px;
     font-family: 'Orbitron', sans-serif;
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 0 20px rgba(0, 102, 255, 0.4);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 
 .wallet-btn:hover {
-    background: #0052cc;
-    box-shadow: 0 0 30px rgba(0, 102, 255, 0.6);
+    background: linear-gradient(145deg, #3a3a3a, #6a6a6a);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
 }
 
 .wallet-btn.connected {
-    background: #0066ff;
-    border-color: #0066ff;
+    background: linear-gradient(145deg, #0066ff, #00ff88);
+    border-color: #00ff88;
+    box-shadow: 0 2px 5px rgba(0, 102, 255, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.3);
 }
 
 .hidden {

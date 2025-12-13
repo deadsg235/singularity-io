@@ -3,6 +3,9 @@ const { Connection, PublicKey, VersionedTransaction } = solanaWeb3;
 let wallet = null;
 let connection;
 let recentSwaps = [];
+let solanaConnection = null; // Add solanaConnection for this page
+const SIO_MINT_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump'; // Add SIO Mint
+
 
 // Multiple RPC endpoints for fallback
 const RPC_ENDPOINTS = [
@@ -37,20 +40,115 @@ function switchRPC() {
 }
 
 async function connectWallet() {
-    if (!window.solana?.isPhantom) {
-        alert('Install Phantom Wallet');
-        return;
+    try {
+        if (wallet) {
+            // If already connected, disconnect
+            if (window.solana && window.solana.isPhantom) {
+                await window.solana.disconnect();
+            }
+            wallet = null;
+            solanaConnection = null;
+
+            const btn = document.getElementById('wallet-btn');
+            btn.textContent = 'Connect Wallet';
+            btn.classList.remove('connected');
+
+            document.getElementById('balance-display').classList.add('hidden');
+            if (window.setWalletConnected) window.setWalletConnected(false);
+
+            document.getElementById('swap-btn').textContent = 'Connect Wallet';
+            document.getElementById('swap-btn').disabled = true;
+
+            console.log('Wallet disconnected');
+            return;
+        }
+
+        if (!window.solana?.isPhantom) {
+            alert('Install Phantom Wallet');
+            return;
+        }
+        
+        const resp = await window.solana.connect();
+        wallet = resp.publicKey;
+        
+        const btn = document.getElementById('wallet-btn');
+        btn.textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
+        btn.classList.add('connected');
+        
+        document.getElementById('swap-btn').textContent = 'Get Quote';
+        document.getElementById('swap-btn').disabled = false;
+        
+        if (window.setWalletConnected) window.setWalletConnected(true);
+        
+        // Show balance display and load balances
+        document.getElementById('balance-display').classList.remove('hidden');
+        loadWalletBalances(); // Call loadWalletBalances
+        
+        console.log('Wallet connected:', wallet.toString());
+    } catch (error) {
+        console.error('Wallet connection error:', error);
+        if (window.setWalletConnected) window.setWalletConnected(false);
     }
-    
-    const resp = await window.solana.connect();
-    wallet = resp.publicKey;
-    document.getElementById('wallet-btn').textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
-    document.getElementById('swap-btn').textContent = 'Get Quote';
-    document.getElementById('swap-btn').disabled = false;
-    
-    if (window.setWalletConnected) window.setWalletConnected(true);
-    
-    await updateBalances();
+}
+
+// loadWalletBalances function for this page
+async function loadWalletBalances() {
+    if (!wallet) return;
+
+    try {
+        if (!solanaConnection) {
+            solanaConnection = new solanaWeb3.Connection(
+                RPC_ENDPOINTS[currentRpcIndex], // Use the RPC from this page
+                { commitment: 'confirmed' }
+            );
+        }
+
+        const owner = new solanaWeb3.PublicKey(wallet);
+
+        // ---------- SOL BALANCE ----------
+        const lamports = await solanaConnection.getBalance(owner);
+        const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
+
+        document.getElementById('sol-balance').textContent =
+            solBalance.toFixed(4);
+
+        // ---------- SIO TOKEN BALANCE ----------
+        const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDRESS);
+
+        const tokenAccounts =
+            await solanaConnection.getParsedTokenAccountsByOwner(
+                owner,
+                { mint }
+            );
+
+        let sioBalance = 0;
+
+        if (tokenAccounts.value.length > 0) {
+            const tokenInfo =
+                tokenAccounts.value[0].account.data.parsed.info;
+
+            sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
+        }
+
+        document.getElementById('sio-balance').textContent =
+            sioBalance.toLocaleString(undefined, {
+                maximumFractionDigits: 6
+            });
+
+        console.log('Balances loaded', {
+            sol: solBalance,
+            sio: sioBalance
+        });
+
+    } catch (err) {
+        console.error('Balance fetch failed:', err);
+
+        document.getElementById('sol-balance').textContent = '—';
+        document.getElementById('sio-balance').textContent = '—';
+
+        // This page doesn't have addChatMessage, so just log to console
+        console.warn('⚠️ Unable to load balances (RPC busy). Try again shortly.');
+    }
 }
 
 async function updateBalances() {

@@ -66,6 +66,7 @@ async function loadUserData() {
             const response = await fetch(`/api/wallet/analytics/${window.globalWallet.toString()}`);
             const data = await response.json();
             
+            const solBalance = data.sol_balance;
             const sioBalance = data.sio_balance;
             
             // Get staked amount from localStorage
@@ -78,9 +79,16 @@ async function loadUserData() {
             
             const votingPower = (stakedAmount / 25000000) * 100;
             
+            // Update body balances
             document.getElementById('sio-balance').textContent = `${sioBalance.toLocaleString()} S-IO`;
             document.getElementById('staked-amount').textContent = `${stakedAmount.toLocaleString()} S-IO`;
             document.getElementById('voting-power').textContent = `${votingPower.toFixed(3)}%`;
+
+            // Update header balances
+            document.getElementById('sol-balance').textContent = solBalance.toFixed(4);
+            document.getElementById('header-sio-balance').textContent = sioBalance.toLocaleString();
+            document.getElementById('balance-display').style.display = 'flex';
+
         } catch (error) {
             console.error('Failed to load governance data:', error);
             document.getElementById('sio-balance').textContent = '0 S-IO';

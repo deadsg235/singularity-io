@@ -2,10 +2,13 @@
 const API_BASE = window.location.hostname === 'localhost' 
     ? 'http://localhost:8000' 
     : '';
+const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
+const SIO_MINT_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
 
 let canvas, ctx;
 let networkData = null;
 let walletAddress = null;
+let solanaConnection = null;
 
 // ===== Solana + Singularity.io config =====
 const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
@@ -292,6 +295,26 @@ function initWallet() {
 
 async function connectWallet() {
     try {
+        if (walletAddress) {
+            // If already connected, disconnect
+            if (window.solana && window.solana.isPhantom) {
+                await window.solana.disconnect();
+            }
+            walletAddress = null;
+            solanaConnection = null;
+
+            const btn = document.getElementById('wallet-btn');
+            btn.textContent = 'Connect Wallet';
+            btn.classList.remove('connected');
+
+            document.getElementById('balance-display').classList.add('hidden');
+            updateStatus('wallet-status', 'Not Connected', false);
+            if (window.setWalletConnected) window.setWalletConnected(false);
+
+            console.log('Wallet disconnected');
+            return;
+        }
+
         if (!window.solana || !window.solana.isPhantom) {
             window.open('https://phantom.app/', '_blank');
             return;

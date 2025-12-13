@@ -6,6 +6,10 @@ let wallet = null;
 let provider = null;
 let tokens = [];
 
+let solanaConnection = null; // Add solanaConnection for this page
+const SOLANA_RPC = 'https://api.mainnet-beta.solana.com'; // Add RPC
+const SIO_MINT_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump'; // Add SIO Mint
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
@@ -37,6 +41,26 @@ async function checkWalletConnection() {
 // Connect Phantom Wallet
 async function connectWallet() {
     try {
+        if (wallet) {
+            // If already connected, disconnect
+            if (window.solana && window.solana.isPhantom) {
+                await window.solana.disconnect();
+            }
+            wallet = null;
+            provider = null;
+            solanaConnection = null;
+
+            const btn = document.getElementById('wallet-btn');
+            btn.textContent = 'Connect Wallet';
+            btn.classList.remove('connected');
+
+            document.getElementById('balance-display').classList.add('hidden');
+            if (window.setWalletConnected) window.setWalletConnected(false);
+
+            console.log('Wallet disconnected');
+            return;
+        }
+
         if (!window.solana || !window.solana.isPhantom) {
             alert('Please install Phantom Wallet');
             window.open('https://phantom.app/', '_blank');
@@ -47,13 +71,78 @@ async function connectWallet() {
         wallet = resp.publicKey;
         provider = window.solana;
         
-        updateWalletUI();
+        updateWalletUI(); // This function also needs to call loadWalletBalances
         if (window.setWalletConnected) window.setWalletConnected(true);
+        
+        // Show balance display and load balances
+        document.getElementById('balance-display').classList.remove('hidden');
+        loadWalletBalances(); // Call loadWalletBalances
+        
         console.log('Wallet connected:', wallet.toString());
     } catch (error) {
         console.error('Wallet connection error:', error);
         if (window.setWalletConnected) window.setWalletConnected(false);
         alert('Failed to connect wallet');
+    }
+}
+
+// loadWalletBalances function for this page
+async function loadWalletBalances() {
+    if (!wallet) return;
+
+    try {
+        if (!solanaConnection) {
+            solanaConnection = new solanaWeb3.Connection(
+                SOLANA_RPC,
+                { commitment: 'confirmed' }
+            );
+        }
+
+        const owner = new solanaWeb3.PublicKey(wallet);
+
+        // ---------- SOL BALANCE ----------
+        const lamports = await solanaConnection.getBalance(owner);
+        const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
+
+        document.getElementById('sol-balance').textContent =
+            solBalance.toFixed(4);
+
+        // ---------- SIO TOKEN BALANCE ----------
+        const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDRESS);
+
+        const tokenAccounts =
+            await solanaConnection.getParsedTokenAccountsByOwner(
+                owner,
+                { mint }
+            );
+
+        let sioBalance = 0;
+
+        if (tokenAccounts.value.length > 0) {
+            const tokenInfo =
+                tokenAccounts.value[0].account.data.parsed.info;
+
+            sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
+        }
+
+        document.getElementById('sio-balance').textContent =
+            sioBalance.toLocaleString(undefined, {
+                maximumFractionDigits: 6
+            });
+
+        console.log('Balances loaded', {
+            sol: solBalance,
+            sio: sioBalance
+        });
+
+    } catch (err) {
+        console.error('Balance fetch failed:', err);
+
+        document.getElementById('sol-balance').textContent = '—';
+        document.getElementById('sio-balance').textContent = '—';
+
+        // This page doesn't have addChatMessage, so just log to console
+        console.warn('⚠️ Unable to load balances (RPC busy). Try again shortly.');
     }
 }
 

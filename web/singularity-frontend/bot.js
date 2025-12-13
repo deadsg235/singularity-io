@@ -23,15 +23,48 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function connectWallet() {
-    if (!window.solana?.isPhantom) {
-        alert('Install Phantom Wallet');
+    try {
+        if (wallet) {
+            // If already connected, disconnect
+            if (window.solana && window.solana.isPhantom) {
+                await window.solana.disconnect();
+            }
+            wallet = null;
+
+            const btn = document.getElementById('wallet-btn');
+            btn.textContent = 'Connect Wallet';
+            btn.classList.remove('connected');
+
+            document.getElementById('balance-display').classList.add('hidden');
+            if (window.setWalletConnected) window.setWalletConnected(false);
+
+            console.log('Wallet disconnected');
+            return;
+        }
+
+        if (!window.solana || !window.solana.isPhantom) {
+            window.open('https://phantom.app/', '_blank');
+            return;
+        }
+        
+        const resp = await window.solana.connect();
+        wallet = resp.publicKey;
+        
+        const btn = document.getElementById('wallet-btn');
+        btn.textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
+        btn.classList.add('connected');
+        
+        if (window.setWalletConnected) window.setWalletConnected(true);
+        
+        // Show balance display and load balances
+        document.getElementById('balance-display').classList.remove('hidden');
+        if(window.loadWalletBalances) loadWalletBalances();
+        
+        console.log('Wallet connected:', wallet.toString());
+    } catch (error) {
+        console.error('Wallet connection error:', error);
         if (window.setWalletConnected) window.setWalletConnected(false);
-        return;
     }
-    const resp = await window.solana.connect();
-    wallet = resp.publicKey;
-    document.getElementById('wallet-btn').textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
-    if (window.setWalletConnected) window.setWalletConnected(true);
 }
 
 async function startBot() {
