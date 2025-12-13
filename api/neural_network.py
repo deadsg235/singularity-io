@@ -1,70 +1,66 @@
 import random
-from typing import List, Dict
-
-class NeuralNode:
-    def __init__(self, node_id: int, layer: int):
-        self.id = node_id
-        self.layer = layer
-        self.value = random.random()
-        self.connections = []
-        self.x = random.uniform(0, 1)
-        self.y = layer * 0.25
-    
-    def update(self):
-        self.value = max(0, min(1, self.value + random.uniform(-0.1, 0.1)))
+import json
+from typing import Dict, List, Any
 
 class DeepQNetwork:
-    def __init__(self, layers=[8, 16, 16, 8]):
-        self.layers = layers
+    def __init__(self):
         self.nodes = []
         self.connections = []
-        self._initialize()
+        self.layers = [
+            {"id": 0, "name": "Input", "nodes": 4},
+            {"id": 1, "name": "Hidden1", "nodes": 64},
+            {"id": 2, "name": "Hidden2", "nodes": 32},
+            {"id": 3, "name": "Output", "nodes": 2}
+        ]
+        self.initialize_network()
     
-    def _initialize(self):
+    def initialize_network(self):
         node_id = 0
-        for layer_idx, layer_size in enumerate(self.layers):
-            for _ in range(layer_size):
-                self.nodes.append(NeuralNode(node_id, layer_idx))
+        for layer_idx, layer in enumerate(self.layers):
+            for i in range(layer["nodes"]):
+                self.nodes.append({
+                    "id": node_id,
+                    "layer": layer_idx,
+                    "activation": random.random(),
+                    "x": layer_idx * 200,
+                    "y": i * 50 + random.randint(-20, 20),
+                    "z": random.randint(-50, 50)
+                })
                 node_id += 1
         
         # Create connections between layers
-        layer_start = 0
         for layer_idx in range(len(self.layers) - 1):
-            layer_size = self.layers[layer_idx]
-            next_layer_size = self.layers[layer_idx + 1]
-            next_layer_start = layer_start + layer_size
+            current_layer_nodes = [n for n in self.nodes if n["layer"] == layer_idx]
+            next_layer_nodes = [n for n in self.nodes if n["layer"] == layer_idx + 1]
             
-            for i in range(layer_size):
-                node = self.nodes[layer_start + i]
-                for j in range(next_layer_size):
-                    target_id = next_layer_start + j
-                    node.connections.append(target_id)
+            for current_node in current_layer_nodes:
+                for next_node in next_layer_nodes:
                     self.connections.append({
-                        "source": node.id,
-                        "target": target_id,
-                        "weight": random.uniform(-1, 1)
+                        "source": current_node["id"],
+                        "target": next_node["id"],
+                        "weight": random.uniform(-1, 1),
+                        "active": random.random() > 0.3
                     })
-            
-            layer_start = next_layer_start
-    
-    def get_state(self) -> Dict:
-        return {
-            "nodes": [
-                {
-                    "id": node.id,
-                    "layer": node.layer,
-                    "value": round(node.value, 3),
-                    "x": round(node.x, 3),
-                    "y": round(node.y, 3)
-                }
-                for node in self.nodes
-            ],
-            "connections": self.connections,
-            "layers": self.layers
-        }
     
     def update(self):
+        # Simulate network activity
         for node in self.nodes:
-            node.update()
+            node["activation"] = max(0, node["activation"] + random.uniform(-0.1, 0.1))
+        
+        for connection in self.connections:
+            connection["weight"] += random.uniform(-0.01, 0.01)
+            connection["active"] = random.random() > 0.2
+    
+    def get_state(self):
+        return {
+            "nodes": self.nodes,
+            "connections": self.connections,
+            "layers": self.layers,
+            "stats": {
+                "total_nodes": len(self.nodes),
+                "total_connections": len(self.connections),
+                "active_connections": sum(1 for c in self.connections if c["active"])
+            }
+        }
 
 dqn = DeepQNetwork()

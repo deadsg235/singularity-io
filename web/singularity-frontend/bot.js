@@ -1,13 +1,201 @@
-const { Connection, PublicKey, VersionedTransaction, clusterApiUrl } = solanaWeb3;
+// Bot Terminal Interface
+let terminal;
+let commandHistory = [];
+let historyIndex = -1;
 
-let connection;
-let wallet = null;
-let botActive = false;
-let botInterval = null;
-let trades = [];
-let stats = { total: 0, success: 0, failed: 0, pnl: 0 };
+document.addEventListener('DOMContentLoaded', () => {
+    initMatrix();
+    initBotTerminal();
+});
 
-const SOL_MINT = 'So11111111111111111111111111111111111111112';
+function initBotTerminal() {
+    terminal = document.getElementById('terminal-output');
+    const input = document.getElementById('terminal-input');
+    
+    // Welcome message
+    addTerminalLine('Singularity.io Bot Terminal v1.0', 'system');
+    addTerminalLine('Type "help" for available commands', 'system');
+    addTerminalLine('', 'system');
+    
+    // Handle input
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const command = input.value.trim();
+            if (command) {
+                processCommand(command);
+                commandHistory.unshift(command);
+                historyIndex = -1;
+            }
+            input.value = '';
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                input.value = commandHistory[historyIndex];
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex > 0) {
+                historyIndex--;
+                input.value = commandHistory[historyIndex];
+            } else if (historyIndex === 0) {
+                historyIndex = -1;
+                input.value = '';
+            }
+        }
+    });
+}
+
+function addTerminalLine(text, type = 'output') {
+    const line = document.createElement('div');
+    line.className = `terminal-line ${type}`;
+    
+    if (type === 'command') {
+        line.innerHTML = `<span class="prompt">singularity@bot:~$</span> ${text}`;
+    } else {
+        line.textContent = text;
+    }
+    
+    terminal.appendChild(line);
+    terminal.scrollTop = terminal.scrollHeight;
+}
+
+async function processCommand(command) {
+    addTerminalLine(command, 'command');
+    
+    const args = command.toLowerCase().split(' ');
+    const cmd = args[0];
+    
+    switch (cmd) {
+        case 'help':
+            showHelp();
+            break;
+        case 'status':
+            await showStatus();
+            break;
+        case 'network':
+            await showNetwork();
+            break;
+        case 'wallet':
+            showWallet();
+            break;
+        case 'balance':
+            await showBalance(args[1]);
+            break;
+        case 'clear':
+            terminal.innerHTML = '';
+            break;
+        case 'echo':
+            addTerminalLine(args.slice(1).join(' '));
+            break;
+        case 'date':
+            addTerminalLine(new Date().toString());
+            break;
+        case 'whoami':
+            addTerminalLine('singularity-bot');
+            break;
+        case 'ls':
+            addTerminalLine('neural_network.py  solana_client.py  solfunmeme.py');
+            break;
+        case 'pwd':
+            addTerminalLine('/home/singularity/bot');
+            break;
+        case 'uptime':
+            addTerminalLine('System uptime: ' + Math.floor(performance.now() / 1000) + ' seconds');
+            break;
+        default:
+            addTerminalLine(`Command not found: ${cmd}`, 'error');
+            addTerminalLine('Type "help" for available commands', 'error');
+    }
+}
+
+function showHelp() {
+    const commands = [
+        'Available Commands:',
+        '  help     - Show this help message',
+        '  status   - Show system status',
+        '  network  - Show network information',
+        '  wallet   - Show wallet connection status',
+        '  balance  - Show wallet balance (balance <address>)',
+        '  clear    - Clear terminal',
+        '  echo     - Echo text',
+        '  date     - Show current date/time',
+        '  whoami   - Show current user',
+        '  ls       - List files',
+        '  pwd      - Show current directory',
+        '  uptime   - Show system uptime'
+    ];
+    
+    commands.forEach(cmd => addTerminalLine(cmd));
+}
+
+async function showStatus() {
+    try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        
+        addTerminalLine('System Status:');
+        addTerminalLine(`  API: ${data.status}`);
+        addTerminalLine(`  Neural Network: ${data.components?.neural_network || 'unknown'}`);
+        addTerminalLine(`  Solana Client: ${data.components?.solana_client || 'unknown'}`);
+    } catch (error) {
+        addTerminalLine('Error fetching status', 'error');
+    }
+}
+
+async function showNetwork() {
+    try {
+        const response = await fetch('/api/network/stats');
+        const data = await response.json();
+        
+        addTerminalLine('Network Information:');
+        addTerminalLine(`  Network: ${data.solana_network || 'unknown'}`);
+        addTerminalLine(`  Connected: ${data.connected || false}`);
+        if (data.current_slot) {
+            addTerminalLine(`  Current Slot: ${data.current_slot}`);
+        }
+        if (data.epoch) {
+            addTerminalLine(`  Epoch: ${data.epoch}`);
+        }
+    } catch (error) {
+        addTerminalLine('Error fetching network info', 'error');
+    }
+}
+
+function showWallet() {
+    if (window.walletFunctions && window.walletFunctions.isWalletConnected()) {
+        const address = window.walletFunctions.getWalletAddress();
+        addTerminalLine('Wallet Status:');
+        addTerminalLine(`  Connected: Yes`);
+        addTerminalLine(`  Address: ${address}`);
+    } else {
+        addTerminalLine('Wallet Status:');
+        addTerminalLine(`  Connected: No`);
+        addTerminalLine('  Use the Connect Wallet button to connect');
+    }
+}
+
+async function showBalance(address) {
+    if (!address) {
+        if (window.walletFunctions && window.walletFunctions.isWalletConnected()) {
+            address = window.walletFunctions.getWalletAddress();
+        } else {
+            addTerminalLine('Usage: balance <address>', 'error');
+            return;
+        }
+    }
+    
+    try {
+        const response = await fetch(`/api/wallet/full-balance/${address}`);
+        const data = await response.json();
+        
+        addTerminalLine(`Balance for ${address}:`);
+        addTerminalLine(`  SOL: ${data.balances?.SOL || 0} SOL`);
+        addTerminalLine(`  S-IO: ${data.balances?.['S-IO'] || 0} S-IO`);
+    } catch (error) {
+        addTerminalLine('Error fetching balance', 'error');
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
