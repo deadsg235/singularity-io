@@ -10,15 +10,6 @@ let networkData = null;
 let walletAddress = null;
 let solanaConnection = null;
 
-// ===== Solana + Singularity.io config =====
-const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
-
-// 🔴 REPLACE with the real Singularity.io SPL mint address
-const SIO_MINT_ADDRESS = 'PUT_REAL_SIO_MINT_ADDRESS_HERE';
-
-// Cache connection
-let solanaConnection = null;
-
 // Initialize application
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Singularity.io initializing...');
@@ -394,7 +385,9 @@ async function sendMessage() {
                     await executeTokenCreation(parsed.params);
                     return;
                 } else if (parsed.action === 'get_wallet_balance') {
-                    await getWalletBalance();
+                    // Call loadWalletBalances() instead, or handle directly
+                    await loadWalletBalances();
+                    addChatMessage('assistant', 'Wallet balances loaded in header.');
                     return;
                 }
             } catch (e) {
@@ -407,25 +400,6 @@ async function sendMessage() {
     } catch (error) {
         console.error('Chat error:', error);
         addChatMessage('assistant', `Connection error: ${error.message}`);
-    }
-}
-
-async function getWalletBalance() {
-    if (!walletAddress) {
-        addChatMessage('assistant', 'Please connect your wallet first.');
-        return;
-    }
-    
-    try {
-        const connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com', 'confirmed');
-        const publicKey = new solanaWeb3.PublicKey(walletAddress);
-        const balance = await connection.getBalance(publicKey);
-        const solBalance = balance / 1e9;
-        
-        addChatMessage('assistant', `Wallet: ${walletAddress}\n\nSOL Balance: ${solBalance.toFixed(4)} SOL`);
-    } catch (error) {
-        console.error('Balance error:', error);
-        addChatMessage('assistant', `Failed to get balance. RPC rate limit reached. Try again in a moment.`);
     }
 }
 
@@ -511,7 +485,12 @@ window.addEventListener('beforeunload', () => {
 
 // Load wallet balances
 async function loadWalletBalances() {
-    if (!walletAddress) return;
+    if (!walletAddress) {
+        console.log('loadWalletBalances: Wallet not connected.');
+        return;
+    }
+    
+    console.log('loadWalletBalances: Attempting to load balances for wallet:', walletAddress);
 
     try {
         if (!solanaConnection) {
@@ -529,6 +508,8 @@ async function loadWalletBalances() {
 
         document.getElementById('sol-balance').textContent =
             solBalance.toFixed(4);
+
+        console.log('loadWalletBalances: SOL balance fetched (direct Solana RPC).');
 
         // ---------- SIO TOKEN BALANCE ----------
         const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDRESS);
@@ -553,13 +534,15 @@ async function loadWalletBalances() {
                 maximumFractionDigits: 6
             });
 
+        console.log('loadWalletBalances: Balances updated successfully.');
+
         console.log('Balances loaded', {
             sol: solBalance,
             sio: sioBalance
         });
 
     } catch (err) {
-        console.error('Balance fetch failed:', err);
+        console.error('loadWalletBalances: Network or processing error:', err);
 
         document.getElementById('sol-balance').textContent = '—';
         document.getElementById('sio-balance').textContent = '—';
