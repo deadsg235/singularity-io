@@ -8,29 +8,41 @@ router = APIRouter()
 @router.get("/api/wallet/analytics/{wallet_address}")
 async def get_wallet_analytics(wallet_address: str):
     """Get comprehensive wallet analytics including SOL and S-IO balances"""
+    print(f"--- Starting analytics for {wallet_address} ---")
+    sol_balance = 0
+    sio_balance = 0
+    tokens = []
+
     try:
         # Get SOL balance
+        print("1. Fetching SOL balance...")
         sol_result = rpc_cache.call("getBalance", [wallet_address])
-        sol_balance = 0
-        if "result" in sol_result:
+        print(f"   SOL result: {sol_result}")
+        if "result" in sol_result and sol_result["result"]["value"] is not None:
             sol_balance = sol_result["result"]["value"] / 1e9
-        
+        else:
+            print("   Warning: Could not fetch SOL balance.")
+
         # Get S-IO balance
+        print("2. Fetching S-IO balance...")
         sio_result = get_token_accounts_by_owner(wallet_address, SIO_TOKEN_MINT)
-        sio_balance = 0
+        print(f"   S-IO result: {sio_result}")
         if "result" in sio_result and sio_result["result"]["value"]:
             account_info = sio_result["result"]["value"][0]["account"]["data"]["parsed"]["info"]
             sio_balance = float(account_info["tokenAmount"]["uiAmount"] or 0)
-        
+        else:
+            print("   Warning: Could not fetch S-IO balance (or wallet has no S-IO).")
+
         # Get all token accounts
+        print("3. Fetching all token accounts...")
         all_tokens_result = rpc_cache.call("getTokenAccountsByOwner", [
             wallet_address,
             {"programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},
             {"encoding": "jsonParsed"}
         ])
+        print(f"   All tokens result: {all_tokens_result}")
         
-        tokens = []
-        if "result" in all_tokens_result:
+        if "result" in all_tokens_result and all_tokens_result["result"]["value"]:
             for account in all_tokens_result["result"]["value"]:
                 token_info = account["account"]["data"]["parsed"]["info"]
                 amount = float(token_info["tokenAmount"]["uiAmount"] or 0)
@@ -40,8 +52,10 @@ async def get_wallet_analytics(wallet_address: str):
                         "amount": amount,
                         "decimals": token_info["tokenAmount"]["decimals"]
                     })
+        else:
+            print("   Warning: Could not fetch all token accounts (or wallet has no other tokens).")
         
-        return {
+        response_data = {
             "wallet": wallet_address,
             "sol_balance": sol_balance,
             "sio_balance": sio_balance,
@@ -49,9 +63,14 @@ async def get_wallet_analytics(wallet_address: str):
             "tokens": tokens,
             "timestamp": "now"
         }
+        print(f"--- Analytics complete for {wallet_address} ---")
+        print(f"Response: {response_data}")
+        return response_data
         
     except Exception as e:
-        raise HTTPException(500, f"Failed to get wallet analytics: {str(e)}")
+        print(f"!!! EXCEPTION in get_wallet_analytics for {wallet_address}: {str(e)} !!!")
+        # Reraise as HTTPException to ensure a proper server error response
+        raise HTTPException(500, f"A server error has occurred: {str(e)}")
 
 @router.get("/api/wallet/portfolio/{wallet_address}")
 async def get_wallet_portfolio(wallet_address: str):
