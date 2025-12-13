@@ -27,8 +27,10 @@ const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
 const FALLBACK_RPC_ENDPOINTS = [
     'https://solana-mainnet.rpc.extrnode.com',
     'https://rpc.ankr.com/solana',
-    'https://solana-api.projectserum.com',
-    'https://api.mainnet.solana.com'
+    'https://solana-mainnet.api.syndica.io',
+    'https://mainnet.helius-rpc.com/?api-key=00000000-0000-0000-0000-000000000000',
+    'https://ssc-dao.genesysgo.net',
+    'https://solana-api.genesis.com'
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -98,26 +100,39 @@ async function loadWalletBalances() {
             
             const connection = new solanaWeb3.Connection(
                 endpoint,
-                { commitment: 'confirmed' }
+                { commitment: 'confirmed', timeout: 10000 } // 10 second timeout
             );
 
             const owner = new solanaWeb3.PublicKey(window.globalWallet);
 
             // ---------- SOL BALANCE ----------
-            const lamports = await connection.getBalance(owner);
+            console.log('loadWalletBalances: Fetching SOL balance...');
+            const lamportsPromise = connection.getBalance(owner);
+            const lamports = await Promise.race([
+                lamportsPromise,
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('SOL balance fetch timeout')), 10000)
+                )
+            ]);
             const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
 
             document.getElementById('sol-balance').textContent =
                 solBalance.toFixed(4);
 
             // ---------- SIO TOKEN BALANCE ----------
+            console.log('loadWalletBalances: Fetching SIO token balance...');
             const mint = new solanaWeb3.PublicKey('Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump');
 
-            const tokenAccounts =
-                await connection.getParsedTokenAccountsByOwner(
-                    owner,
-                    { mint }
-                );
+            const tokenAccountsPromise = connection.getParsedTokenAccountsByOwner(
+                owner,
+                { mint }
+            );
+            const tokenAccounts = await Promise.race([
+                tokenAccountsPromise,
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('SIO token balance fetch timeout')), 10000)
+                )
+            ]);
 
             let sioBalance = 0;
 

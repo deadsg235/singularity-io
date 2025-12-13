@@ -6,8 +6,10 @@ const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
 const FALLBACK_RPC_ENDPOINTS = [
     'https://solana-mainnet.rpc.extrnode.com',
     'https://rpc.ankr.com/solana',
-    'https://solana-api.projectserum.com',
-    'https://api.mainnet.solana.com'
+    'https://solana-mainnet.api.syndica.io',
+    'https://mainnet.helius-rpc.com/?api-key=00000000-0000-0000-0000-000000000000',
+    'https://ssc-dao.genesysgo.net',
+    'https://solana-api.genesis.com'
 ];
 const SIO_MINT_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
 
@@ -26,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('update-btn').addEventListener('click', updateNetwork);
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
+    console.log('Wallet button event listener attached');
     document.getElementById('send-btn').addEventListener('click', sendMessage);
     document.getElementById('chat-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
@@ -291,9 +294,11 @@ function initWallet() {
 }
 
 async function connectWallet() {
+    console.log('connectWallet: Function called');
     try {
         if (walletAddress) {
             // If already connected, disconnect
+            console.log('connectWallet: Disconnecting wallet');
             if (window.solana && window.solana.isPhantom) {
                 await window.solana.disconnect();
             }
@@ -312,14 +317,19 @@ async function connectWallet() {
             return;
         }
 
+        console.log('connectWallet: Checking for Phantom wallet');
         if (!window.solana || !window.solana.isPhantom) {
+            console.log('connectWallet: Phantom not detected');
+            alert('Phantom wallet not detected. Please install Phantom wallet from https://phantom.app/');
             window.open('https://phantom.app/', '_blank');
             return;
         }
         
+        console.log('connectWallet: Connecting to Phantom');
         const resp = await window.solana.connect();
         walletAddress = resp.publicKey.toString();
         
+        console.log('connectWallet: Wallet connected:', walletAddress);
         const btn = document.getElementById('wallet-btn');
         btn.textContent = `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`;
         btn.classList.add('connected');
@@ -509,13 +519,20 @@ async function loadWalletBalances() {
             
             const connection = new solanaWeb3.Connection(
                 endpoint,
-                { commitment: 'confirmed' }
+                { commitment: 'confirmed', timeout: 10000 } // 10 second timeout
             );
 
             const owner = new solanaWeb3.PublicKey(walletAddress);
 
             // ---------- SOL BALANCE ----------
-            const lamports = await connection.getBalance(owner);
+            console.log('loadWalletBalances: Fetching SOL balance...');
+            const lamportsPromise = connection.getBalance(owner);
+            const lamports = await Promise.race([
+                lamportsPromise,
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('SOL balance fetch timeout')), 10000)
+                )
+            ]);
             const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
 
             document.getElementById('sol-balance').textContent =
@@ -524,13 +541,19 @@ async function loadWalletBalances() {
             console.log('loadWalletBalances: SOL balance fetched successfully.');
 
             // ---------- SIO TOKEN BALANCE ----------
+            console.log('loadWalletBalances: Fetching SIO token balance...');
             const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDRESS);
 
-            const tokenAccounts =
-                await connection.getParsedTokenAccountsByOwner(
-                    owner,
-                    { mint }
-                );
+            const tokenAccountsPromise = connection.getParsedTokenAccountsByOwner(
+                owner,
+                { mint }
+            );
+            const tokenAccounts = await Promise.race([
+                tokenAccountsPromise,
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('SIO token balance fetch timeout')), 10000)
+                )
+            ]);
 
             let sioBalance = 0;
 
@@ -547,6 +570,8 @@ async function loadWalletBalances() {
                 });
 
             console.log('loadWalletBalances: Balances updated successfully.');
+            console.log('loadWalletBalances: SOL element:', document.getElementById('sol-balance'));
+            console.log('loadWalletBalances: SIO element:', document.getElementById('sio-balance'));
 
             console.log('Balances loaded', {
                 sol: solBalance,
@@ -577,15 +602,11 @@ async function loadWalletBalances() {
     document.getElementById('sol-balance').textContent = '—';
     document.getElementById('sio-balance').textContent = '—';
 
+    alert('Unable to load wallet balances. All RPC endpoints are currently busy. Please try again in a few minutes.');
     addChatMessage(
         'assistant',
         '⚠️ Unable to load balances (all RPC endpoints busy). Try again in a few minutes.'
     );
-}
-            'assistant',
-            '⚠️ Unable to load balances (RPC busy). Try again shortly.'
-        );
-    }
 }
 
 

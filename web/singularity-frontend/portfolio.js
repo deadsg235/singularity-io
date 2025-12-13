@@ -12,8 +12,10 @@ const SIO_MINT_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump'; // Add 
 const FALLBACK_RPC_ENDPOINTS = [
     'https://solana-mainnet.rpc.extrnode.com',
     'https://rpc.ankr.com/solana',
-    'https://solana-api.projectserum.com',
-    'https://api.mainnet.solana.com'
+    'https://solana-mainnet.api.syndica.io',
+    'https://mainnet.helius-rpc.com/?api-key=00000000-0000-0000-0000-000000000000',
+    'https://ssc-dao.genesysgo.net',
+    'https://solana-api.genesis.com'
 ];
 
 

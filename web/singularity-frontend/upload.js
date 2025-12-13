@@ -5,10 +5,12 @@ const SOLANA_RPC = 'https://api.mainnet-beta.solana.com'; // Add RPC
 const SIO_MINT_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump'; // Add SIO Mint
 
 const FALLBACK_RPC_ENDPOINTS = [
-    'https://solana-api.projectserum.com',
+    'https://solana-mainnet.rpc.extrnode.com',
     'https://rpc.ankr.com/solana',
-    'https://extrnode-de01.extrnode.com',
-    'https://solana-mainnet.rpc.extrnode.com'
+    'https://solana-mainnet.api.syndica.io',
+    'https://mainnet.helius-rpc.com/?api-key=00000000-0000-0000-0000-000000000000',
+    'https://ssc-dao.genesysgo.net',
+    'https://solana-api.genesis.com'
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
