@@ -9,6 +9,7 @@ let networkData = null;
 // Initialize application
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Singularity.io initializing...');
+    initMatrix(); // Initialize matrix background
     initCanvas();
     initWallet();
     checkSystemStatus();
@@ -111,6 +112,10 @@ function drawNetwork() {
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    // Scale nodes to fit canvas
+    const scaleX = canvas.width / 800;
+    const scaleY = canvas.height / 400;
+    
     // Draw connections first (behind nodes)
     ctx.strokeStyle = 'rgba(0, 255, 136, 0.3)';
     ctx.lineWidth = 1;
@@ -126,8 +131,8 @@ function drawNetwork() {
             ctx.strokeStyle = `rgba(0, 255, 136, ${opacity})`;
             
             ctx.beginPath();
-            ctx.moveTo(sourceNode.x, sourceNode.y);
-            ctx.lineTo(targetNode.x, targetNode.y);
+            ctx.moveTo(sourceNode.x * scaleX, sourceNode.y * scaleY);
+            ctx.lineTo(targetNode.x * scaleX, targetNode.y * scaleY);
             ctx.stroke();
         }
     });
@@ -139,7 +144,7 @@ function drawNetwork() {
         
         ctx.fillStyle = `rgba(0, 102, 255, ${opacity})`;
         ctx.beginPath();
-        ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+        ctx.arc(node.x * scaleX, node.y * scaleY, radius, 0, Math.PI * 2);
         ctx.fill();
         
         // Add glow effect for highly active nodes
@@ -147,7 +152,7 @@ function drawNetwork() {
             ctx.shadowColor = '#0066ff';
             ctx.shadowBlur = 10;
             ctx.beginPath();
-            ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+            ctx.arc(node.x * scaleX, node.y * scaleY, radius, 0, Math.PI * 2);
             ctx.fill();
             ctx.shadowBlur = 0;
         }
@@ -166,7 +171,7 @@ function drawPlaceholderNetwork() {
     
     for (let i = 0; i < 20; i++) {
         const angle = (i / 20) * Math.PI * 2;
-        const radius = 100;
+        const radius = Math.min(canvas.width, canvas.height) * 0.2;
         const x = centerX + Math.cos(angle) * radius;
         const y = centerY + Math.sin(angle) * radius;
         
