@@ -24,10 +24,113 @@ const leaderboardData = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     loadLeaderboard();
     loadTopStrategies();
     loadMarketLeaders();
 });
+
+async function connectWallet() {
+    try {
+        if (window.globalWallet) {
+            // If already connected, disconnect
+            if (window.solana && window.solana.isPhantom) {
+                await window.solana.disconnect();
+            }
+            window.globalWallet = null;
+
+            const btn = document.getElementById('wallet-btn');
+            btn.textContent = 'Connect Wallet';
+            btn.classList.remove('connected');
+
+            document.getElementById('balance-display').classList.add('hidden');
+            if (window.setWalletConnected) window.setWalletConnected(false);
+
+            console.log('Wallet disconnected');
+            return;
+        }
+
+        if (!window.solana?.isPhantom) {
+            alert('Install Phantom Wallet');
+            return;
+        }
+        
+        const resp = await window.solana.connect();
+        window.globalWallet = resp.publicKey;
+        
+        const btn = document.getElementById('wallet-btn');
+        btn.textContent = `${window.globalWallet.toString().slice(0, 4)}...${window.globalWallet.toString().slice(-4)}`;
+        btn.classList.add('connected');
+        
+        if (window.setWalletConnected) window.setWalletConnected(true);
+        
+        // Show balance display and load balances
+        document.getElementById('balance-display').classList.remove('hidden');
+        loadWalletBalances();
+        
+        console.log('Wallet connected:', window.globalWallet.toString());
+    } catch (error) {
+        console.error('Wallet connection error:', error);
+        if (window.setWalletConnected) window.setWalletConnected(false);
+    }
+}
+
+// loadWalletBalances function for this page
+async function loadWalletBalances() {
+    if (!window.globalWallet) return;
+
+    try {
+        const connection = new solanaWeb3.Connection(
+            'https://api.mainnet-beta.solana.com',
+            { commitment: 'confirmed' }
+        );
+
+        const owner = new solanaWeb3.PublicKey(window.globalWallet);
+
+        // ---------- SOL BALANCE ----------
+        const lamports = await connection.getBalance(owner);
+        const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
+
+        document.getElementById('sol-balance').textContent =
+            solBalance.toFixed(4);
+
+        // ---------- SIO TOKEN BALANCE ----------
+        const mint = new solanaWeb3.PublicKey('Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump');
+
+        const tokenAccounts =
+            await connection.getParsedTokenAccountsByOwner(
+                owner,
+                { mint }
+            );
+
+        let sioBalance = 0;
+
+        if (tokenAccounts.value.length > 0) {
+            const tokenInfo =
+                tokenAccounts.value[0].account.data.parsed.info;
+
+            sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
+        }
+
+        document.getElementById('sio-balance').textContent =
+            sioBalance.toLocaleString(undefined, {
+                maximumFractionDigits: 6
+            });
+
+        console.log('Balances loaded', {
+            sol: solBalance,
+            sio: sioBalance
+        });
+
+    } catch (err) {
+        console.error('Balance fetch failed:', err);
+
+        document.getElementById('sol-balance').textContent = '—';
+        document.getElementById('sio-balance').textContent = '—';
+
+        console.warn('⚠️ Unable to load balances (RPC busy). Try again shortly.');
+    }
+}
 
 function switchTab(tab) {
     currentTab = tab;

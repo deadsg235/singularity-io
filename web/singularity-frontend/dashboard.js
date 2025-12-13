@@ -48,6 +48,7 @@ async function connectWallet() {
         
         // Show balance display and load balances
         document.getElementById('balance-display').classList.remove('hidden');
+        loadWalletBalances();
         loadWalletData(); // This page has its own wallet data loader
         
         console.log('Wallet connected:', wallet.toString());
@@ -88,6 +89,63 @@ async function loadWalletData() {
         
     } catch (error) {
         console.error('Failed to load wallet data:', error);
+    }
+}
+
+// loadWalletBalances function for this page
+async function loadWalletBalances() {
+    if (!wallet) return;
+
+    try {
+        const connection = new solanaWeb3.Connection(
+            'https://api.mainnet-beta.solana.com',
+            { commitment: 'confirmed' }
+        );
+
+        const owner = new solanaWeb3.PublicKey(wallet);
+
+        // ---------- SOL BALANCE ----------
+        const lamports = await connection.getBalance(owner);
+        const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
+
+        document.getElementById('sol-balance').textContent =
+            solBalance.toFixed(4);
+
+        // ---------- SIO TOKEN BALANCE ----------
+        const mint = new solanaWeb3.PublicKey('Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump');
+
+        const tokenAccounts =
+            await connection.getParsedTokenAccountsByOwner(
+                owner,
+                { mint }
+            );
+
+        let sioBalance = 0;
+
+        if (tokenAccounts.value.length > 0) {
+            const tokenInfo =
+                tokenAccounts.value[0].account.data.parsed.info;
+
+            sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
+        }
+
+        document.getElementById('sio-balance').textContent =
+            sioBalance.toLocaleString(undefined, {
+                maximumFractionDigits: 6
+            });
+
+        console.log('Balances loaded', {
+            sol: solBalance,
+            sio: sioBalance
+        });
+
+    } catch (err) {
+        console.error('Balance fetch failed:', err);
+
+        document.getElementById('sol-balance').textContent = '—';
+        document.getElementById('sio-balance').textContent = '—';
+
+        console.warn('⚠️ Unable to load balances (RPC busy). Try again shortly.');
     }
 }
 
