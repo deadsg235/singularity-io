@@ -5,7 +5,6 @@ const API_BASE = window.location.hostname === 'localhost'
 
 let canvas, ctx;
 let networkData = null;
-let walletAddress = null;
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(checkSystemStatus, 30000);
     
     document.getElementById('update-btn').addEventListener('click', updateNetwork);
-    document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     document.getElementById('send-btn').addEventListener('click', sendMessage);
     document.getElementById('chat-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
@@ -32,22 +30,209 @@ document.addEventListener('DOMContentLoaded', () => {
 async function checkSystemStatus() {
     try {
         // Check API health
-        const healthResponse = await fetch(`/api/health`);
+        const healthResponse = await fetch(`${API_BASE}/api/health`);
         const healthData = await healthResponse.json();
         updateStatus('api-status', healthData.status === 'healthy' ? 'Online' : 'Offline', healthData.status === 'healthy');
 
         // Check network stats
-        const networkResponse = await fetch(`/api/health`);
+        const networkResponse = await fetch(`${API_BASE}/api/network/stats`);
         const networkData = await networkResponse.json();
         updateStatus('network-status', networkData.solana_network || 'Unknown', true);
 
         // Check SolFunMeme status
-        const solfunmemeResponse = await fetch(`/api/health`);
+        const solfunmemeResponse = await fetch(`${API_BASE}/api/solfunmeme/status`);
         const solfunmemeData = await solfunmemeResponse.json();
         updateStatus('phase-status', solfunmemeData.phase || 'Unknown', true);
 
     } catch (error) {
         console.error('Error checking system status:', error);
+        updateStatus('api-status', 'Offline', false);
+        updateStatus('network-status', 'Disconnected', false);
+        updateStatus('phase-status', 'Unknown', false);
+    }
+}
+
+// Update status display
+function updateStatus(elementId, text, isOnline) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = text;
+        element.className = isOnline ? 'status-online' : 'status-offline';
+    }
+}
+
+// Initialize canvas for neural network visualization
+function initCanvas() {
+    canvas = document.getElementById('neural-canvas');
+    if (!canvas) return;
+    
+    ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    function resizeCanvas() {
+        const container = canvas.parentElement;
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+}
+
+// Load neural network data
+async function loadNeuralNetwork() {
+    try {
+        const response = await fetch(`${API_BASE}/api/neural/network`);
+        networkData = await response.json();
+        
+        if (networkData.nodes && networkData.connections) {
+            drawNetwork();
+            console.log(`Neural network loaded: ${networkData.nodes.length} nodes, ${networkData.connections.length} connections`);
+        }
+    } catch (error) {
+        console.error('Error loading neural network:', error);
+        drawPlaceholderNetwork();
+    }
+}
+
+// Update neural network
+async function updateNetwork() {
+    try {
+        await fetch(`${API_BASE}/api/neural/update`, { method: 'POST' });
+        await loadNeuralNetwork();
+    } catch (error) {
+        console.error('Error updating network:', error);
+    }
+}
+
+// Draw neural network visualization
+function drawNetwork() {
+    if (!ctx || !networkData) return;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw connections first (behind nodes)
+    ctx.strokeStyle = 'rgba(0, 255, 136, 0.3)';
+    ctx.lineWidth = 1;
+    
+    networkData.connections.forEach(connection => {
+        if (!connection.active) return;
+        
+        const sourceNode = networkData.nodes.find(n => n.id === connection.source);
+        const targetNode = networkData.nodes.find(n => n.id === connection.target);
+        
+        if (sourceNode && targetNode) {
+            const opacity = Math.abs(connection.weight) * 0.5 + 0.1;
+            ctx.strokeStyle = `rgba(0, 255, 136, ${opacity})`;
+            
+            ctx.beginPath();
+            ctx.moveTo(sourceNode.x, sourceNode.y);
+            ctx.lineTo(targetNode.x, targetNode.y);
+            ctx.stroke();
+        }
+    });
+    
+    // Draw nodes
+    networkData.nodes.forEach(node => {
+        const radius = 3 + node.activation * 5;
+        const opacity = 0.3 + node.activation * 0.7;
+        
+        ctx.fillStyle = `rgba(0, 102, 255, ${opacity})`;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Add glow effect for highly active nodes
+        if (node.activation > 0.7) {
+            ctx.shadowColor = '#0066ff';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    });
+}
+
+// Draw placeholder network when API is unavailable
+function drawPlaceholderNetwork() {
+    if (!ctx) return;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw simple placeholder visualization
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    for (let i = 0; i < 20; i++) {
+        const angle = (i / 20) * Math.PI * 2;
+        const radius = 100;
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+        
+        ctx.fillStyle = 'rgba(0, 102, 255, 0.5)';
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // Draw center node
+    ctx.fillStyle = 'rgba(0, 255, 136, 0.8)';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+// Chat terminal functionality
+function initChatTerminal() {
+    const terminal = document.querySelector('.chat-terminal');
+    if (terminal) {
+        addChatMessage('System', 'Singularity.io neural interface initialized.', 'system');
+        addChatMessage('System', 'Connect your wallet to begin interaction.', 'system');
+    }
+}
+
+function addChatMessage(sender, message, type = 'user') {
+    const messagesContainer = document.querySelector('.chat-messages');
+    if (!messagesContainer) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${type}`;
+    messageDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    if (!input || !input.value.trim()) return;
+    
+    const message = input.value.trim();
+    addChatMessage('You', message, 'user');
+    
+    // Simple AI responses
+    setTimeout(() => {
+        const responses = [
+            'Neural network processing your request...',
+            'Analyzing blockchain data...',
+            'SolFunMeme technology engaged.',
+            'Connecting to Solana network...',
+            'Processing through quantum layers...'
+        ];
+        const response = responses[Math.floor(Math.random() * responses.length)];
+        addChatMessage('AI', response, 'ai');
+    }, 1000);
+    
+    input.value = '';
+}
+
+// Auto-update network visualization
+setInterval(() => {
+    if (networkData) {
+        updateNetwork();
+    }
+}, 10000);
         updateStatus('api-status', 'Offline', false);
         updateStatus('network-status', 'Disconnected', false);
         updateStatus('phase-status', 'Unknown', false);
