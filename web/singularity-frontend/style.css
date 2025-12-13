@@ -58,29 +58,26 @@ header {
 }
 
 .wallet-btn {
-    background: linear-gradient(145deg, #2a2a2a, #5a5a5a);
+    background: #0066ff;
     color: #fff;
-    border: 1px solid #777;
-    padding: 0.8rem 1.5rem;
+    border: 1px solid #0066ff;
+    padding: 0.5rem 1rem; /* Reduced padding */
     border-radius: 4px;
     font-family: 'Orbitron', sans-serif;
-    font-size: 0.9rem;
+    font-size: 0.7rem; /* Reduced font size */
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 20px rgba(0, 102, 255, 0.4);
 }
 
 .wallet-btn:hover {
-    background: linear-gradient(145deg, #3a3a3a, #6a6a6a);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.3);
-    transform: translateY(-1px);
+    background: #0052cc;
+    box-shadow: 0 0 30px rgba(0, 102, 255, 0.6);
 }
 
 .wallet-btn.connected {
-    background: linear-gradient(145deg, #0066ff, #00ff88);
-    border-color: #00ff88;
-    box-shadow: 0 2px 5px rgba(0, 102, 255, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    background: #0066ff;
+    border-color: #0066ff;
 }
 
 .hidden {
@@ -89,31 +86,38 @@ header {
 
 .balance-display {
     display: flex;
-    gap: 1rem;
+    gap: 0.5rem; /* Reduced gap */
     background: rgba(0, 102, 255, 0.1);
     border: 1px solid #0066ff;
     border-radius: 4px;
-    padding: 0.5rem 1rem;
+    padding: 0.3rem 0.6rem; /* Reduced padding */
     font-family: 'Orbitron', sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.7rem; /* Reduced font size */
 }
 
 .balance-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.1rem; /* Reduced gap */
 }
 
 .balance-label {
     color: #0066ff;
-    font-size: 0.7rem;
+    font-size: 0.6rem; /* Reduced font size */
     font-weight: 600;
 }
 
 .balance-value {
     color: #fff;
     font-weight: 700;
+}
+
+/* New style for navigation links in header */
+.header-link {
+    font-size: 0.7rem; /* Reduced font size */
+    font-family: 'Orbitron', sans-serif;
+    text-decoration: none;
 }
 
 .hero {
