@@ -14,6 +14,13 @@ const RPC_ENDPOINTS = [
     'https://rpc.ankr.com/solana'
 ];
 
+const FALLBACK_RPC_ENDPOINTS = [
+    'https://solana-api.projectserum.com',
+    'https://rpc.ankr.com/solana',
+    'https://extrnode-de01.extrnode.com',
+    'https://solana-mainnet.rpc.extrnode.com'
+];
+
 let currentRpcIndex = 0;
 
 const tokens = {
@@ -95,60 +102,83 @@ async function connectWallet() {
 async function loadWalletBalances() {
     if (!wallet) return;
 
-    try {
-        if (!solanaConnection) {
-            solanaConnection = new solanaWeb3.Connection(
-                RPC_ENDPOINTS[currentRpcIndex], // Use the RPC from this page
+    let lastError = null;
+    const allEndpoints = [RPC_ENDPOINTS[currentRpcIndex], ...FALLBACK_RPC_ENDPOINTS];
+    
+    for (let attempt = 0; attempt < allEndpoints.length; attempt++) {
+        const endpoint = allEndpoints[attempt];
+        
+        try {
+            console.log(`loadWalletBalances: Trying RPC endpoint ${attempt + 1}/${allEndpoints.length}: ${endpoint}`);
+            
+            const connection = new solanaWeb3.Connection(
+                endpoint,
                 { commitment: 'confirmed' }
             );
-        }
 
-        const owner = new solanaWeb3.PublicKey(wallet);
+            const owner = new solanaWeb3.PublicKey(wallet);
 
-        // ---------- SOL BALANCE ----------
-        const lamports = await solanaConnection.getBalance(owner);
-        const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
+            // ---------- SOL BALANCE ----------
+            const lamports = await connection.getBalance(owner);
+            const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
 
-        document.getElementById('sol-balance').textContent =
-            solBalance.toFixed(4);
+            document.getElementById('sol-balance').textContent =
+                solBalance.toFixed(4);
 
-        // ---------- SIO TOKEN BALANCE ----------
-        const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDRESS);
+            // ---------- SIO TOKEN BALANCE ----------
+            const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDRESS);
 
-        const tokenAccounts =
-            await solanaConnection.getParsedTokenAccountsByOwner(
-                owner,
-                { mint }
-            );
+            const tokenAccounts =
+                await connection.getParsedTokenAccountsByOwner(
+                    owner,
+                    { mint }
+                );
 
-        let sioBalance = 0;
+            let sioBalance = 0;
 
-        if (tokenAccounts.value.length > 0) {
-            const tokenInfo =
-                tokenAccounts.value[0].account.data.parsed.info;
+            if (tokenAccounts.value.length > 0) {
+                const tokenInfo =
+                    tokenAccounts.value[0].account.data.parsed.info;
 
-            sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
-        }
+                sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
+            }
 
-        document.getElementById('sio-balance').textContent =
-            sioBalance.toLocaleString(undefined, {
-                maximumFractionDigits: 6
+            document.getElementById('sio-balance').textContent =
+                sioBalance.toLocaleString(undefined, {
+                    maximumFractionDigits: 6
+                });
+
+            console.log('Balances loaded', {
+                sol: solBalance,
+                sio: sioBalance,
+                endpoint: endpoint
             });
 
-        console.log('Balances loaded', {
-            sol: solBalance,
-            sio: sioBalance
-        });
+            // Success - update the global connection
+            solanaConnection = connection;
+            return;
 
-    } catch (err) {
-        console.error('Balance fetch failed:', err);
-
-        document.getElementById('sol-balance').textContent = '—';
-        document.getElementById('sio-balance').textContent = '—';
-
-        // This page doesn't have addChatMessage, so just log to console
-        console.warn('⚠️ Unable to load balances (RPC busy). Try again shortly.');
+        } catch (err) {
+            lastError = err;
+            console.warn(`loadWalletBalances: RPC endpoint ${endpoint} failed:`, err.message);
+            
+            // If this is not the last endpoint, wait before trying the next one
+            if (attempt < allEndpoints.length - 1) {
+                const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Exponential backoff, max 5s
+                console.log(`loadWalletBalances: Waiting ${delay}ms before trying next endpoint...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
     }
+
+    // All endpoints failed
+    console.error('loadWalletBalances: All RPC endpoints failed. Last error:', lastError);
+
+    document.getElementById('sol-balance').textContent = '—';
+    document.getElementById('sio-balance').textContent = '—';
+
+    // This page doesn't have addChatMessage, so just log to console
+    console.warn('⚠️ Unable to load balances (all RPC endpoints busy). Try again in a few minutes.');
 }
 
 async function updateBalances() {
