@@ -356,13 +356,12 @@
         <div class="launchpad-container">
             <div class="launchpad-header">
                 <h2>🚀 Singularity.io Launchpad</h2>
-                <p>Generate AI trading bots with LangChain integration or create SPL tokens on Solana</p>
+                <p>Generate AI trading bots with LangChain integration</p>
             </div>
 
             <!-- Launchpad Type Selector -->
             <div class="launchpad-tabs">
-                <button class="tab-btn active" onclick="switchLaunchpad('trading')">🤖 AI Trading Bot</button>
-                <button class="tab-btn" onclick="switchLaunchpad('token')">🪙 SPL Token Creator</button>
+                <button class="tab-btn active" >🤖 AI Trading Bot</button>
             </div>
 
             <!-- Trading Bot Launchpad -->
@@ -495,44 +494,7 @@
                 </button>
             </div>
 
-            <!-- Token Launchpad -->
-            <div id="token-launchpad" class="launchpad-content">
-                <div class="token-form">
-                    <h3>🪙 Create SPL Token</h3>
-                    <div style="background: rgba(255, 68, 68, 0.1); border: 1px solid #ff4444; border-radius: 4px; padding: 1rem; margin-bottom: 1.5rem;">
-                        <p style="color: #ff4444; margin: 0; font-size: 0.9rem;">⚠️ <strong>MAINNET:</strong> Creating tokens costs real SOL (~0.01 SOL). Make sure you have SOL in your wallet.</p>
-                    </div>
-                    <form id="token-form">
-                        <div class="form-group">
-                            <label>Token Name</label>
-                            <input type="text" id="token-name" placeholder="My Token" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Token Symbol</label>
-                            <input type="text" id="token-symbol" placeholder="MTK" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Decimals</label>
-                            <input type="number" id="token-decimals" value="9" min="0" max="9" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Initial Supply</label>
-                            <input type="number" id="token-supply" placeholder="1000000" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Description</label>
-                            <textarea id="token-description" rows="3" placeholder="Token description..."></textarea>
-                        </div>
-                        <button type="submit" class="generate-btn" id="create-btn">Create Token</button>
-                    </form>
-                </div>
 
-                <div style="text-align: center; margin-bottom: 1rem;">
-                    <button onclick="debugTokens()" style="padding: 0.5rem 1rem; background: #666; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Debug: Show Tokens</button>
-                </div>
-
-                <div id="token-list" class="token-list"></div>
-            </div>
 
             <div class="feature-grid">
                 <div class="feature-card">
@@ -568,6 +530,9 @@
     </div>
 
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ipfs-http-client@60.0.1/dist/index.min.js"></script>
+    <script src="https://unpkg.com/borsh@0.7.0/lib/index.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@solana/spl-memo@0.2.2/lib/index.iife.min.js"></script>
     <script src="matrix.js"></script>
     <script src="launchpad.js"></script>
 </body>

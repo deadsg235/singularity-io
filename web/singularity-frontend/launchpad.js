@@ -1,12 +1,10 @@
-// Singularity.io Launchpad - AI Trading Bots & SPL Token Creator
+// Singularity.io Launchpad - AI Trading Bots
 const { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL } = solanaWeb3;
 
 let connection;
 let wallet = null;
 let provider = null;
 let generatedBot = null;
-let tokens = [];
-let currentLaunchpad = 'trading';
 
 const SOLANA_RPC_ENDPOINTS = [
     'https://api.mainnet-beta.solana.com',
@@ -24,12 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
     connection = new Connection(SOLANA_RPC_ENDPOINTS[0], 'confirmed');
 
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
-    document.getElementById('token-form')?.addEventListener('submit', createToken);
 
     checkWalletConnection();
     updateStatus('Ready to generate your custom trading bot');
-    loadTokens();
-    setInterval(loadTokens, 3000);
 });
 
 // Wallet connection functions (reused from app.js)
@@ -159,32 +154,7 @@ async function callOpenAI(prompt, model = 'gpt-4', temperature = 0.1) {
     }
 }
 
-// Launchpad Type Switching
-function switchLaunchpad(type) {
-    currentLaunchpad = type;
 
-    // Update tab buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelector(`[onclick="switchLaunchpad('${type}')"]`).classList.add('active');
-
-    // Update content visibility
-    document.querySelectorAll('.launchpad-content').forEach(content => content.classList.remove('active'));
-    document.getElementById(`${type}-launchpad`).classList.add('active');
-
-    // Update header
-    const header = document.querySelector('.launchpad-header h2');
-    const subheader = document.querySelector('.launchpad-header p');
-
-    if (type === 'trading') {
-        header.innerHTML = '🤖 AI Trading Bot Launchpad';
-        subheader.textContent = 'Generate custom trading bots using advanced AI. Specify your strategy, risk parameters, and let our generative AI create a personalized autonomous trading agent with LangChain-powered tool integration.';
-        updateStatus('Ready to generate your custom trading bot');
-    } else {
-        header.innerHTML = '🪙 SPL Token Launchpad';
-        subheader.textContent = 'Create and deploy SPL tokens on the Solana blockchain. Generate custom tokens with metadata and initial supply.';
-        updateStatus('Ready to create your SPL token');
-    }
-}
 
 // Generate trading bot
 async function generateBot() {
@@ -925,7 +895,7 @@ async function deployBot() {
         return;
     }
 
-    if (!wallet) {
+    if (!wallet || !provider) {
         alert('Please connect your wallet first');
         return;
     }
@@ -933,23 +903,38 @@ async function deployBot() {
     try {
         updateStatus('Deploying bot to Solana network...', 'generating');
 
-        // In a real implementation, this would:
-        // 1. Upload bot code to IPFS or Arweave
-        // 2. Create a program account on Solana
-        // 3. Initialize the bot with configuration
-        // 4. Fund the bot account
+        // 1. Upload bot code to IPFS
+        updateStatus('Uploading bot code to IPFS...', 'generating');
+        const ipfs = IpfsHttpClient.create({ url: 'https://ipfs.infura.io:5001/api/v0' });
+        const { cid } = await ipfs.add(generatedBot.code);
+        const ipfsPath = `https://ipfs.io/ipfs/${cid.toString()}`;
+        console.log('Bot code uploaded to IPFS:', ipfsPath);
+        updateStatus('Bot code uploaded to IPFS. Preparing transaction...', 'generating');
 
-        // For now, simulate deployment
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // 2. Create a transaction to store the IPFS hash on-chain using the Memo program
+        const transaction = new Transaction().add(
+            splMemo.createMemoInstruction(ipfsPath, [wallet])
+        );
 
-        alert('Bot deployed successfully!\\n\\nIn a production environment, this would create a Solana program account and initialize the trading bot with your configuration.');
+        // 3. Send and confirm the transaction
+        updateStatus('Please approve the transaction in your wallet...', 'generating');
+        
+        const { signature } = await provider.signAndSendTransaction(transaction);
+        await connection.confirmTransaction(signature);
 
-        updateStatus('Bot deployed successfully!', 'ready');
+        console.log('Transaction successful with signature:', signature);
+        updateStatus('Bot deployment transaction confirmed!', 'ready');
+
+        alert(`Bot deployed successfully!\n\nIPFS Path: ${ipfsPath}\n\nTransaction Signature: ${signature}`);
 
     } catch (error) {
         console.error('Deployment failed:', error);
-        updateStatus('Deployment failed', 'error');
-        alert('Deployment failed: ' + error.message);
+        updateStatus('Deployment failed. Please try again.', 'error');
+        if (error.code === 4001) { // User rejected the transaction
+            alert('Transaction rejected. Please approve the transaction to deploy your bot.');
+        } else {
+            alert('Deployment failed: ' + error.message);
+        }
     }
 }
 
