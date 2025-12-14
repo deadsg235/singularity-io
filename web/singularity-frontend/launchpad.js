@@ -241,11 +241,11 @@ async function generateBot() {
 async function generateBotWithLangChain(config) {
     // Simulate LangChain agent thinking and tool creation
     const thinkingSteps = [
-        'Analyzing trading strategy requirements...',
-        'Creating autonomous tool functions...',
-        'Integrating market data sources...',
-        'Implementing risk management protocols...',
-        'Building execution logic...',
+        'Analyzing trading strategy requirements...', 
+        'Creating autonomous tool functions...', 
+        'Integrating market data sources...', 
+        'Implementing risk management protocols...', 
+        'Building execution logic...', 
         'Finalizing bot architecture...'
     ];
 
@@ -394,14 +394,14 @@ class TradingBotAgent {
     }
 
     async analyzeMarket() {
-        const analysisPrompt = \`Analyze current market conditions for \${this.config.tradingPair}:
+        const analysisPrompt = `Analyze current market conditions for ${this.config.tradingPair}:
         - Technical indicators
         - Market sentiment
         - News impact
         - Risk assessment
         - Trading opportunities
 
-        Provide comprehensive market analysis using available tools.\`;
+        Provide comprehensive market analysis using available tools.`;
 
         const result = await this.agent.call({ input: analysisPrompt });
         return result.output;
@@ -461,9 +461,9 @@ class TradingExecutionTool {
         try {
             // Execute trade on Raydium or Jupiter
             const signature = await this.executeSwap(tradeParams);
-            return \`Trade executed successfully. Signature: \${signature}\`;
+            return `Trade executed successfully. Signature: ${signature}`;
         } catch (error) {
-            return \`Trade execution failed: \${error.message}\`;
+            return `Trade execution failed: ${error.message}`;
         }
     }
 
@@ -477,7 +477,7 @@ class TradingExecutionTool {
 
 // Main Bot Execution
 async function runTradingBot() {
-    console.log(\`🤖 Starting \${BOT_CONFIG.name} Trading Bot\`);
+    console.log(`🤖 Starting ${BOT_CONFIG.name} Trading Bot`);
 
     const bot = new TradingBotAgent(BOT_CONFIG);
     const riskManager = new RiskManager(RISK_PARAMS);
@@ -537,7 +537,7 @@ ${customInstructions ? `
 // Export for deployment
 export { TradingBotAgent, RiskManager, BOT_CONFIG, RISK_PARAMS };
 
-console.log(\`🚀 \${BOT_CONFIG.name} Trading Bot Ready for Deployment\`);
+console.log(`🚀 ${BOT_CONFIG.name} Trading Bot Ready for Deployment`);
 console.log('Strategy:', BOT_CONFIG.strategy);
 console.log('Risk Level:', BOT_CONFIG.riskLevel);
 console.log('Initial Capital:', BOT_CONFIG.initialCapital, 'SOL');
@@ -545,7 +545,7 @@ console.log('Initial Capital:', BOT_CONFIG.initialCapital, 'SOL');
 // Start bot if running directly
 if (require.main === module) {
     runTradingBot().catch(console.error);
-}`;
+}`
 }
 
 function getStrategyLogic(strategyType, features) {
@@ -631,7 +631,8 @@ function getStrategyLogic(strategyType, features) {
                 buyPrice: sortedPrices[0].price,
                 sellPrice: sortedPrices[sortedPrices.length - 1].price,
                 volume: Math.min(config.initialCapital * 0.2, 1.0),
-                reason: \`\${(spread * 100).toFixed(2)}% arbitrage opportunity detected\`
+                reason: 
+` + '`' + `${(spread * 100).toFixed(2)}% arbitrage opportunity detected` + '`' + `
             };
         }
         return null;
@@ -651,7 +652,8 @@ function getStrategyLogic(strategyType, features) {
                         type: 'BUY',
                         price: currentPrice,
                         volume: config.initialCapital * 0.05,
-                        reason: \`Grid buy at level \${level.level}\`
+                        reason: 
+` + '`' + `Grid buy at level ${level.level}` + '`' + `
                     };
                 } else if (level.type === 'SELL' && !level.filled) {
                     level.filled = true;
@@ -659,7 +661,8 @@ function getStrategyLogic(strategyType, features) {
                         type: 'SELL',
                         price: currentPrice,
                         volume: config.initialCapital * 0.05,
-                        reason: \`Grid sell at level \${level.level}\`
+                        reason: 
+` + '`' + `Grid sell at level ${level.level}` + '`' + `
                     };
                 }
             }
@@ -720,9 +723,10 @@ function getStrategyLogic(strategyType, features) {
         'custom': `
     async generateTradingSignal(bot, config) {
         // Custom Strategy - Uses LangChain agent for decision making
-        const prompt = \`Analyze market conditions and generate trading signal for \${config.tradingPair}:
+        const prompt = 
+` + '`' + `Analyze market conditions and generate trading signal for ${config.tradingPair}:
         Current market data, technical indicators, and any custom instructions provided.
-        Consider risk management and position sizing.\`;
+        Consider risk management and position sizing.` + '`' + `;
 
         const result = await bot.agent.call({ input: prompt });
 
