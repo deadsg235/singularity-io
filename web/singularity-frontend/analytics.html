@@ -9,10 +9,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        .analytics-container { max-width: 1400px; margin: 2rem auto; }
         .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem; }
         .chart-container { background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 1.5rem; }
+        .chart-container h3 { color: #0066ff; margin-bottom: 1rem; font-family: 'Orbitron', sans-serif; }
         .metric-row { display: flex; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid #333; }
+        .metric-row:last-child { border-bottom: none; }
+        .control-btn { background: rgba(0, 102, 255, 0.2); color: #0066ff; border: 1px solid #0066ff; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
+        .control-btn.active { background: #0066ff; color: #fff; }
+        .control-btn:hover { background: rgba(0, 102, 255, 0.4); }
+        .token-analytics { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+        .sio-stats { background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 102, 255, 0.1)); border: 1px solid #00ff88; }
+        .price-display { font-size: 2rem; font-weight: bold; color: #00ff88; margin: 1rem 0; }
+        .change-positive { color: #00ff88; }
+        .change-negative { color: #ff4444; }
+        .loading { color: #666; font-style: italic; }
     </style>
 </head>
 <body>
@@ -40,11 +53,53 @@
             </div>
         </header>
 
-        <div style="max-width: 1400px; margin: 2rem auto;">
+        <div class="analytics-container">
+            <!-- S-IO Token Analytics -->
+            <div class="token-analytics">
+                <div class="chart-container sio-stats">
+                    <h3>S-IO Token Analytics</h3>
+                    <div class="price-display" id="sio-price">--</div>
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <span style="color: #666;">24h Change:</span>
+                            <span id="sio-change" class="change-positive">--</span>
+                        </div>
+                        <div>
+                            <span style="color: #666;">Market Cap:</span>
+                            <span id="sio-market-cap">--</span>
+                        </div>
+                    </div>
+                    <canvas id="sio-price-chart" width="400" height="200"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <h3>S-IO Token Stats</h3>
+                    <div id="sio-token-stats">
+                        <div class="metric-row">
+                            <span style="color: #666;">Contract Address</span>
+                            <span style="color: #00ff88; font-size: 0.8rem; word-break: break-all;">Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump</span>
+                        </div>
+                        <div class="metric-row">
+                            <span style="color: #666;">Total Supply</span>
+                            <span id="sio-supply">--</span>
+                        </div>
+                        <div class="metric-row">
+                            <span style="color: #666;">Holders</span>
+                            <span id="sio-holders">--</span>
+                        </div>
+                        <div class="metric-row">
+                            <span style="color: #666;">Liquidity</span>
+                            <span id="sio-liquidity">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SOL Analytics -->
             <div class="chart-grid">
                 <div class="chart-container">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">SOL Price Chart</h3>
-                    <canvas id="price-chart" width="600" height="300"></canvas>
+                    <h3>SOL Price Chart</h3>
+                    <canvas id="sol-price-chart" width="600" height="300"></canvas>
                     <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                         <button onclick="setTimeframe('1H')" class="control-btn">1H</button>
                         <button onclick="setTimeframe('1D')" class="control-btn active">1D</button>
@@ -54,19 +109,20 @@
                 </div>
 
                 <div class="chart-container">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Market Stats</h3>
+                    <h3>Market Stats</h3>
                     <div id="market-stats"></div>
                 </div>
             </div>
 
+            <!-- Additional Charts -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
                 <div class="chart-container">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Volume Analysis</h3>
+                    <h3>Volume Analysis</h3>
                     <canvas id="volume-chart" width="400" height="200"></canvas>
                 </div>
 
                 <div class="chart-container">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Top Tokens</h3>
+                    <h3>Top Solana Tokens</h3>
                     <div id="top-tokens"></div>
                 </div>
             </div>
