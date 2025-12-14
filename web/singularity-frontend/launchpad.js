@@ -900,12 +900,30 @@ async function deployBot() {
         return;
     }
 
+    // Get IPFS credentials from the form
+    const projectId = document.getElementById('ipfs-project-id').value.trim();
+    const projectSecret = document.getElementById('ipfs-project-secret').value.trim();
+
+    if (!projectId || !projectSecret) {
+        alert('Please enter your IPFS Project ID and Project Secret to deploy the bot.');
+        return;
+    }
+
     try {
         updateStatus('Deploying bot to Solana network...', 'generating');
 
-        // 1. Upload bot code to IPFS
+        // 1. Upload bot code to IPFS with authentication
         updateStatus('Uploading bot code to IPFS...', 'generating');
-        const ipfs = IpfsHttpClient.create({ url: 'https://ipfs.infura.io:5001/api/v0' });
+        const auth = 'Basic ' + btoa(projectId + ':' + projectSecret);
+        const ipfs = IpfsHttpClient.create({
+            host: 'ipfs.infura.io',
+            port: 5001,
+            protocol: 'https',
+            headers: {
+                authorization: auth,
+            },
+        });
+
         const { cid } = await ipfs.add(generatedBot.code);
         const ipfsPath = `https://ipfs.io/ipfs/${cid.toString()}`;
         console.log('Bot code uploaded to IPFS:', ipfsPath);
@@ -932,7 +950,10 @@ async function deployBot() {
         updateStatus('Deployment failed. Please try again.', 'error');
         if (error.code === 4001) { // User rejected the transaction
             alert('Transaction rejected. Please approve the transaction to deploy your bot.');
-        } else {
+        } else if (error.message.includes('project id required')) {
+            alert('IPFS Authentication failed. Please check your Project ID and Secret.');
+        }
+        else {
             alert('Deployment failed: ' + error.message);
         }
     }
