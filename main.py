@@ -71,6 +71,9 @@ class SingularityApp:
         
         self.wallet_connected = False
         self.wallet_address = None
+        self.sol_balance = 0.0
+        self.sio_balance = 0.0
+        self.balance_labels = {}
         
         self.setup_ui()
         
@@ -131,6 +134,16 @@ class SingularityApp:
                                    style='Cyber.TButton', command=self.connect_wallet)
         self.wallet_btn.pack(side=tk.RIGHT)
         
+        # Balance display
+        balance_frame = ttk.Frame(header_frame, style='Matrix.TFrame')
+        balance_frame.pack(side=tk.RIGHT, padx=(0, 10))
+        
+        self.balance_labels['sol'] = ttk.Label(balance_frame, text="SOL: 0.00", style='Subtitle.TLabel')
+        self.balance_labels['sol'].pack(side=tk.TOP)
+        
+        self.balance_labels['sio'] = ttk.Label(balance_frame, text="S-IO: 0", style='Subtitle.TLabel')
+        self.balance_labels['sio'].pack(side=tk.TOP)
+        
         # Status label
         self.status_label = ttk.Label(header_frame, text="Disconnected", style='Subtitle.TLabel')
         self.status_label.pack(side=tk.RIGHT, padx=(0, 10))
@@ -164,23 +177,72 @@ class SingularityApp:
         # Default content
         self.show_dashboard()
         
+        # Start balance updates
+        self.update_balances()
+        
     def update_canvas_size(self):
         """Update canvas size for matrix background"""
         self.bg_canvas.configure(width=self.root.winfo_width(), height=self.root.winfo_height())
         self.root.after(1000, self.update_canvas_size)
+    
+    def update_balances(self):
+        """Update wallet balances in real-time"""
+        if self.wallet_connected and self.wallet_address:
+            threading.Thread(target=self.fetch_balances, daemon=True).start()
+        self.root.after(5000, self.update_balances)  # Update every 5 seconds
+    
+    def fetch_balances(self):
+        """Fetch balances from blockchain"""
+        try:
+            from wallet_bridge import wallet_bridge
+            
+            # Get SOL balance
+            sol_result = wallet_bridge.get_balance(self.wallet_address)
+            if sol_result.get('success'):
+                self.sol_balance = sol_result.get('balance', 0.0)
+            
+            # Get S-IO balance
+            sio_mint = "Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump"
+            sio_result = wallet_bridge.get_token_balance(self.wallet_address, sio_mint)
+            if sio_result.get('success'):
+                self.sio_balance = sio_result.get('balance', 0.0)
+            
+            # Update UI on main thread
+            self.root.after(0, self.update_balance_display)
+            
+        except Exception as e:
+            self.root.after(0, lambda: self.status_label.configure(text=f"Balance error: {str(e)}"))
+    
+    def update_balance_display(self):
+        """Update balance labels on UI"""
+        self.balance_labels['sol'].configure(text=f"SOL: {self.sol_balance:.3f}")
+        self.balance_labels['sio'].configure(text=f"S-IO: {self.sio_balance:,.0f}")
         
     def connect_wallet(self):
         if not self.wallet_connected:
-            # Simulate wallet connection
-            self.wallet_connected = True
-            self.wallet_address = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"
-            self.wallet_btn.configure(text="Disconnect")
-            self.status_label.configure(text=f"Connected: {self.wallet_address[:8]}...")
+            # Connect wallet via bridge
+            try:
+                from wallet_bridge import wallet_bridge
+                result = wallet_bridge.connect_phantom()
+                if result.get('success'):
+                    self.wallet_connected = True
+                    self.wallet_address = result.get('public_key')
+                    self.wallet_btn.configure(text="Disconnect")
+                    self.status_label.configure(text=f"Connected: {self.wallet_address[:8]}...")
+                    # Immediate balance fetch
+                    threading.Thread(target=self.fetch_balances, daemon=True).start()
+                else:
+                    self.status_label.configure(text="Connection failed")
+            except Exception as e:
+                self.status_label.configure(text=f"Connection error: {str(e)}")
         else:
             self.wallet_connected = False
             self.wallet_address = None
+            self.sol_balance = 0.0
+            self.sio_balance = 0.0
             self.wallet_btn.configure(text="Connect Wallet")
             self.status_label.configure(text="Disconnected")
+            self.update_balance_display()
     
     def clear_content(self):
         for widget in self.content_area.winfo_children():
@@ -196,11 +258,16 @@ class SingularityApp:
         stats_frame = ttk.Frame(self.content_area, style='Matrix.TFrame')
         stats_frame.pack(fill=tk.X, padx=20, pady=20)
         
+        # Calculate total value
+        sol_price = 150.0  # Approximate SOL price
+        sio_price = 0.001  # S-IO price
+        total_value = (self.sol_balance * sol_price) + (self.sio_balance * sio_price)
+        
         stats = [
-            ("SOL Balance", "2.45 SOL"),
-            ("S-IO Balance", "51,970 S-IO"),
-            ("Total Value", "$1,247.83"),
-            ("Network Status", "Online")
+            ("SOL Balance", f"{self.sol_balance:.3f} SOL"),
+            ("S-IO Balance", f"{self.sio_balance:,.0f} S-IO"),
+            ("Total Value", f"${total_value:.2f}"),
+            ("Network Status", "Online" if self.wallet_connected else "Offline")
         ]
         
         for i, (label, value) in enumerate(stats):
