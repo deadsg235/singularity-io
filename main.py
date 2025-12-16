@@ -40,13 +40,14 @@ class MatrixBackground:
                     x = i * 20
                     y = self.drops[i] * 20
                     
-                    # Blue gradient effect
-                    alpha = min(255, max(50, 255 - (y % 200)))
-                    color = f"#{0:02x}{0:02x}{alpha:02x}"
+                    # Bright blue matrix effect
+                    alpha = min(255, max(100, 255 - (y % 150)))
+                    blue_intensity = min(255, max(150, alpha + 50))
+                    color = f"#{0:02x}{50:02x}{blue_intensity:02x}"
                     
                     self.canvas.create_text(
                         x, y, text=char, fill=color, 
-                        font=('Courier', 12), tags="matrix"
+                        font=('Courier', 14, 'bold'), tags="matrix"
                     )
                     
                     if y > height and random.random() > 0.975:
@@ -54,7 +55,7 @@ class MatrixBackground:
                     else:
                         self.drops[i] += 1
                         
-            time.sleep(0.1)
+            time.sleep(0.05)
 
 class SingularityApp:
     def __init__(self):
@@ -77,26 +78,28 @@ class SingularityApp:
         # Configure futuristic blue/black theme
         self.style.configure('Title.TLabel', 
                            background='#000000', 
-                           foreground='#0066ff',
-                           font=('Orbitron', 24, 'bold'))
+                           foreground='#00aaff',
+                           font=('Orbitron', 28, 'bold'))
         
         self.style.configure('Subtitle.TLabel',
                            background='#000000',
-                           foreground='#4d9de0', 
-                           font=('Orbitron', 12))
+                           foreground='#66ccff', 
+                           font=('Orbitron', 14))
         
         self.style.configure('Matrix.TFrame',
                            background='#000000',
                            relief='flat')
         
         self.style.configure('Cyber.TButton',
-                           background='#0066ff',
+                           background='#0088ff',
                            foreground='#ffffff',
-                           font=('Orbitron', 10, 'bold'),
-                           borderwidth=1)
+                           font=('Orbitron', 12, 'bold'),
+                           borderwidth=2,
+                           relief='raised')
         
         self.style.map('Cyber.TButton',
-                      background=[('active', '#0052cc')])
+                      background=[('active', '#0066cc')],
+                      relief=[('pressed', 'sunken')])
         
     def setup_ui(self):
         # Main container
@@ -104,8 +107,11 @@ class SingularityApp:
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Matrix background canvas
-        self.bg_canvas = tk.Canvas(main_frame, highlightthickness=0)
+        self.bg_canvas = tk.Canvas(main_frame, highlightthickness=0, bg='#000000')
         self.bg_canvas.place(x=0, y=0, relwidth=1, relheight=1)
+        
+        # Ensure canvas updates properly
+        self.root.after(100, self.update_canvas_size)
         
         self.matrix = MatrixBackground(self.bg_canvas)
         self.matrix.start()
@@ -157,6 +163,11 @@ class SingularityApp:
         
         # Default content
         self.show_dashboard()
+        
+    def update_canvas_size(self):
+        """Update canvas size for matrix background"""
+        self.bg_canvas.configure(width=self.root.winfo_width(), height=self.root.winfo_height())
+        self.root.after(1000, self.update_canvas_size)
         
     def connect_wallet(self):
         if not self.wallet_connected:
@@ -211,8 +222,9 @@ class SingularityApp:
         terminal_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
         # Output area
-        self.terminal_output = tk.Text(terminal_frame, bg='#000000', fg='#0066ff',
-                                     font=('Courier', 10), insertbackground='#0066ff')
+        self.terminal_output = tk.Text(terminal_frame, bg='#000000', fg='#00aaff',
+                                     font=('Courier', 12, 'bold'), insertbackground='#00aaff',
+                                     selectbackground='#003366')
         self.terminal_output.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
         # Input area
@@ -220,7 +232,8 @@ class SingularityApp:
         input_frame.pack(fill=tk.X)
         
         self.terminal_input = tk.Entry(input_frame, bg='#000000', fg='#ffffff',
-                                     font=('Courier', 10), insertbackground='#0066ff')
+                                     font=('Courier', 12, 'bold'), insertbackground='#00aaff',
+                                     selectbackground='#003366', bd=2, relief='sunken')
         self.terminal_input.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.terminal_input.bind('<Return>', self.process_terminal_input)
         
