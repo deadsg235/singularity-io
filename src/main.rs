@@ -1,16 +1,11 @@
 use clap::{Arg, Command};
 use serde_json::json;
 use solana_client::rpc_client::RpcClient;
+use solana_client::rpc_request::TokenAccountsFilter;
 use solana_sdk::{
     commitment_config::CommitmentConfig,
     pubkey::Pubkey,
     signature::{Keypair, Signer},
-    system_instruction,
-    transaction::Transaction,
-};
-use spl_token::{
-    instruction as token_instruction,
-    state::Mint,
 };
 use std::str::FromStr;
 
@@ -123,13 +118,15 @@ fn handle_token_balance(address: &str, mint: &str) -> anyhow::Result<()> {
     let owner_pubkey = Pubkey::from_str(address)?;
     let mint_pubkey = Pubkey::from_str(mint)?;
     
-    match client.get_token_accounts_by_owner(&owner_pubkey, spl_token::state::TokenAccountState::Mint(mint_pubkey)) {
+    let filter = TokenAccountsFilter::Mint(mint_pubkey);
+    match client.get_token_accounts_by_owner(&owner_pubkey, filter) {
         Ok(accounts) => {
             let balance = if accounts.is_empty() {
                 0.0
             } else {
                 // Get first token account balance
-                match client.get_token_account_balance(&accounts[0].pubkey) {
+                let account_pubkey = Pubkey::from_str(&accounts[0].pubkey)?;
+                match client.get_token_account_balance(&account_pubkey) {
                     Ok(balance_info) => balance_info.ui_amount.unwrap_or(0.0),
                     Err(_) => 0.0
                 }
