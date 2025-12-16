@@ -12,25 +12,60 @@
 </head>
 <body>
     <div class="container">
+        <!-- Sidebar Navigation -->
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>S-IO DApps</h3>
+                <button id="close-sidebar" class="close-btn">×</button>
+            </div>
+            <div class="sidebar-content">
+                <div class="nav-section">
+                    <h4>Trading</h4>
+                    <a href="swap.html">Token Swap</a>
+                    <a href="bot.html">AI Trading Bot</a>
+                    <a href="portfolio.html">Portfolio</a>
+                </div>
+                <div class="nav-section">
+                    <h4>Launch</h4>
+                    <a href="token-launchpad.html">Token Launchpad</a>
+                    <a href="launchpad.html">Bot Launchpad</a>
+                </div>
+                <div class="nav-section">
+                    <h4>DeFi</h4>
+                    <a href="staking.html">Staking</a>
+                    <a href="governance.html">Governance</a>
+                </div>
+                <div class="nav-section">
+                    <h4>Analytics</h4>
+                    <a href="dashboard.html">Dashboard</a>
+                    <a href="analytics.html">Analytics</a>
+                    <a href="network3d.html">3D Network</a>
+                </div>
+                <div class="nav-section">
+                    <h4>Social</h4>
+                    <a href="social.html">Social Trading</a>
+                    <a href="investors.html">Investors</a>
+                </div>
+                <div class="nav-section">
+                    <h4>AI</h4>
+                    <button id="ultima-sidebar-btn">ULTIMA Terminal</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar Overlay -->
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+        
         <header>
             <div class="header-content">
-                <div>
-                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
-                    <p class="tagline">Solana Blockchain Integration Platform</p>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button id="menu-btn" class="menu-btn">☰</button>
+                    <div>
+                        <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                        <p class="tagline">Solana Blockchain Integration Platform</p>
+                    </div>
                 </div>
-                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                    <a href="token-launchpad.html" class="header-link" style="color: #0066ff;">Token Launchpad</a>
-                    <a href="launchpad.html" class="header-link" style="color: #00ff88;">Bot Launchpad</a>
-                    <a href="swap.html" class="header-link" style="color: #0066ff;">Swap</a>
-                    <a href="bot.html" class="header-link" style="color: #00ff88;">Bot</a>
-                    <a href="social.html" class="header-link" style="color: #ff8800;">Social</a>
-                    <a href="staking.html" class="header-link" style="color: #00ff88;">Staking</a>
-                    <a href="governance.html" class="header-link" style="color: #0066ff;">Governance</a>
-                    <a href="dashboard.html" class="header-link" style="color: #00ff88;">Dashboard</a>
-                    <a href="portfolio.html" class="header-link" style="color: #ff8800;">Portfolio</a>
-                    <a href="analytics.html" class="header-link" style="color: #0066ff;">Analytics</a>
-                    <a href="network3d.html" class="header-link" style="color: #0066ff;">3D Network</a>
-                    <button id="ultima-btn" class="header-link" style="color: #ff4444; background: none; border: none; cursor: pointer;">ULTIMA</button>
+                <div style="display: flex; gap: 1rem; align-items: center;">
                     <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
                     <div id="balance-display" class="balance-display hidden">
                         <div class="balance-item">
@@ -42,6 +77,7 @@
                             <span id="sio-balance">0</span>
                         </div>
                     </div>
+                </div>
             </div>
         </header>
 
@@ -139,6 +175,7 @@
     <script src="matrix.js"></script>
     <script src="app.js"></script>
     <script src="ultima-terminal.js"></script>
+    <script src="sidebar.js"></script>
 
 </body>
 </html>
