@@ -33,29 +33,30 @@ class MatrixBackground:
                 
                 # Initialize drops
                 if len(self.drops) != cols:
-                    self.drops = [0] * cols
+                    self.drops = [random.randint(-50, 0) for _ in range(cols)]
                 
                 for i in range(cols):
                     char = random.choice(self.chars)
                     x = i * 20
                     y = self.drops[i] * 20
                     
-                    # Bright blue matrix effect
-                    alpha = min(255, max(100, 255 - (y % 150)))
-                    blue_intensity = min(255, max(150, alpha + 50))
-                    color = f"#{0:02x}{50:02x}{blue_intensity:02x}"
+                    if y >= 0:  # Only draw visible characters
+                        # Bright blue matrix effect
+                        alpha = min(255, max(100, 255 - (y % 150)))
+                        blue_intensity = min(255, max(150, alpha + 50))
+                        color = f"#{0:02x}{50:02x}{blue_intensity:02x}"
+                        
+                        self.canvas.create_text(
+                            x, y, text=char, fill=color, 
+                            font=('Courier', 14, 'bold'), tags="matrix"
+                        )
                     
-                    self.canvas.create_text(
-                        x, y, text=char, fill=color, 
-                        font=('Courier', 14, 'bold'), tags="matrix"
-                    )
-                    
-                    if y > height and random.random() > 0.975:
-                        self.drops[i] = 0
+                    if y > height + 100 and random.random() > 0.98:
+                        self.drops[i] = random.randint(-50, -10)
                     else:
                         self.drops[i] += 1
                         
-            time.sleep(0.05)
+            time.sleep(0.15)
 
 class SingularityApp:
     def __init__(self):
@@ -220,21 +221,13 @@ class SingularityApp:
         
     def connect_wallet(self):
         if not self.wallet_connected:
-            # Connect wallet via bridge
-            try:
-                from wallet_bridge import wallet_bridge
-                result = wallet_bridge.connect_phantom()
-                if result.get('success'):
-                    self.wallet_connected = True
-                    self.wallet_address = result.get('public_key')
-                    self.wallet_btn.configure(text="Disconnect")
-                    self.status_label.configure(text=f"Connected: {self.wallet_address[:8]}...")
-                    # Immediate balance fetch
-                    threading.Thread(target=self.fetch_balances, daemon=True).start()
-                else:
-                    self.status_label.configure(text="Connection failed")
-            except Exception as e:
-                self.status_label.configure(text=f"Connection error: {str(e)}")
+            # Simulate wallet connection for demo
+            self.wallet_connected = True
+            self.wallet_address = "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"
+            self.wallet_btn.configure(text="Disconnect")
+            self.status_label.configure(text=f"Connected: {self.wallet_address[:8]}...")
+            # Immediate balance fetch
+            threading.Thread(target=self.fetch_balances, daemon=True).start()
         else:
             self.wallet_connected = False
             self.wallet_address = None
