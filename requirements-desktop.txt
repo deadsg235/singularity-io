@@ -1,0 +1,8 @@
+tkinter
+requests
+solana
+solders
+anchorpy
+base58
+cryptography
+pynacl

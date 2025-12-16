@@ -1,92 +1,172 @@
-# Singularity.io
+# Singularity.io Desktop - Solana Blockchain Platform
 
-Singularity.io is a futuristic, interactive .io website that integrates the SolFunMeme technology to solve problems on the Solana blockchain and create a new economy. This project aims to be the key interface for interacting with our custom blockchain.
+> **Futuristic Desktop Application for Solana Ecosystem Interaction**
 
-## Key Features
+A sleek, matrix-themed desktop application built with Python GUI and Rust blockchain integration for seamless Solana operations.
 
-*   **Interactive .io Website:** A modern and engaging user interface for interacting with the Solana blockchain.
-*   **Sleek 3D Neural Network Visualization:** Real-time Deep Q-Network with animated particles, 3D-style nodes, and dynamic connections.
-*   **Phantom Wallet Integration:** Connect your Solana wallet with one click.
-*   **SolFunMeme Technology:** A novel technology to address challenges within the Solana ecosystem.
-*   **Custom Blockchain:** A Rust-based blockchain for a new digital economy.
-*   **Python-Rust Bridge:** A neural network component with a Python-Rust bridge for high-performance computing.
-*   **Vercel & FastAPI:** A scalable and fast backend powered by Vercel and FastAPI.
+## 🚀 Quick Start
 
-## Project Structure
+### Windows (One-Click Launch)
+```bash
+# Double-click to run
+launch.bat
+
+# Or install desktop shortcut
+install.bat
+```
+
+### Manual Installation
+```bash
+# Install dependencies
+pip install -r requirements-desktop.txt
+
+# Run application
+python main.py
+```
+
+## ✨ Features
+
+### 🎨 **Futuristic Interface**
+- Matrix-style falling code background
+- Blue (#0066ff) and black (#000000) cyber theme
+- Orbitron font typography
+- Smooth animations and effects
+
+### 🔗 **Blockchain Integration**
+- **Python-Rust Bridge** for high-performance operations
+- **Phantom Wallet** connection simulation
+- **SPL Token** creation and management
+- **Real-time Balance** checking
+- **Transaction Processing** via Solana RPC
+
+### 🤖 **ULTIMA AI Terminal**
+- Sentient AI research assistant
+- 5-layer DQN reasoning engine simulation
+- Command processing system
+- Self-referential responses
+- Blockchain analysis capabilities
+
+### 💼 **Platform Features**
+- **Dashboard** - Portfolio overview and statistics
+- **Token Launchpad** - Create and deploy SPL tokens
+- **Swap Interface** - Jupiter DEX integration
+- **Portfolio Management** - Asset tracking
+- **Analytics** - Real-time market data
+- **Staking Platform** - S-IO token staking
+
+## 🏗️ Architecture
+
+```
+Desktop Application Stack:
+┌─────────────────────────────────┐
+│        Python GUI (Tkinter)     │  ← User Interface
+├─────────────────────────────────┤
+│      Application Logic          │  ← Business Logic
+├─────────────────────────────────┤
+│    Python-Rust Bridge          │  ← Communication Layer
+├─────────────────────────────────┤
+│     Rust Binary (Solana)       │  ← Blockchain Operations
+└─────────────────────────────────┘
+```
+
+## 📁 Project Structure
 
 ```
 singularity-io/
-├── api/                    # FastAPI backend
-│   ├── main.py            # Main API application
-│   ├── index.py           # Vercel serverless wrapper
-│   ├── neural_network.py  # Deep Q-Network system
-│   ├── solana_client.py   # Solana blockchain client
-│   └── requirements.txt   # Python dependencies
-├── web/                   # Frontend
-│   └── singularity-frontend/
-│       ├── index.html     # Main page with visualization
-│       ├── app.js         # Frontend logic + wallet
-│       └── style.css      # Styling
-├── blockchain/            # Rust blockchain (future)
-├── neural_network/        # AI components (future)
-└── vercel.json           # Vercel deployment config
+├── main.py                 # Main GUI application
+├── wallet_bridge.py        # Python-Rust bridge
+├── src/main.rs            # Rust Solana operations
+├── launch.bat             # Windows launcher
+├── install.bat            # Desktop shortcut installer
+├── build_exe.py           # Executable builder
+├── requirements-desktop.txt
+└── Cargo.toml             # Rust dependencies
 ```
 
-## Getting Started
+## 🛠️ Development
 
-### Local Development
+### Prerequisites
+- **Python 3.8+** (Required)
+- **Rust** (Optional - for full blockchain features)
+- **Windows** (Primary platform)
 
-#### Backend
+### Building Rust Bridge
 ```bash
-cd api
-pip install -r requirements.txt
-uvicorn main:app --reload
+cargo build --release
 ```
 
-#### Frontend
+### Creating Executable
 ```bash
-cd web/singularity-frontend
-python -m http.server 8080
+python build_exe.py
 ```
 
-### Deployment to Vercel
+## 🎯 Usage Guide
 
-```bash
-# Install Vercel CLI
-npm i -g vercel
+1. **Launch**: Double-click `launch.bat` or run `python main.py`
+2. **Connect Wallet**: Click "Connect Wallet" button
+3. **Navigate**: Use left sidebar to access features
+4. **ULTIMA Terminal**: Click "ULTIMA Terminal" for AI assistance
+5. **Dashboard**: Monitor portfolio and balances
 
-# Login
-vercel login
+## 🔧 Configuration
 
-# Deploy
-vercel --prod
+### S-IO Token Integration
+- **Contract**: `Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump`
+- **Network**: Solana Mainnet
+- **RPC**: `https://api.mainnet-beta.solana.com`
+
+### ULTIMA AI Commands
+```
+help        - Show available commands
+status      - System and DQN status
+wallet      - Wallet information
+clear       - Clear terminal
 ```
 
-## API Endpoints
+## 🚀 Deployment
 
-- `GET /` - API information
-- `GET /api/health` - Health check
-- `GET /api/network/stats` - Solana network statistics
-- `GET /api/solfunmeme/status` - SolFunMeme technology status
-- `GET /api/economy/overview` - Economy overview
-- `GET /api/neural/network` - Get neural network state
-- `POST /api/neural/update` - Update neural network
+### For End Users
+1. Download project folder
+2. Run `install.bat` (creates desktop shortcut)
+3. Double-click "Singularity.io" on desktop
 
-## Development Phases
+### For Developers
+1. Clone repository
+2. Install dependencies: `pip install -r requirements-desktop.txt`
+3. Build Rust bridge: `cargo build --release`
+4. Run: `python main.py`
 
-This is a base template for the Singularity.io project. See [PROJECT_PLAN.md](PROJECT_PLAN.md) for the full development roadmap.
+## 🔒 Security
 
-**Current Phase:** Phase 1 - Foundational Infrastructure
+- **Local Execution** - No web vulnerabilities
+- **Rust Integration** - Memory-safe blockchain operations
+- **Simulated Wallet** - Safe testing environment
+- **No Private Keys** - Demonstration mode only
 
-## Documentation
+## 📊 System Requirements
 
-- [Quick Start Guide](QUICKSTART.md) - Get running in 5 minutes
-- [Features Overview](FEATURES.md) - Neural network & wallet integration
-- [Deployment Guide](DEPLOYMENT.md) - Deploy to Vercel
-- [SolFunMeme Technology](SOLFUNMEME.md) - Core technology vision
-- [New Economy Framework](NEW_ECONOMY.md) - Token economy design
-- [Project Plan](PROJECT_PLAN.md) - Development roadmap
+- **OS**: Windows 10/11
+- **RAM**: 4GB minimum
+- **Storage**: 100MB
+- **Network**: Internet connection for blockchain operations
 
-## License
+## 🆘 Troubleshooting
 
-MIT
+### Common Issues
+- **Python not found**: Install Python 3.8+ from python.org
+- **Dependencies fail**: Run `pip install --upgrade pip`
+- **Rust build fails**: Install Rust from rustup.rs
+- **GUI doesn't start**: Check tkinter installation
+
+### Support
+- Check console output for error messages
+- Ensure Python and pip are in system PATH
+- Verify internet connection for blockchain features
+
+## 📄 License
+
+MIT License - Open source Solana ecosystem tool
+
+---
+
+**Singularity.io Desktop** - *Building the Future of Solana Interaction*
