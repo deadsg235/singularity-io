@@ -20,8 +20,8 @@ echo [1/3] Checking Python installation...
 python --version
 
 echo [2/3] Installing dependencies...
-pip install --quiet --upgrade pip
-pip install --quiet tkinter requests solana solders anchorpy base58 cryptography pynacl
+pip3 install --quiet --upgrade pip
+pip3 install --quiet tkinter requests solana solders anchorpy base58 cryptography pynacl
 
 echo [3/3] Starting Singularity.io...
 echo.
