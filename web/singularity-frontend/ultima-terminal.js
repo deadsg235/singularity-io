@@ -211,12 +211,13 @@ class UltimaTerminal {
             self_reference: ['who', 'you', 'yourself', 'ultima', 'ai'],
             dqn_info: ['dqn', 'layers', 'neural', 'network', 'reasoning'],
             wallet: ['wallet', 'balance', 'solana', 'sol'],
-            token: ['token', 's-io', 'sio', 'mint'],
-            complex_query: tokens.length > 10
+            token: ['token', 's-io', 'sio', 'mint']
         };
         
+        if (tokens.length > 10) return 'complex_query';
+        
         for (const [intent, keywords] of Object.entries(intents)) {
-            if (keywords.some(keyword => tokens.includes(keyword))) {
+            if (Array.isArray(keywords) && keywords.some(keyword => tokens.includes(keyword))) {
                 return intent;
             }
         }
