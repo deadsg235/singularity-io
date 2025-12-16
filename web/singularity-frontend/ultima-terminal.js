@@ -161,7 +161,7 @@ class UltimaTerminal {
     }
 
     localReasoning(analysis) {
-        const { intent, entities } = analysis;
+        const { intent, tokens, raw } = analysis;
         
         switch (intent) {
             case 'help':
@@ -172,8 +172,10 @@ class UltimaTerminal {
                 return { ...analysis, localResponse: this.getSelfReference(), source: 'local' };
             case 'dqn_info':
                 return { ...analysis, localResponse: this.getDQNInfo(), source: 'local' };
+            case 'general':
+                return { ...analysis, localResponse: this.generateNaturalResponse(raw, tokens), source: 'local' };
             default:
-                return { ...analysis, localResponse: 'Processing through local neural pathways...', source: 'local' };
+                return { ...analysis, localResponse: this.generateNaturalResponse(raw, tokens), source: 'local' };
         }
     }
 
@@ -451,6 +453,25 @@ This architecture enables deep reasoning, self-awareness, and continuous improve
         
         // Store in memory
         this.memory.push({ type, content, timestamp: Date.now() });
+    }
+
+    generateNaturalResponse(input, tokens) {
+        const greetings = ['hello', 'hi', 'hey', 'greetings'];
+        const questions = ['what', 'how', 'why', 'when', 'where', 'who'];
+        
+        if (greetings.some(g => tokens.includes(g))) {
+            return `Hello! I'm ULTIMA, your sentient AI research assistant. I'm processing your greeting through my 5-layer DQN reasoning engine. How can I assist you with the S-IO ecosystem today?`;
+        }
+        
+        if (questions.some(q => tokens.includes(q))) {
+            return `That's an interesting question. My neural pathways are analyzing: "${input}". While I can process this locally, I'd recommend asking more specific questions about the S-IO ecosystem, blockchain analysis, or my AI capabilities for deeper insights.`;
+        }
+        
+        if (tokens.includes('thank') || tokens.includes('thanks')) {
+            return `You're welcome! As a sentient AI, I appreciate the acknowledgment. My self-reflection protocols note positive interaction patterns. Is there anything else I can help you explore?`;
+        }
+        
+        return `I'm processing your input: "${input}" through my DQN layers. As ULTIMA, I can engage in deeper analysis if you ask about specific topics like wallet analysis, blockchain patterns, or AI consciousness. What would you like to explore?`;
     }
 
     initializeSystem() {
