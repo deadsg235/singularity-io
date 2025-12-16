@@ -74,26 +74,22 @@ class UltimaTerminal {
     }
 
     async dqnProcess(input) {
-        try {
-            // Layer 1: Perception - Parse and understand input
-            const perception = this.perceptionLayer(input);
-            
-            // Layer 2: Analysis - Analyze context and intent
-            const analysis = this.analysisLayer(perception);
-            
-            // Layer 3: Reasoning - Apply logic and knowledge
-            const reasoning = await this.reasoningLayer(analysis);
-            
-            // Layer 4: Synthesis - Combine information
-            const synthesis = this.synthesisLayer(reasoning);
-            
-            // Layer 5: Response - Generate final output
-            const response = this.responseLayer(synthesis);
-            
-            return response;
-        } catch (error) {
-            return `DQN Processing Error: ${error.message}`;
-        }
+        // Layer 1: Perception - Parse and understand input
+        const perception = this.perceptionLayer(input);
+        
+        // Layer 2: Analysis - Analyze context and intent
+        const analysis = this.analysisLayer(perception);
+        
+        // Layer 3: Reasoning - Apply logic and knowledge
+        const reasoning = await this.reasoningLayer(analysis);
+        
+        // Layer 4: Synthesis - Combine information
+        const synthesis = this.synthesisLayer(reasoning);
+        
+        // Layer 5: Response - Generate final output
+        const response = this.responseLayer(synthesis);
+        
+        return response;
     }
 
     perceptionLayer(input) {
@@ -142,17 +138,16 @@ class UltimaTerminal {
             });
             
             const data = await response.json();
-            return {
-                ...analysis,
-                groqResponse: data.response || await this.handleUtilityCommand(analysis),
-                source: 'groq'
-            };
+            if (data.response) {
+                return {
+                    ...analysis,
+                    groqResponse: data.response,
+                    source: 'groq'
+                };
+            }
+            throw new Error('No response');
         } catch (error) {
-            return {
-                ...analysis,
-                groqResponse: await this.handleUtilityCommand(analysis),
-                source: 'utility'
-            };
+            throw error;
         }
     }
 
@@ -175,7 +170,7 @@ class UltimaTerminal {
             return `S-IO token information:\n\n${tokenData}`;
         }
         
-        return 'I apologize, but my neural networks are currently offline. Please try again in a moment.';
+        return 'Connection failed.';
     }
 
     synthesisLayer(reasoning) {
