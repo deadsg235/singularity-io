@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import requests
+import os
 
 app = FastAPI()
 
@@ -24,23 +26,49 @@ def get_sio_price():
 @app.post("/api/groq/chat")
 def groq_chat(data: dict):
     try:
-        from groq_chat import groq_client
+        import os
+        import requests
         
-        if not groq_client:
-            return {"error": "Groq API key not configured"}
+        api_key = os.getenv('GROQ_API_KEY')
+        if not api_key:
+            return {"response": "API key not configured"}
         
         message = data.get("message", "")
-        system = data.get("system")
+        system = data.get("system", "You are ULTIMA, a helpful AI assistant.")
         
         if not message:
-            return {"error": "No message provided"}
+            return {"response": "No message provided"}
         
-        import asyncio
-        response = asyncio.run(groq_client.chat(message, system))
-        return response
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
         
+        payload = {
+            "model": "llama3-8b-8192",
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": message}
+            ],
+            "temperature": 0.7,
+            "max_tokens": 1024
+        }
+        
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            return {"response": result["choices"][0]["message"]["content"]}
+        else:
+            return {"response": "Service temporarily unavailable"}
+            
     except Exception as e:
-        return {"error": f"Groq processing failed: {str(e)}"}
+        return {"response": "Processing error occurred"}
 
 @app.post("/api/ultima/groq")
 def ultima_groq(data: dict):
