@@ -21,6 +21,27 @@ def get_sio_price():
 
 
 
+@app.post("/api/groq/chat")
+def groq_chat(data: dict):
+    try:
+        from groq_chat import groq_client
+        
+        if not groq_client:
+            return {"error": "Groq API key not configured"}
+        
+        message = data.get("message", "")
+        system = data.get("system")
+        
+        if not message:
+            return {"error": "No message provided"}
+        
+        import asyncio
+        response = asyncio.run(groq_client.chat(message, system))
+        return response
+        
+    except Exception as e:
+        return {"error": f"Groq processing failed: {str(e)}"}
+
 @app.post("/api/ultima/groq")
 def ultima_groq(data: dict):
     try:
@@ -66,5 +87,10 @@ def get_user_staking(wallet: str):
 def test_ultima():
     import os
     return {"status": "ULTIMA endpoint working", "groq_key_set": bool(os.getenv("GROQ_API_KEY"))}
+
+@app.get("/api/groq/test")
+def test_groq():
+    import os
+    return {"status": "Groq endpoint ready", "api_key_configured": bool(os.getenv("GROQ_API_KEY"))}
 
 handler = app

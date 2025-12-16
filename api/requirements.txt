@@ -3,3 +3,4 @@ requests==2.31.0
 langchain
 langchain-groq
 langchain-core
+groq
