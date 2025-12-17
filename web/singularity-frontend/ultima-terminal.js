@@ -138,7 +138,7 @@ class UltimaTerminal {
     async groqReasoning(analysis) {
         try {
             const prompt = this.buildGroqPrompt(analysis);
-            const response = await fetch('/api/groq/chat', {
+            const response = await fetch('https://singularity-iov1.vercel.app/api/groq/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -147,17 +147,23 @@ class UltimaTerminal {
                 })
             });
             
-            const data = await response.json();
-            if (data.response) {
-                return {
-                    ...analysis,
-                    groqResponse: data.response,
-                    source: 'groq'
-                };
+            if (response.ok) {
+                const data = await response.json();
+                if (data.response) {
+                    return {
+                        ...analysis,
+                        groqResponse: data.response,
+                        source: 'groq'
+                    };
+                }
             }
-            throw new Error('No response');
+            throw new Error('API Error');
         } catch (error) {
-            throw error;
+            return {
+                ...analysis,
+                groqResponse: 'ULTIMA processing offline. Local neural pathways active.',
+                source: 'local'
+            };
         }
     }
 
