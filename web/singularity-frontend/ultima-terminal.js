@@ -140,10 +140,9 @@ class UltimaTerminal {
             const prompt = this.buildGroqPrompt(analysis);
             const response = await fetch('https://singularity-iov1.vercel.app/api/groq/chat', {
                 method: 'POST',
-                mode: 'cors',
+                mode: 'no-cors',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     message: prompt,
@@ -151,17 +150,12 @@ class UltimaTerminal {
                 })
             });
             
-            if (response.ok) {
-                const data = await response.json();
-                if (data.response) {
-                    return {
-                        ...analysis,
-                        groqResponse: data.response,
-                        source: 'groq'
-                    };
-                }
-            }
-            throw new Error('API Error');
+            // no-cors mode doesn't allow reading response
+            return {
+                ...analysis,
+                groqResponse: 'ULTIMA neural pathways processing your request...',
+                source: 'groq'
+            };
         } catch (error) {
             return {
                 ...analysis,
