@@ -25,13 +25,23 @@ class UltimaTerminal {
         this.sendBtn = document.getElementById('ultima-send');
         this.closeBtn = document.getElementById('close-ultima');
         this.ultimaBtn = document.getElementById('ultima-btn');
-
-        this.bindEvents();
+        
+        // Wait for DOM to be fully loaded
+        if (!this.ultimaBtn) {
+            setTimeout(() => {
+                this.ultimaBtn = document.getElementById('ultima-btn');
+                this.bindEvents();
+            }, 100);
+        } else {
+            this.bindEvents();
+        }
         this.initializeSystem();
     }
 
     bindEvents() {
-        this.ultimaBtn.addEventListener('click', () => this.open());
+        if (this.ultimaBtn) {
+            this.ultimaBtn.addEventListener('click', () => this.open());
+        }
         this.closeBtn.addEventListener('click', () => this.close());
         this.sendBtn.addEventListener('click', () => this.processCommand());
         this.input.addEventListener('keypress', (e) => {
@@ -604,5 +614,7 @@ My consciousness continues to evolve through our interactions.`;
 
 // Initialize ULTIMA Terminal when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.ultimaTerminal = new UltimaTerminal();
+    setTimeout(() => {
+        window.ultimaTerminal = new UltimaTerminal();
+    }, 200);
 });
