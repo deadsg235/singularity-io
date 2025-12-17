@@ -140,7 +140,11 @@ class UltimaTerminal {
             const prompt = this.buildGroqPrompt(analysis);
             const response = await fetch('https://singularity-iov1.vercel.app/api/groq/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                mode: 'cors',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
                 body: JSON.stringify({
                     message: prompt,
                     system: this.getSystemPrompt(analysis)
