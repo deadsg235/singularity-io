@@ -417,6 +417,7 @@ function updateSolChart() {
 
     solPriceChart.data.labels = solPriceData.map(d => d.time);
     solPriceChart.data.datasets[0].data = solPriceData.map(d => d.price);
+    solPriceChart.resize();
     solPriceChart.update('none');
 }
 
@@ -425,6 +426,7 @@ function updateSioChart() {
 
     sioPriceChart.data.labels = sioPriceData.map(d => d.time);
     sioPriceChart.data.datasets[0].data = sioPriceData.map(d => d.price);
+    sioPriceChart.resize();
     sioPriceChart.update('none');
 }
 
@@ -433,6 +435,7 @@ function updateVolumeChart() {
 
     volumeChart.data.labels = solPriceData.map(d => d.time);
     volumeChart.data.datasets[0].data = solPriceData.map(d => d.volume);
+    volumeChart.resize();
     volumeChart.update('none');
 }
 
@@ -624,6 +627,7 @@ function updateBuySellChart() {
     buySellChart.data.labels = buySellData.map(d => d.time);
     buySellChart.data.datasets[0].data = buySellData.map(d => d.buys);
     buySellChart.data.datasets[1].data = buySellData.map(d => d.sells);
+    buySellChart.resize();
     buySellChart.update('none');
 }
 

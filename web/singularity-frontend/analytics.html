@@ -13,7 +13,8 @@
     <style>
         .analytics-container { max-width: 1400px; margin: 2rem auto; }
         .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2rem; }
-        .chart-container { background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 1.5rem; }
+        .chart-container { background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 1.5rem; overflow: hidden; }
+        .chart-container canvas { max-width: 100% !important; max-height: 400px !important; }
         .chart-container h3 { color: #0066ff; margin-bottom: 1rem; font-family: 'Orbitron', sans-serif; }
         .metric-row { display: flex; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid #333; }
         .metric-row:last-child { border-bottom: none; }
@@ -69,7 +70,7 @@
                             <span id="sio-market-cap">--</span>
                         </div>
                     </div>
-                    <canvas id="sio-price-chart" width="400" height="200"></canvas>
+                    <canvas id="sio-price-chart" width="400" height="200" style="max-width: 400px; max-height: 200px;"></canvas>
                 </div>
 
                 <div class="chart-container">
@@ -99,7 +100,7 @@
             <div class="chart-grid">
                 <div class="chart-container">
                     <h3>SOL Price Chart</h3>
-                    <canvas id="sol-price-chart" width="600" height="300"></canvas>
+                    <canvas id="sol-price-chart" width="600" height="300" style="max-width: 600px; max-height: 300px;"></canvas>
                     <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                         <button onclick="setTimeframe('1H')" class="control-btn">1H</button>
                         <button onclick="setTimeframe('1D')" class="control-btn active">1D</button>
@@ -118,7 +119,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
                 <div class="chart-container">
                     <h3>Volume Analysis</h3>
-                    <canvas id="volume-chart" width="400" height="200"></canvas>
+                    <canvas id="volume-chart" width="400" height="200" style="max-width: 400px; max-height: 200px;"></canvas>
                 </div>
 
                 <div class="chart-container">
@@ -130,7 +131,7 @@
             <!-- Buy/Sell Chart -->
             <div class="chart-container" style="margin-bottom: 2rem;">
                 <h3>S-IO Buy/Sell Activity</h3>
-                <canvas id="buysell-chart" width="800" height="300"></canvas>
+                <canvas id="buysell-chart" width="800" height="300" style="max-width: 800px; max-height: 300px;"></canvas>
             </div>
         </div>
 
