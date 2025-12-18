@@ -126,28 +126,21 @@ async function connectWallet() {
 
 async function loadWalletBalances() {
     if (!wallet) return;
-
+    
     try {
-        // Use backend API for S-IO balance (uses cached RPC)
         const sioResponse = await fetch(`/api/sio/balance/${wallet}`);
         if (sioResponse.ok) {
             const sioData = await sioResponse.json();
             document.getElementById('sio-balance').textContent = sioData.balance.toLocaleString(undefined, {
                 maximumFractionDigits: 6
             });
-        } else {
-            document.getElementById('sio-balance').textContent = '0';
         }
-
-        // Get SOL balance directly
-        const tempConnection = new solanaWeb3.Connection(SOLANA_RPC, 'confirmed');
-        const owner = new solanaWeb3.PublicKey(wallet);
-        const lamports = await tempConnection.getBalance(owner);
-        const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
-        document.getElementById('sol-balance').textContent = solBalance.toFixed(4);
-
-        connection = tempConnection;
-
+        
+        const solResponse = await fetch(`/api/wallet/analytics/${wallet}`);
+        if (solResponse.ok) {
+            const solData = await solResponse.json();
+            document.getElementById('sol-balance').textContent = solData.sol_balance.toFixed(4);
+        }
     } catch (error) {
         console.error('Balance loading error:', error);
         document.getElementById('sol-balance').textContent = '—';

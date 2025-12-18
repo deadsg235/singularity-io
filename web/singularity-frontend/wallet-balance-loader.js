@@ -2,10 +2,11 @@
 async function loadWalletBalances() {
     const wallet = window.globalWallet || window.walletAdapter?.getPublicKey();
     if (!wallet) return;
+    
+    const walletStr = wallet.toString ? wallet.toString() : wallet;
 
     try {
-        // Use backend API for S-IO balance (uses cached RPC)
-        const sioResponse = await fetch(`/api/sio/balance/${wallet}`);
+        const sioResponse = await fetch(`/api/sio/balance/${walletStr}`);
         if (sioResponse.ok) {
             const sioData = await sioResponse.json();
             const sioElement = document.getElementById('sio-balance');
@@ -15,18 +16,15 @@ async function loadWalletBalances() {
                 });
             }
         }
-
-        // Get SOL balance directly
-        const connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com', 'confirmed');
-        const owner = new solanaWeb3.PublicKey(wallet);
-        const lamports = await connection.getBalance(owner);
-        const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
         
-        const solElement = document.getElementById('sol-balance');
-        if (solElement) {
-            solElement.textContent = solBalance.toFixed(4);
+        const solResponse = await fetch(`/api/wallet/analytics/${walletStr}`);
+        if (solResponse.ok) {
+            const solData = await solResponse.json();
+            const solElement = document.getElementById('sol-balance');
+            if (solElement) {
+                solElement.textContent = solData.sol_balance.toFixed(4);
+            }
         }
-
     } catch (error) {
         console.error('Balance loading error:', error);
         const solElement = document.getElementById('sol-balance');

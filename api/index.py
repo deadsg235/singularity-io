@@ -32,14 +32,34 @@ def ultima_groq(data: dict):
     return {"response": "ULTIMA service temporarily unavailable"}
 
 @app.get("/api/wallet/analytics/{wallet}")
-def get_wallet_analytics(wallet: str):
-    return {
-        "wallet": wallet,
-        "sol_balance": 2.5,
-        "sio_balance": 51970.694744,
-        "total_tokens": 2,
-        "mojo_analysis": "Neural pattern recognition indicates active trading behavior. Quantum coherence suggests optimal portfolio balance."
-    }
+async def get_wallet_analytics(wallet: str):
+    try:
+        # Get SOL balance using cached RPC
+        from solana_rpc_cache import rpc_cache
+        result = rpc_cache.call("getBalance", [wallet], cache_ttl=60)
+        sol_balance = 0
+        if "result" in result and "value" in result["result"]:
+            sol_balance = result["result"]["value"] / 1e9
+        
+        # Get S-IO balance
+        sio_response = await get_sio_balance(wallet)
+        sio_balance = sio_response.get("balance", 0)
+        
+        return {
+            "wallet": wallet,
+            "sol_balance": sol_balance,
+            "sio_balance": sio_balance,
+            "total_tokens": 2,
+            "mojo_analysis": "Neural pattern recognition indicates active trading behavior. Quantum coherence suggests optimal portfolio balance."
+        }
+    except Exception as e:
+        return {
+            "wallet": wallet,
+            "sol_balance": 0,
+            "sio_balance": 0,
+            "total_tokens": 0,
+            "error": str(e)
+        }
 
 @app.get("/api/staking/user/{wallet}")
 def get_user_staking(wallet: str):
