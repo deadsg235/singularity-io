@@ -1,0 +1,31 @@
+[book]
+authors = ["448-OG <superuser@448.africa>"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Rust Wallet Adapter Library for Solana Dapps"
+
+[preprocessor.tabs]
+
+[preprocessor.theme]
+pagetoc = false
+pagetoc-width = "15%"
+content-max-width = "80%"
+page-padding = "25px"
+sidebar-width = "250px"
+
+[output.html]
+default-theme = "ayu"
+git-repository-url = ""
+additional-css = ["theme/pagetoc.css", "theme/tabs.css"]
+additional-js = ["theme/pagetoc.js", "theme/tabs.js"]
+
+[output.html.fold]
+enable = false
+level = 1
+
+[output.html.playground]
+editable = true
+
+[output.html.print]
+enable = false
