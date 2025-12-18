@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sio_token import router as sio_router
 import requests
 import os
 
@@ -17,13 +18,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/api/sio/balance/{wallet}")
-def get_sio_balance(wallet: str):
-    return {"balance": 51970.694744, "wallet": wallet}
-
-@app.get("/api/sio/price")
-def get_sio_price():
-    return {"price": 0.001, "change_24h": 5.2}
+# Include S-IO token router
+app.include_router(sio_router)
 
 
 

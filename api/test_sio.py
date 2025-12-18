@@ -4,7 +4,7 @@ Test S-IO token functionality
 """
 
 import asyncio
-from sio_token import get_sio_balance, get_sio_stats
+from sio_token import router as sio_router
 
 async def test_sio_system():
     """Test the S-IO token system"""
@@ -16,12 +16,17 @@ async def test_sio_system():
     try:
         # Test balance retrieval
         print(f"Testing balance for wallet: {test_wallet}")
-        balance_result = await get_sio_balance(test_wallet)
+        # Test balance via API endpoint
+        import requests
+        balance_response = requests.get(f'http://localhost:8000/api/sio/balance/{test_wallet}')
+        balance_result = balance_response.json()
         print(f"Balance result: {balance_result}")
         
         # Test stats retrieval
         print("Testing S-IO stats...")
-        stats_result = await get_sio_stats()
+        # Test stats via API endpoint
+        stats_response = requests.get('http://localhost:8000/api/sio/stats')
+        stats_result = stats_response.json()
         print(f"Stats result: {stats_result}")
         
         print("✅ S-IO system working properly!")

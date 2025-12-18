@@ -1,4 +1,4 @@
-const { Connection, PublicKey, VersionedTransaction, clusterApiUrl } = solanaWeb3;
+// Use solanaWeb3 directly without destructuring
 
 let connection;
 const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
@@ -61,7 +61,7 @@ const BOT_TEMPLATES = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+    connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com', 'confirmed');
     
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     document.getElementById('create-bot').addEventListener('click', createBot);
@@ -126,57 +126,33 @@ async function connectWallet() {
 
 async function loadWalletBalances() {
     if (!wallet) return;
-    
-    let lastError = null;
-    const allEndpoints = [SOLANA_RPC, ...FALLBACK_RPC_ENDPOINTS];
-    
-    for (let attempt = 0; attempt < allEndpoints.length; attempt++) {
-        const endpoint = allEndpoints[attempt];
-        
-        try {
-            const tempConnection = new solanaWeb3.Connection(
-                endpoint,
-                { commitment: 'confirmed', timeout: 10000 }
-            );
-            
-            const owner = new solanaWeb3.PublicKey(wallet);
-            
-            // SOL Balance
-            const lamports = await tempConnection.getBalance(owner);
-            const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
-            document.getElementById('sol-balance').textContent = solBalance.toFixed(4);
-            
-            // S-IO Token Balance
-            const mint = new solanaWeb3.PublicKey('Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump');
-            const tokenAccounts = await tempConnection.getParsedTokenAccountsByOwner(owner, { mint });
-            
-            let sioBalance = 0;
-            if (tokenAccounts.value.length > 0) {
-                const tokenInfo = tokenAccounts.value[0].account.data.parsed.info;
-                sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
-            }
-            
-            document.getElementById('sio-balance').textContent = sioBalance.toLocaleString(undefined, {
+
+    try {
+        // Use backend API for S-IO balance (uses cached RPC)
+        const sioResponse = await fetch(`/api/sio/balance/${wallet}`);
+        if (sioResponse.ok) {
+            const sioData = await sioResponse.json();
+            document.getElementById('sio-balance').textContent = sioData.balance.toLocaleString(undefined, {
                 maximumFractionDigits: 6
             });
-            
-            connection = tempConnection;
-            return;
-            
-        } catch (err) {
-            lastError = err;
-            console.warn(`RPC endpoint ${endpoint} failed:`, err.message);
-            
-            if (attempt < allEndpoints.length - 1) {
-                const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
-                await new Promise(resolve => setTimeout(resolve, delay));
-            }
+        } else {
+            document.getElementById('sio-balance').textContent = '0';
         }
+
+        // Get SOL balance directly
+        const tempConnection = new solanaWeb3.Connection(SOLANA_RPC, 'confirmed');
+        const owner = new solanaWeb3.PublicKey(wallet);
+        const lamports = await tempConnection.getBalance(owner);
+        const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
+        document.getElementById('sol-balance').textContent = solBalance.toFixed(4);
+
+        connection = tempConnection;
+
+    } catch (error) {
+        console.error('Balance loading error:', error);
+        document.getElementById('sol-balance').textContent = '—';
+        document.getElementById('sio-balance').textContent = '—';
     }
-    
-    console.error('All RPC endpoints failed. Last error:', lastError);
-    document.getElementById('sol-balance').textContent = '—';
-    document.getElementById('sio-balance').textContent = '—';
 }
 
 function updatePreview() {
@@ -292,9 +268,7 @@ async function createBot() {
 
 async function validateToken(mint) {
     try {
-        const pubkey = new PublicKey(mint);
-        const info = await connection.getAccountInfo(pubkey);
-        if (!info) throw new Error('Invalid token mint');
+        new solanaWeb3.PublicKey(mint);
         return true;
     } catch (error) {
         throw new Error(`Invalid token: ${mint}`);
