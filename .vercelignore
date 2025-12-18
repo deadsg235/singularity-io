@@ -1,17 +1,35 @@
-# Ignore directories not part of deployment
-blockchain/
+# Ignore large files and directories
+packages/
+examples/
+crate/
+target/
 neural_network/
-.ruff_cache/
+blockchain/
+wallet-adapter-book/
+partial-idl-parser/
+singularity-agent/
+solfunmeme-introspector/
+
+# Ignore development files
+*.md
+*.toml
+*.lock
+*.yml
+*.yaml
 .github/
+.changeset/
+.devcontainer/
+.cargo/
 
 # Ignore documentation
-*.md
-!api/README.md
-!web/singularity-frontend/README.md
+README*
+CHANGELOG*
+LICENSE
+*.svg
+*.png
 
-# Ignore old Q-Network game files
-api/Q_Layered_Network/
-api/q_network.py
-
-# Keep new neural network module
-!api/neural_network.py
+# Keep only essential API and web files
+!api/
+!web/
+!vercel.json
+!package.json
