@@ -358,8 +358,10 @@ async function fetchTopTokens() {
 function updateSolChart() {
     if (!solPriceChart || solPriceData.length === 0) return;
 
-    const labels = solPriceData.map(d => d.time);
-    const prices = solPriceData.map(d => d.price);
+    const maxPoints = 20;
+    const recentData = solPriceData.slice(-maxPoints);
+    const labels = recentData.map(d => d.time);
+    const prices = recentData.map(d => d.price);
 
     solPriceChart.data.labels = labels;
     solPriceChart.data.datasets[0].data = prices;
@@ -369,8 +371,10 @@ function updateSolChart() {
 function updateSioChart() {
     if (!sioPriceChart || sioPriceData.length === 0) return;
 
-    const labels = sioPriceData.map(d => d.time);
-    const prices = sioPriceData.map(d => d.price);
+    const maxPoints = 20;
+    const recentData = sioPriceData.slice(-maxPoints);
+    const labels = recentData.map(d => d.time);
+    const prices = recentData.map(d => d.price);
 
     sioPriceChart.data.labels = labels;
     sioPriceChart.data.datasets[0].data = prices;
@@ -380,8 +384,10 @@ function updateSioChart() {
 function updateVolumeChart() {
     if (!volumeChart || solPriceData.length === 0) return;
 
-    const labels = solPriceData.map(d => d.time);
-    const volumes = solPriceData.map(d => d.volume);
+    const maxPoints = 20;
+    const recentData = solPriceData.slice(-maxPoints);
+    const labels = recentData.map(d => d.time);
+    const volumes = recentData.map(d => d.volume);
 
     volumeChart.data.labels = labels;
     volumeChart.data.datasets[0].data = volumes;
