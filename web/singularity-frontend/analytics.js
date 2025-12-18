@@ -1,6 +1,7 @@
 let solPriceChart = null;
 let sioPriceChart = null;
 let volumeChart = null;
+let buySellChart = null;
 let currentTimeframe = '1D';
 let updateInterval;
 let wallet = null;
@@ -19,12 +20,14 @@ const FALLBACK_RPC_ENDPOINTS = [
 let solPriceData = [];
 let sioPriceData = [];
 let volumeData = [];
+let buySellData = [];
 
 // Initialize charts
 function initCharts() {
     initSolPriceChart();
     initSioPriceChart();
     initVolumeChart();
+    initBuySellChart();
 }
 
 function initSolPriceChart() {
@@ -197,6 +200,60 @@ function initVolumeChart() {
     });
 }
 
+function initBuySellChart() {
+    const ctx = document.getElementById('buysell-chart').getContext('2d');
+    buySellChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Buys',
+                data: [],
+                backgroundColor: 'rgba(0, 255, 136, 0.7)',
+                borderColor: '#00ff88',
+                borderWidth: 1
+            }, {
+                label: 'Sells',
+                data: [],
+                backgroundColor: 'rgba(255, 68, 68, 0.7)',
+                borderColor: '#ff4444',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: {
+                        color: '#fff'
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#fff'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#fff'
+                    }
+                }
+            }
+        }
+    });
+}
+
 // Data fetching functions
 async function fetchSolanaData() {
     try {
@@ -227,7 +284,7 @@ async function fetchSolanaData() {
             marketCap: marketCap
         });
 
-        if (solPriceData.length > 50) {
+        if (solPriceData.length > 20) {
             solPriceData.shift();
         }
 
@@ -286,7 +343,7 @@ async function fetchSioTokenData() {
                 liquidity: liquidity
             });
 
-            if (sioPriceData.length > 50) {
+            if (sioPriceData.length > 20) {
                 sioPriceData.shift();
             }
 
@@ -358,39 +415,24 @@ async function fetchTopTokens() {
 function updateSolChart() {
     if (!solPriceChart || solPriceData.length === 0) return;
 
-    const maxPoints = 20;
-    const recentData = solPriceData.slice(-maxPoints);
-    const labels = recentData.map(d => d.time);
-    const prices = recentData.map(d => d.price);
-
-    solPriceChart.data.labels = labels;
-    solPriceChart.data.datasets[0].data = prices;
+    solPriceChart.data.labels = solPriceData.map(d => d.time);
+    solPriceChart.data.datasets[0].data = solPriceData.map(d => d.price);
     solPriceChart.update('none');
 }
 
 function updateSioChart() {
     if (!sioPriceChart || sioPriceData.length === 0) return;
 
-    const maxPoints = 20;
-    const recentData = sioPriceData.slice(-maxPoints);
-    const labels = recentData.map(d => d.time);
-    const prices = recentData.map(d => d.price);
-
-    sioPriceChart.data.labels = labels;
-    sioPriceChart.data.datasets[0].data = prices;
+    sioPriceChart.data.labels = sioPriceData.map(d => d.time);
+    sioPriceChart.data.datasets[0].data = sioPriceData.map(d => d.price);
     sioPriceChart.update('none');
 }
 
 function updateVolumeChart() {
     if (!volumeChart || solPriceData.length === 0) return;
 
-    const maxPoints = 20;
-    const recentData = solPriceData.slice(-maxPoints);
-    const labels = recentData.map(d => d.time);
-    const volumes = recentData.map(d => d.volume);
-
-    volumeChart.data.labels = labels;
-    volumeChart.data.datasets[0].data = volumes;
+    volumeChart.data.labels = solPriceData.map(d => d.time);
+    volumeChart.data.datasets[0].data = solPriceData.map(d => d.volume);
     volumeChart.update('none');
 }
 
@@ -555,6 +597,34 @@ async function loadRealTimeData() {
     ]);
 
     updateVolumeChart();
+    generateBuySellData();
+}
+
+function generateBuySellData() {
+    const timestamp = new Date().toLocaleTimeString();
+    const buyVolume = Math.random() * 50 + 10;
+    const sellVolume = Math.random() * 40 + 5;
+    
+    buySellData.push({
+        time: timestamp,
+        buys: buyVolume,
+        sells: sellVolume
+    });
+    
+    if (buySellData.length > 20) {
+        buySellData.shift();
+    }
+    
+    updateBuySellChart();
+}
+
+function updateBuySellChart() {
+    if (!buySellChart || buySellData.length === 0) return;
+    
+    buySellChart.data.labels = buySellData.map(d => d.time);
+    buySellChart.data.datasets[0].data = buySellData.map(d => d.buys);
+    buySellChart.data.datasets[1].data = buySellData.map(d => d.sells);
+    buySellChart.update('none');
 }
 
 function startRealTimeUpdates() {
@@ -565,7 +635,8 @@ function startRealTimeUpdates() {
             fetchTopTokens()
         ]);
         updateVolumeChart();
-    }, 30000); // Update every 30 seconds
+        generateBuySellData();
+    }, 60000); // Update every 60 seconds
 }
 
 // Event listeners
