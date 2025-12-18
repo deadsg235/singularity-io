@@ -1,5 +1,4 @@
 // Phantom SDK Integration for S-IO Platform
-import { BrowserSDK } from '@phantom/browser-sdk';
 
 class PhantomWalletAdapter {
     constructor() {
@@ -51,47 +50,26 @@ class PhantomWalletAdapter {
         this.connecting = true;
         
         try {
-            if (this.sdk) {
-                // Use Phantom SDK
-                const result = await this.sdk.connect({
-                    provider: 'phantom',
-                    addressTypes: ['solana']
-                });
-                
-                this.connected = true;
-                this.addresses = result.addresses;
-                
-                // Set global wallet for other components
-                window.globalWallet = {
-                    publicKey: { toString: () => result.addresses[0]?.address },
-                    adapter: this.sdk,
-                    connected: true
-                };
-                
-                this.onConnect();
-                return result;
-            } else {
-                // Fallback to injected
-                const walletAdapter = this.getWalletAdapter(walletName);
-                if (!walletAdapter) {
-                    throw new Error(`${walletName} wallet not found`);
-                }
-
-                const response = await walletAdapter.connect();
-                
-                this.wallet = walletAdapter;
-                this.publicKey = response.publicKey;
-                this.connected = true;
-                
-                window.globalWallet = {
-                    publicKey: this.publicKey,
-                    adapter: this.wallet,
-                    connected: true
-                };
-
-                this.onConnect();
-                return response;
+            // Use direct Phantom connection
+            const walletAdapter = this.getWalletAdapter(walletName);
+            if (!walletAdapter) {
+                throw new Error(`${walletName} wallet not found`);
             }
+
+            const response = await walletAdapter.connect();
+            
+            this.wallet = walletAdapter;
+            this.publicKey = response.publicKey;
+            this.connected = true;
+            
+            window.globalWallet = {
+                publicKey: this.publicKey,
+                adapter: this.wallet,
+                connected: true
+            };
+
+            this.onConnect();
+            return response;
         } catch (error) {
             console.error('Wallet connection failed:', error);
             throw error;
@@ -102,15 +80,12 @@ class PhantomWalletAdapter {
 
     async disconnect() {
         try {
-            if (this.sdk) {
-                await this.sdk.disconnect();
-            } else if (this.wallet) {
+            if (this.wallet) {
                 await this.wallet.disconnect();
             }
             
             this.wallet = null;
             this.publicKey = null;
-            this.addresses = [];
             this.connected = false;
             
             window.globalWallet = null;
