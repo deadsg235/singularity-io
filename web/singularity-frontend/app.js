@@ -295,57 +295,32 @@ function initWallet() {
 
 async function connectWallet() {
     console.log('connectWallet: Function called');
+    
+    if (!window.walletAdapter) {
+        console.error('Wallet adapter not initialized');
+        return;
+    }
+    
     try {
-        if (walletAddress) {
-            // If already connected, disconnect
-            console.log('connectWallet: Disconnecting wallet');
-            if (window.solana && window.solana.isPhantom) {
-                await window.solana.disconnect();
-            }
+        if (window.walletAdapter.isConnected()) {
+            // Disconnect wallet
+            await window.walletAdapter.disconnect();
             walletAddress = null;
             solanaConnection = null;
-
-            const btn = document.getElementById('wallet-btn');
-            btn.textContent = 'Connect Wallet';
-            btn.classList.remove('connected');
-
-            document.getElementById('balance-display').classList.add('hidden');
             updateStatus('wallet-status', 'Not Connected', false);
-            if (window.setWalletConnected) window.setWalletConnected(false);
-
             console.log('Wallet disconnected');
-            return;
+        } else {
+            // Connect wallet
+            const response = await window.walletAdapter.connect('Phantom');
+            walletAddress = response.publicKey.toString();
+            
+            updateStatus('wallet-status', 'Connected', true);
+            loadWalletBalances();
+            console.log('Wallet connected:', walletAddress);
         }
-
-        console.log('connectWallet: Checking for Phantom wallet');
-        if (!window.solana || !window.solana.isPhantom) {
-            console.log('connectWallet: Phantom not detected');
-            alert('Phantom wallet not detected. Please install Phantom wallet from https://phantom.app/');
-            window.open('https://phantom.app/', '_blank');
-            return;
-        }
-        
-        console.log('connectWallet: Connecting to Phantom');
-        const resp = await window.solana.connect();
-        walletAddress = resp.publicKey.toString();
-        
-        console.log('connectWallet: Wallet connected:', walletAddress);
-        const btn = document.getElementById('wallet-btn');
-        btn.textContent = `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`;
-        btn.classList.add('connected');
-        
-        updateStatus('wallet-status', 'Connected', true);
-        if (window.setWalletConnected) window.setWalletConnected(true);
-        
-        // Show balance display and load balances
-        document.getElementById('balance-display').classList.remove('hidden');
-        loadWalletBalances();
-        
-        console.log('Wallet connected:', walletAddress);
     } catch (error) {
         console.error('Wallet connection error:', error);
         updateStatus('wallet-status', 'Connection Failed', false);
-        if (window.setWalletConnected) window.setWalletConnected(false);
     }
 }
 
