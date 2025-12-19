@@ -476,10 +476,20 @@ function updateSioStats() {
     changeElement.className = latest.change >= 0 ? 'change-positive' : 'change-negative';
 
     // Update market cap
-    const mcapDisplay = latest.marketCap > 1000000 ? 
-        `$${(latest.marketCap / 1000000).toFixed(1)}M` : 
-        `$${(latest.marketCap / 1000).toFixed(1)}K`;
-    document.getElementById('sio-market-cap').textContent = mcapDisplay;
+    if (latest.marketCap) {
+        const mcap = latest.marketCap >= 1000000 ? 
+            `$${(latest.marketCap / 1000000).toFixed(2)}M` : 
+            `$${(latest.marketCap / 1000).toFixed(1)}K`;
+        document.getElementById('sio-market-cap').textContent = mcap;
+    } else {
+        // Calculate from price and supply
+        const totalSupply = 100000000; // 100M S-IO
+        const calculatedMcap = latest.price * totalSupply;
+        const mcap = calculatedMcap >= 1000000 ? 
+            `$${(calculatedMcap / 1000000).toFixed(2)}M` : 
+            `$${(calculatedMcap / 1000).toFixed(1)}K`;
+        document.getElementById('sio-market-cap').textContent = mcap;
+    }
 
     // Update liquidity
     document.getElementById('sio-liquidity').textContent = latest.liquidity ? `$${(latest.liquidity / 1000).toFixed(1)}K` : '--';
