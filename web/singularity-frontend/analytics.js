@@ -358,12 +358,14 @@ async function fetchSioTokenData() {
 
     // Add fallback S-IO data to prevent empty chart
     if (sioPriceData.length === 0) {
+        const fallbackPrice = 0.001;
+        const totalSupply = 100000000; // 100M S-IO
         sioPriceData.push({
             time: new Date().toLocaleTimeString(),
-            price: 0.001,
+            price: fallbackPrice,
             change: 0.052,
             volume: 125000,
-            marketCap: 100000,
+            marketCap: fallbackPrice * totalSupply,
             liquidity: 50000
         });
         updateSioChart();
@@ -474,7 +476,10 @@ function updateSioStats() {
     changeElement.className = latest.change >= 0 ? 'change-positive' : 'change-negative';
 
     // Update market cap
-    document.getElementById('sio-market-cap').textContent = latest.marketCap ? `$${(latest.marketCap / 1000000).toFixed(1)}M` : '--';
+    const mcapDisplay = latest.marketCap > 1000000 ? 
+        `$${(latest.marketCap / 1000000).toFixed(1)}M` : 
+        `$${(latest.marketCap / 1000).toFixed(1)}K`;
+    document.getElementById('sio-market-cap').textContent = mcapDisplay;
 
     // Update liquidity
     document.getElementById('sio-liquidity').textContent = latest.liquidity ? `$${(latest.liquidity / 1000).toFixed(1)}K` : '--';
@@ -587,6 +592,7 @@ function setTimeframe(timeframe) {
 async function loadRealTimeData() {
     document.getElementById('sio-price').textContent = 'Loading...';
     document.getElementById('sio-change').textContent = 'Loading...';
+    document.getElementById('sio-market-cap').textContent = 'Loading...';
 
     await Promise.all([
         fetchSolanaData(),
