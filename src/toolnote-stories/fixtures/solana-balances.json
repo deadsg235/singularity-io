@@ -1,0 +1,54 @@
+{
+  "output": {
+    "balances": [
+      {
+        "mint": "So11111111111111111111111111111111111111112",
+        "amountUi": 3.4821,
+        "decimals": 9,
+        "token": {
+          "symbol": "SOL",
+          "name": "Solana",
+          "priceUsd": 162.32,
+          "marketCap": 73750000000,
+          "priceChange24h": 1.8
+        }
+      },
+      {
+        "mint": "JUP109111111111111111111111111111111111111",
+        "amountUi": 2480.45,
+        "decimals": 6,
+        "token": {
+          "symbol": "JUP",
+          "name": "Jupiter",
+          "priceUsd": 1.42,
+          "marketCap": 1950000000,
+          "priceChange24h": 3.8
+        }
+      },
+      {
+        "mint": "USDC11111111111111111111111111111111111111",
+        "amountUi": 12456.12,
+        "decimals": 6,
+        "token": {
+          "symbol": "USDC",
+          "name": "USD Coin",
+          "priceUsd": 1.0,
+          "marketCap": 32000000000,
+          "priceChange24h": 0.02
+        }
+      },
+      {
+        "mint": "BONK1111111111111111111111111111111111111",
+        "amountUi": 1290000000,
+        "decimals": 5,
+        "token": {
+          "symbol": "BONK",
+          "name": "Bonk",
+          "priceUsd": 0.000025,
+          "marketCap": 1650000000,
+          "priceChange24h": -4.5
+        }
+      }
+    ]
+  }
+}
