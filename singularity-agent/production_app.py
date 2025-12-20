@@ -33,8 +33,10 @@ wallet_adapter = WalletAdapter()
 sio_staking = SIOStaking()
 agent_controller = AgentController()
 
-# Include wallet API routes
-app.include_router(wallet_router)
+from wallet_analytics_fixed import router as analytics_router
+
+# Include analytics router
+app.include_router(analytics_router)
 
 @app.on_event("startup")
 async def startup():
