@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Bot - Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">AI Trading Bot</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <a href="index.html" class="header-link" style="color: #0066ff;">Home</a>
+                    <a href="swap.html" class="header-link" style="color: #0066ff;">Swap</a>
+                    <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+                    <div id="balance-display" class="balance-display hidden">
+                        <div class="balance-item">
+                            <span class="balance-label">SOL</span>
+                            <span id="sol-balance">0</span>
+                        </div>
+                        <div class="balance-item">
+                            <span class="balance-label">S-IO</span>
+                            <span id="sio-balance">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div style="max-width: 1200px; margin: 2rem auto;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                <div style="background: #000; border: 1px solid #0066ff; border-radius: 4px; padding: 2rem;">
+                    <h2 style="color: #0066ff; margin-bottom: 1rem;">Bot Configuration</h2>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Strategy</label>
+                        <select id="strategy" style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;">
+                            <option value="dca">DCA (Dollar Cost Average)</option>
+                            <option value="momentum">Momentum Trading</option>
+                            <option value="arbitrage">Arbitrage</option>
+                            <option value="grid">Grid Trading</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Token Pair</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                            <input type="text" id="base-token" placeholder="Base token mint" style="padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;">
+                            <input type="text" id="quote-token" placeholder="Quote token mint" style="padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Trade Amount (SOL)</label>
+                        <input type="number" id="trade-amount" value="0.1" step="0.01" style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;">
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Interval (seconds)</label>
+                        <input type="number" id="interval" value="60" min="10" style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;">
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Stop Loss (%)</label>
+                        <input type="number" id="stop-loss" value="5" step="0.1" style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;">
+                    </div>
+
+                    <button id="start-btn" style="width: 100%; padding: 1rem; background: #00ff88; color: #000; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer; font-size: 1rem; margin-bottom: 0.5rem;">Start Bot</button>
+                    <button id="stop-btn" style="width: 100%; padding: 1rem; background: #ff4444; color: #fff; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer; font-size: 1rem;" disabled>Stop Bot</button>
+                </div>
+
+                <div style="background: #000; border: 1px solid #0066ff; border-radius: 4px; padding: 2rem;">
+                    <h2 style="color: #0066ff; margin-bottom: 1rem;">Bot Status</h2>
+                    <div id="bot-status">
+                        <p style="color: #666;">Bot inactive</p>
+                    </div>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h3 style="color: #0066ff; margin-bottom: 0.5rem;">Performance</h3>
+                        <div id="performance" style="color: #fff;">
+                            <p>Total Trades: <span id="total-trades">0</span></p>
+                            <p>Successful: <span id="success-trades">0</span></p>
+                            <p>Failed: <span id="failed-trades">0</span></p>
+                            <p>PnL: <span id="pnl">0.00</span> SOL</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div style="background: #000; border: 1px solid #0066ff; border-radius: 4px; padding: 2rem;">
+                    <h2 style="color: #0066ff; margin-bottom: 1rem;">Trade History</h2>
+                    <div id="trade-history" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+
+                <div style="background: #000; border: 1px solid #0066ff; border-radius: 4px; padding: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2 style="color: #0066ff; margin: 0;">AI Trading Assistant</h2>
+                        <button id="help-btn" style="padding: 0.5rem 1rem; background: #ff8800; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">Help</button>
+                    </div>
+                    <div id="chat-messages" style="height: 300px; overflow-y: auto; margin-bottom: 1rem; padding: 1rem; background: rgba(0, 102, 255, 0.05); border-radius: 4px;"></div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="chat-input" placeholder="Ask me to analyze or execute trades..." style="flex: 1; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;">
+                        <button id="chat-send" style="padding: 0.8rem 1.5rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Singularity.io | AI-Powered Trading</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="wallet-balance-loader.js"></script>
+    <script src="matrix.js"></script>
+    <script src="bot.js"></script>
+</body>
+</html>

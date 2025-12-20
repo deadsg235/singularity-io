@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Metadata Editor - Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .metadata-container { max-width: 1000px; margin: 2rem auto; }
+        .token-selector { background: #000; border: 1px solid #0066ff; border-radius: 4px; padding: 1.5rem; margin-bottom: 2rem; }
+        .token-option { background: #000; border: 1px solid #0066ff; padding: 1rem; margin-bottom: 0.5rem; border-radius: 4px; cursor: pointer; transition: all 0.3s; }
+        .token-option:hover { background: rgba(0, 102, 255, 0.1); }
+        .token-option.selected { background: rgba(0, 102, 255, 0.2); border-color: #00ff88; }
+        .metadata-editor { background: #000; border: 1px solid #0066ff; border-radius: 4px; padding: 2rem; display: none; }
+        .metadata-editor.active { display: block; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; color: #0066ff; margin-bottom: 0.5rem; font-family: 'Orbitron', sans-serif; font-size: 0.9rem; }
+        .form-group input, .form-group textarea { width: 100%; background: #000; border: 1px solid #0066ff; color: #fff; padding: 0.8rem; border-radius: 4px; font-family: 'Inter', sans-serif; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; box-shadow: 0 0 10px rgba(0, 102, 255, 0.3); }
+        .image-upload { border: 2px dashed #0066ff; border-radius: 4px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .image-upload:hover { background: rgba(0, 102, 255, 0.1); }
+        .image-preview { max-width: 200px; max-height: 200px; margin: 1rem auto; border-radius: 4px; }
+        .btn-primary { background: #0066ff; color: #fff; border: none; padding: 1rem 2rem; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer; width: 100%; font-size: 1rem; }
+        .btn-primary:hover { background: #0052cc; box-shadow: 0 0 20px rgba(0, 102, 255, 0.5); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .metadata-preview { background: rgba(0, 102, 255, 0.1); border: 1px solid #0066ff; border-radius: 4px; padding: 1rem; margin-top: 1rem; }
+        .metadata-preview pre { color: #0066ff; font-size: 0.85rem; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">Token Metadata Editor</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <a href="index.html" class="header-link" style="color: #0066ff;">Home</a>
+                    <a href="token-launchpad.html" class="header-link" style="color: #0066ff;">Token Launchpad</a>
+                    <a href="mint.html" class="header-link" style="color: #0066ff;">Mint</a>
+                    <a href="swap.html" class="header-link" style="color: #0066ff;">Swap</a>
+                    <a href="upload.html" class="header-link" style="color: #0066ff;">Upload</a>
+                    <a href="analytics.html" class="header-link" style="color: #0066ff;">Analytics</a>
+                    <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+                    <div id="balance-display" class="balance-display hidden">
+                        <div class="balance-item">
+                            <span class="balance-label">SOL</span>
+                            <span id="sol-balance">0</span>
+                        </div>
+                        <div class="balance-item">
+                            <span class="balance-label">S-IO</span>
+                            <span id="sio-balance">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="metadata-container">
+            <div class="token-selector">
+                <h2 style="color: #0066ff; margin-bottom: 1rem;">Select Token</h2>
+                <div id="token-list"></div>
+            </div>
+
+            <div class="metadata-editor" id="metadata-editor">
+                <h2 style="color: #0066ff; margin-bottom: 1.5rem;">Edit Metadata</h2>
+                
+                <div class="form-group">
+                    <label>Token Name</label>
+                    <input type="text" id="meta-name" placeholder="My Token">
+                </div>
+
+                <div class="form-group">
+                    <label>Symbol</label>
+                    <input type="text" id="meta-symbol" placeholder="MTK">
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="meta-description" rows="3" placeholder="Token description..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Image Upload</label>
+                    <div class="image-upload" id="image-upload">
+                        <p style="color: #0066ff; margin: 0;">Click to upload image or drag & drop</p>
+                        <p style="color: #666; font-size: 0.85rem; margin-top: 0.5rem;">PNG, JPG, GIF (Max 5MB)</p>
+                    </div>
+                    <input type="file" id="image-input" accept="image/*" style="display: none;">
+                    <img id="image-preview" class="image-preview" style="display: none;">
+                </div>
+
+                <div class="form-group">
+                    <label>External URL</label>
+                    <input type="url" id="meta-url" placeholder="https://example.com">
+                </div>
+
+                <div class="form-group">
+                    <label>Attributes (JSON)</label>
+                    <textarea id="meta-attributes" rows="4" placeholder='[{"trait_type": "Rarity", "value": "Legendary"}]'></textarea>
+                </div>
+
+                <div class="metadata-preview">
+                    <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Metadata Preview:</label>
+                    <pre id="metadata-json">{}</pre>
+                </div>
+
+                <button class="btn-primary" id="update-btn">Update Metadata</button>
+            </div>
+        </div>
+
+        <footer>
+            <p>Singularity.io v0.3.0 | Token Metadata Editor</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="metadata.js"></script>
+</body>
+</html>

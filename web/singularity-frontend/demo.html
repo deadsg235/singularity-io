@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Demo - Singularity.io</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #0a0a0a;
+            color: #fff;
+            font-family: monospace;
+        }
+        #canvas {
+            width: 100%;
+            height: 600px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(10, 20, 40, 0.9) 100%);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 12px;
+            box-shadow: inset 0 0 50px rgba(0, 212, 255, 0.1), 0 0 30px rgba(0, 212, 255, 0.2);
+        }
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        button {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #00ffff;
+        }
+        .info {
+            text-align: center;
+            color: #00d4ff;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #00d4ff;">Deep Q-Network Visualization Demo</h1>
+    <div class="info">Standalone demo - No backend required</div>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+        <button onclick="updateNetwork()">Update Network</button>
+        <button onclick="resetNetwork()">Reset Network</button>
+        <button onclick="toggleAnimation()">Toggle Animation</button>
+    </div>
+    <div class="info" id="stats">Nodes: 0 | Connections: 0</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let animating = false;
+        let network = null;
+
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            if (network) drawNetwork();
+        }
+
+        function createNetwork(layers = [8, 16, 16, 8]) {
+            const nodes = [];
+            const connections = [];
+            let nodeId = 0;
+
+            for (let layer = 0; layer < layers.length; layer++) {
+                for (let i = 0; i < layers[layer]; i++) {
+                    nodes.push({
+                        id: nodeId++,
+                        layer: layer,
+                        value: Math.random(),
+                        x: Math.random(),
+                        y: layer / (layers.length - 1)
+                    });
+                }
+            }
+
+            let layerStart = 0;
+            for (let layer = 0; layer < layers.length - 1; layer++) {
+                const layerSize = layers[layer];
+                const nextLayerSize = layers[layer + 1];
+                const nextLayerStart = layerStart + layerSize;
+
+                for (let i = 0; i < layerSize; i++) {
+                    for (let j = 0; j < nextLayerSize; j++) {
+                        connections.push({
+                            source: layerStart + i,
+                            target: nextLayerStart + j,
+                            weight: Math.random() * 2 - 1
+                        });
+                    }
+                }
+                layerStart = nextLayerStart;
+            }
+
+            return { nodes, connections, layers };
+        }
+
+        function updateNetwork() {
+            network.nodes.forEach(node => {
+                node.value = Math.max(0, Math.min(1, node.value + (Math.random() - 0.5) * 0.2));
+            });
+            drawNetwork();
+        }
+
+        function resetNetwork() {
+            network = createNetwork();
+            drawNetwork();
+        }
+
+        function toggleAnimation() {
+            animating = !animating;
+            if (animating) animate();
+        }
+
+        function animate() {
+            if (!animating) return;
+            updateNetwork();
+            setTimeout(() => requestAnimationFrame(animate), 100);
+        }
+
+        let particles = [];
+        let animationId;
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 30; i++) {
+                const conn = network.connections[Math.floor(Math.random() * network.connections.length)];
+                particles.push({
+                    connection: conn,
+                    progress: Math.random(),
+                    speed: 0.002 + Math.random() * 0.004
+                });
+            }
+        }
+
+        function drawNetwork() {
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const padding = 60;
+            const width = canvas.width - padding * 2;
+            const height = canvas.height - padding * 2;
+
+            // Draw connections with gradient
+            network.connections.forEach(conn => {
+                const source = network.nodes[conn.source];
+                const target = network.nodes[conn.target];
+                const x1 = padding + source.x * width;
+                const y1 = padding + source.y * height;
+                const x2 = padding + target.x * width;
+                const y2 = padding + target.y * height;
+
+                const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+                gradient.addColorStop(0, `rgba(0, 212, 255, ${0.1 * source.value})`);
+                gradient.addColorStop(1, `rgba(0, 212, 255, ${0.1 * target.value})`);
+
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            });
+
+            // Draw particles
+            particles.forEach(particle => {
+                const conn = particle.connection;
+                const source = network.nodes[conn.source];
+                const target = network.nodes[conn.target];
+
+                const x1 = padding + source.x * width;
+                const y1 = padding + source.y * height;
+                const x2 = padding + target.x * width;
+                const y2 = padding + target.y * height;
+
+                const x = x1 + (x2 - x1) * particle.progress;
+                const y = y1 + (y2 - y1) * particle.progress;
+
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 8);
+                gradient.addColorStop(0, 'rgba(0, 255, 255, 0.9)');
+                gradient.addColorStop(1, 'rgba(0, 212, 255, 0)');
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                particle.progress += particle.speed;
+                if (particle.progress > 1) {
+                    particle.progress = 0;
+                    particle.connection = network.connections[Math.floor(Math.random() * network.connections.length)];
+                }
+            });
+
+            // Draw nodes with 3D effect
+            network.nodes.forEach(node => {
+                const x = padding + node.x * width;
+                const y = padding + node.y * height;
+                const radius = 5 + node.value * 8;
+
+                // Outer glow
+                const outerGlow = ctx.createRadialGradient(x, y, 0, x, y, radius * 3);
+                outerGlow.addColorStop(0, `rgba(0, ${150 + node.value * 105}, 255, ${0.3 * node.value})`);
+                outerGlow.addColorStop(1, 'rgba(0, 212, 255, 0)');
+                ctx.fillStyle = outerGlow;
+                ctx.beginPath();
+                ctx.arc(x, y, radius * 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Main node
+                const nodeGradient = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, 0, x, y, radius);
+                nodeGradient.addColorStop(0, 'rgba(100, 255, 255, 0.9)');
+                nodeGradient.addColorStop(0.5, `rgba(0, ${150 + node.value * 105}, 255, 0.8)`);
+                nodeGradient.addColorStop(1, `rgba(0, ${100 + node.value * 100}, 200, 0.6)`);
+
+                ctx.fillStyle = nodeGradient;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Highlight
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.4 * node.value})`;
+                ctx.beginPath();
+                ctx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Border
+                ctx.strokeStyle = `rgba(0, 255, 255, ${0.6 + node.value * 0.4})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+
+            // Update stats
+            document.getElementById('stats').textContent = 
+                `Nodes: ${network.nodes.length} | Connections: ${network.connections.length}`;
+        }
+
+        // Initialize
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        network = createNetwork();
+        initParticles();
+        
+        function animateLoop() {
+            drawNetwork();
+            animationId = requestAnimationFrame(animateLoop);
+        }
+        animateLoop();
+    </script>
+</body>
+</html>

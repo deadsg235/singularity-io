@@ -1,0 +1,84 @@
+@import url("https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* DARK MODE NATIVE */
+  --color-background: 5 5 5;
+  --color-foreground: 255 255 255;
+  
+  --color-surface-base: 10 10 10;
+  --color-surface-raised: 20 20 20;
+  --color-surface-glass: 10 10 10;
+
+  --color-primary: 255 101 0; /* Dexter Orange */
+  --color-primary-bright: 255 128 40;
+  --color-primary-muted: 60 20 5; /* Deep Burnt Orange for gradients */
+
+  --color-flux: 56 189 248; /* Sky Blue */
+  --color-iris: 99 102 241; /* Indigo */
+
+  /* Neutral Scale (Dark Mode) */
+  --color-neutral-100: 255 255 255;
+  --color-neutral-200: 229 229 229;
+  --color-neutral-300: 163 163 163;
+  --color-neutral-400: 115 115 115;
+  --color-neutral-500: 82 82 82;
+  --color-neutral-600: 64 64 64;
+  --color-neutral-700: 38 38 38;
+  --color-neutral-800: 23 23 23;
+  --color-neutral-900: 10 10 10;
+
+  /* Borders */
+  --color-border-subtle: 255 255 255;
+  --color-border-strong: 255 255 255;
+}
+
+body {
+  @apply text-foreground font-body antialiased;
+  background-color: #050505; /* Hard fallback to Black */
+  /* Deep Space Mesh */
+  background: radial-gradient(circle at 15% 50%, rgba(60, 20, 5, 0.15), transparent 40%),
+              radial-gradient(circle at 85% 30%, rgba(99, 102, 241, 0.08), transparent 40%),
+              #050505; /* Fallback layer */
+  color: #ffffff;
+  overflow: hidden;
+  position: fixed;
+  height: 100vh;
+  width: 100vw;
+}
+
+@supports (height: 100dvh) {
+  html,
+  body {
+    height: 100dvh;
+    width: 100dvw;
+  }
+}
+
+.dexter-header {
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+button,
+input,
+textarea {
+  @apply font-body;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

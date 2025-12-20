@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staking - Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .staking-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+        .staking-card { background: linear-gradient(135deg, rgba(0, 102, 255, 0.1), rgba(0, 255, 136, 0.1)); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem; }
+        .apy-display { font-size: 3rem; color: #00ff88; font-family: 'Orbitron', sans-serif; text-align: center; margin: 1rem 0; }
+        .reward-card { background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">S-IO Token Staking</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <a href="index.html" class="header-link" style="color: #0066ff;">Home</a>
+                    <a href="governance.html" class="header-link" style="color: #00ff88;">Governance</a>
+                    <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+                    <div id="balance-display" class="balance-display hidden">
+                        <div class="balance-item">
+                            <span class="balance-label">SOL</span>
+                            <span id="sol-balance">0</span>
+                        </div>
+                        <div class="balance-item">
+                            <span class="balance-label">S-IO</span>
+                            <span id="sio-balance">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div style="max-width: 1400px; margin: 2rem auto;">
+            <div class="staking-grid">
+                <div class="staking-card">
+                    <h3 style="color: #0066ff; text-align: center; margin-bottom: 1rem;">Current APY</h3>
+                    <div class="apy-display" id="current-apy">24.5%</div>
+                    <div style="text-align: center; color: #ccc; margin-bottom: 2rem;">
+                        Earn rewards by staking S-IO tokens
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Amount to Stake</label>
+                        <input type="number" id="stake-amount" placeholder="0" style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;">
+                        <div style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">
+                            Balance: <span id="sio-balance">0 S-IO</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="stakeTokens()" style="width: 100%; padding: 1rem; background: #00ff88; color: #000; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer; margin-bottom: 0.5rem;">Stake S-IO</button>
+                    <button onclick="unstakeTokens()" style="width: 100%; padding: 1rem; background: #ff8800; color: #fff; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer;">Unstake</button>
+                </div>
+
+                <div class="staking-card">
+                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Your Staking Position</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <div style="color: #ccc;">Staked Amount</div>
+                        <div style="font-size: 1.5rem; color: #fff;" id="staked-amount">0 S-IO</div>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <div style="color: #ccc;">Pending Rewards</div>
+                        <div style="font-size: 1.5rem; color: #00ff88;" id="pending-rewards">0 S-IO</div>
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="color: #ccc;">Est. Daily Rewards</div>
+                        <div style="color: #0066ff;" id="daily-rewards">0 S-IO</div>
+                    </div>
+                    <button onclick="claimRewards()" style="width: 100%; padding: 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer;">Claim Rewards</button>
+                </div>
+            </div>
+
+            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
+                <h3 style="color: #0066ff; margin-bottom: 1rem;">Staking Pools</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                    <div class="reward-card">
+                        <h4 style="color: #00ff88; margin-bottom: 0.5rem;">S-IO Pool</h4>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="color: #ccc;">APY</span>
+                            <span style="color: #00ff88;">24.5%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="color: #ccc;">TVL</span>
+                            <span style="color: #fff;">$18.5M</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #ccc;">Lock Period</span>
+                            <span style="color: #fff;">None</span>
+                        </div>
+                    </div>
+                    
+                    <div class="reward-card">
+                        <h4 style="color: #00ff88; margin-bottom: 0.5rem;">S-IO-SOL LP</h4>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="color: #ccc;">APY</span>
+                            <span style="color: #00ff88;">45.2%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="color: #ccc;">TVL</span>
+                            <span style="color: #fff;">$5.2M</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #ccc;">Lock Period</span>
+                            <span style="color: #fff;">30 days</span>
+                        </div>
+                    </div>
+                    
+                    <div class="reward-card">
+                        <h4 style="color: #00ff88; margin-bottom: 0.5rem;">Revenue Share</h4>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="color: #ccc;">APY</span>
+                            <span style="color: #00ff88;">18.7%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="color: #ccc;">TVL</span>
+                            <span style="color: #fff;">$12.1M</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #ccc;">Lock Period</span>
+                            <span style="color: #fff;">90 days</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
+                <h3 style="color: #0066ff; margin-bottom: 1rem;">Staking Benefits</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">💰</div>
+                        <h4 style="color: #00ff88; margin-bottom: 0.5rem;">Revenue Share</h4>
+                        <p style="color: #ccc; font-size: 0.9rem;">Earn 15% of platform trading fees</p>
+                    </div>
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🗳️</div>
+                        <h4 style="color: #00ff88; margin-bottom: 0.5rem;">Governance Rights</h4>
+                        <p style="color: #ccc; font-size: 0.9rem;">Vote on protocol upgrades</p>
+                    </div>
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🚀</div>
+                        <h4 style="color: #00ff88; margin-bottom: 0.5rem;">Premium Features</h4>
+                        <p style="color: #ccc; font-size: 0.9rem;">Access advanced trading tools</p>
+                    </div>
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎁</div>
+                        <h4 style="color: #00ff88; margin-bottom: 0.5rem;">Airdrops</h4>
+                        <p style="color: #ccc; font-size: 0.9rem;">Receive new token airdrops</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Singularity.io | Earn While You HODL</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="wallet-balance-loader.js"></script>
+    <script src="sio-token.js"></script>
+    <script src="matrix.js"></script>
+    <script src="staking.js"></script>
+</body>
+</html>

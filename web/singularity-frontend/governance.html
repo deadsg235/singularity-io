@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Governance - Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .governance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+        .proposal-card { background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+        .vote-bar { background: #333; height: 8px; border-radius: 4px; overflow: hidden; margin: 0.5rem 0; }
+        .vote-progress { height: 100%; background: linear-gradient(90deg, #00ff88, #0066ff); transition: width 0.3s; }
+        .staking-card { background: linear-gradient(135deg, rgba(0, 102, 255, 0.1), rgba(0, 255, 136, 0.1)); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">S-IO Token Governance</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <a href="index.html" class="header-link" style="color: #0066ff;">Home</a>
+                    <a href="staking.html" class="header-link" style="color: #00ff88;">Staking</a>
+                    <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+                    <div id="balance-display" class="balance-display hidden">
+                        <div class="balance-item">
+                            <span class="balance-label">SOL</span>
+                            <span id="sol-balance">0</span>
+                        </div>
+                        <div class="balance-item">
+                            <span class="balance-label">S-IO</span>
+                            <span id="header-sio-balance">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div style="max-width: 1400px; margin: 2rem auto;">
+            <div class="governance-grid">
+                <div class="staking-card">
+                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Your S-IO Holdings</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <div style="color: #ccc;">Balance</div>
+                        <div style="font-size: 2rem; color: #00ff88; font-family: 'Orbitron', sans-serif;" id="sio-balance">0 S-IO</div>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <div style="color: #ccc;">Voting Power</div>
+                        <div style="font-size: 1.2rem; color: #0066ff;" id="voting-power">0%</div>
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="color: #ccc;">Staked Amount</div>
+                        <div style="color: #fff;" id="staked-amount">0 S-IO</div>
+                    </div>
+                    <button onclick="window.location.href='staking.html'" style="width: 100%; padding: 1rem; background: #00ff88; color: #000; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer;">Stake S-IO</button>
+                </div>
+
+                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
+                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Governance Stats</h3>
+                    <div style="display: grid; gap: 1rem;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #ccc;">Total Supply</span>
+                            <span style="color: #fff;">100M S-IO</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #ccc;">Circulating</span>
+                            <span style="color: #fff;">25M S-IO</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #ccc;">Staked</span>
+                            <span style="color: #00ff88;">18.5M S-IO (74%)</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #ccc;">Active Proposals</span>
+                            <span style="color: #0066ff;">3</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
+                <h3 style="color: #0066ff; margin-bottom: 1rem;">Active Proposals</h3>
+                <div id="proposals-list"></div>
+            </div>
+
+            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
+                <h3 style="color: #0066ff; margin-bottom: 1rem;">Create Proposal</h3>
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Title</label>
+                    <input type="text" id="proposal-title" placeholder="Proposal title..." style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: #0066ff; display: block; margin-bottom: 0.5rem;">Description</label>
+                    <textarea id="proposal-description" rows="4" placeholder="Detailed description..." style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;"></textarea>
+                </div>
+                <button onclick="createProposal()" style="padding: 1rem 2rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer;">Submit Proposal</button>
+            </div>
+        </div>
+
+        <footer>
+            <p>Singularity.io | Decentralized Governance</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="wallet-balance-loader.js"></script>
+    <script src="sio-token.js"></script>
+    <script src="matrix.js"></script>
+    <script src="governance.js"></script>
+</body>
+</html>
