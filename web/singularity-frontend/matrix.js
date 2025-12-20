@@ -1,6 +1,7 @@
 let matrixCanvas, matrixCtx;
 let drops = [];
 let walletConnected = false;
+let matrixEnabled = true;
 
 const chars = "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン";
 
@@ -20,7 +21,39 @@ function initMatrix() {
     }
     
     window.addEventListener('resize', resizeMatrix);
+    
+    // Initialize toggle button
+    const toggleBtn = document.getElementById('matrix-toggle');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', toggleMatrix);
+        updateToggleButton();
+    }
+    
     animateMatrix();
+}
+
+function toggleMatrix() {
+    matrixEnabled = !matrixEnabled;
+    updateToggleButton();
+    
+    if (!matrixEnabled) {
+        // Clear the canvas
+        matrixCtx.fillStyle = 'rgba(0, 0, 0, 1)';
+        matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+    }
+}
+
+function updateToggleButton() {
+    const toggleBtn = document.getElementById('matrix-toggle');
+    if (toggleBtn) {
+        if (matrixEnabled) {
+            toggleBtn.classList.add('active');
+            toggleBtn.textContent = 'M';
+        } else {
+            toggleBtn.classList.remove('active');
+            toggleBtn.textContent = 'M';
+        }
+    }
 }
 
 function resizeMatrix() {
@@ -29,33 +62,35 @@ function resizeMatrix() {
 }
 
 function animateMatrix() {
-    matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-    matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
-    
-    const fontSize = 16;
-    matrixCtx.font = `${fontSize}px monospace`;
-    
-    for (let i = 0; i < drops.length; i++) {
-        const char = chars[Math.floor(Math.random() * chars.length)];
-        const x = i * 20;
-        const y = drops[i] * fontSize;
+    if (matrixEnabled) {
+        matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
         
-        if (walletConnected) {
-            const gradient = matrixCtx.createLinearGradient(x, y - 100, x, y + 100);
-            gradient.addColorStop(0, '#ff4400');
-            gradient.addColorStop(0.5, '#ff8800');
-            gradient.addColorStop(1, '#ffaa00');
-            matrixCtx.fillStyle = gradient;
-        } else {
-            matrixCtx.fillStyle = `hsl(200, 100%, ${50 + Math.sin(y * 0.01) * 30}%)`;
+        const fontSize = 16;
+        matrixCtx.font = `${fontSize}px monospace`;
+        
+        for (let i = 0; i < drops.length; i++) {
+            const char = chars[Math.floor(Math.random() * chars.length)];
+            const x = i * 20;
+            const y = drops[i] * fontSize;
+            
+            if (walletConnected) {
+                const gradient = matrixCtx.createLinearGradient(x, y - 100, x, y + 100);
+                gradient.addColorStop(0, '#ff4400');
+                gradient.addColorStop(0.5, '#ff8800');
+                gradient.addColorStop(1, '#ffaa00');
+                matrixCtx.fillStyle = gradient;
+            } else {
+                matrixCtx.fillStyle = `hsl(200, 100%, ${50 + Math.sin(y * 0.01) * 30}%)`;
+            }
+            
+            matrixCtx.fillText(char, x, y);
+            
+            if (y > matrixCanvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
         }
-        
-        matrixCtx.fillText(char, x, y);
-        
-        if (y > matrixCanvas.height && Math.random() > 0.975) {
-            drops[i] = 0;
-        }
-        drops[i]++;
     }
     
     requestAnimationFrame(animateMatrix);

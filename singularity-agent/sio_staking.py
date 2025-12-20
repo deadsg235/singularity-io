@@ -5,7 +5,7 @@ SIO Staking - Staking functionality for SIO tokens
 import asyncio
 from typing import Dict, List
 from dataclasses import dataclass
-from sio_balance import SIOBalanceClient
+from sio_balance_simple import SIOBalanceClient
 
 @dataclass
 class StakeInfo:

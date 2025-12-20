@@ -719,6 +719,39 @@ footer {
     display: none;
 }
 
+.matrix-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    background: rgba(0, 102, 255, 0.1);
+    border: 1px solid #0066ff;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    color: #0066ff;
+    backdrop-filter: blur(10px);
+}
+
+.matrix-toggle:hover {
+    background: rgba(0, 102, 255, 0.2);
+    box-shadow: 0 0 20px rgba(0, 102, 255, 0.4);
+    transform: scale(1.1);
+}
+
+.matrix-toggle.active {
+    background: rgba(0, 255, 0, 0.1);
+    border-color: #00ff00;
+    color: #00ff00;
+}
+
 @media (max-width: 768px) {
     .header-content {
         flex-direction: column;
@@ -743,5 +776,11 @@ footer {
     
     #network-canvas {
         height: 300px;
+    }
+    
+    .matrix-toggle {
+        width: 50px;
+        height: 50px;
+        font-size: 0.7rem;
     }
 }

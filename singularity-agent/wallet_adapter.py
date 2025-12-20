@@ -29,7 +29,7 @@ class WalletAdapter:
             raise ValueError(f"Unsupported wallet: {adapter_name}")
         
         # Get balance
-        from sio_balance import SIOBalanceClient
+        from sio_balance_simple import SIOBalanceClient
         client = SIOBalanceClient()
         balance_result = await client.get_sio_balance(address)
         

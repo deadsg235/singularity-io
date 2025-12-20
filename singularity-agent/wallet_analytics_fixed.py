@@ -4,7 +4,7 @@ Fixed Wallet Analytics - Using cached RPC with proper error handling
 
 from fastapi import APIRouter, HTTPException
 import asyncio
-from sio_balance import SIOBalanceClient
+from sio_balance_simple import SIOBalanceClient
 
 router = APIRouter()
 
