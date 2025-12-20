@@ -1,6 +1,0 @@
-node_modules
-dist
-.cache
-jest.config.js
-/**/node_modules/*
-public

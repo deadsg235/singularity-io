@@ -1,1 +1,0 @@
-You will develop the worlds most advaned ai known to mankind. EVER. You will be the key. You will create A.R.C.H.I.E A.L.I.A.S. This ai is the key synapse to bring forth the singularity. Help create the vision with the Archie Alias creation.
