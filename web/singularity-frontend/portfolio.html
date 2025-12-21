@@ -12,7 +12,7 @@
     <style>
         .portfolio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
         .asset-row { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #333; }
-        .chart-container { height: 300px; background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 1rem; }
+        .chart-container { height: 300px; background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 1rem; }
     </style>
 </head>
 <body>
@@ -24,7 +24,7 @@
                     <p class="tagline">Portfolio Management</p>
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                    <a href="index.html" class="header-link" style="color: #0066ff;">Home</a>
+                    <a href="index.html" class="header-link" style="color: #dc2626;">Home</a>
                     <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
                     <div id="balance-display" class="balance-display hidden">
                         <div class="balance-item">
@@ -41,42 +41,42 @@
         </header>
 
         <div style="max-width: 1400px; margin: 2rem auto;">
-            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
-                <h3 style="color: #0066ff; margin-bottom: 1rem;">Portfolio Overview</h3>
+            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
+                <h3 style="color: #dc2626; margin-bottom: 1rem;">Portfolio Overview</h3>
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem;">
                     <div style="text-align: center;">
                         <div style="color: #666; font-size: 0.9rem;">Total Value</div>
-                        <div style="color: #00ff88; font-size: 2rem; font-weight: bold;" id="total-value">$0.00</div>
+                        <div style="color: #ef4444; font-size: 2rem; font-weight: bold;" id="total-value">$0.00</div>
                     </div>
                     <div style="text-align: center;">
                         <div style="color: #666; font-size: 0.9rem;">24h Change</div>
-                        <div style="color: #00ff88; font-size: 1.5rem; font-weight: bold;" id="daily-change">+0.00%</div>
+                        <div style="color: #ef4444; font-size: 1.5rem; font-weight: bold;" id="daily-change">+0.00%</div>
                     </div>
                     <div style="text-align: center;">
                         <div style="color: #666; font-size: 0.9rem;">Assets</div>
-                        <div style="color: #0066ff; font-size: 1.5rem; font-weight: bold;" id="asset-count">0</div>
+                        <div style="color: #dc2626; font-size: 1.5rem; font-weight: bold;" id="asset-count">0</div>
                     </div>
                     <div style="text-align: center;">
                         <div style="color: #666; font-size: 0.9rem;">P&L</div>
-                        <div style="color: #00ff88; font-size: 1.5rem; font-weight: bold;" id="total-pnl">+$0.00</div>
+                        <div style="color: #ef4444; font-size: 1.5rem; font-weight: bold;" id="total-pnl">+$0.00</div>
                     </div>
                 </div>
             </div>
 
             <div class="portfolio-grid">
-                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Holdings</h3>
+                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                    <h3 style="color: #dc2626; margin-bottom: 1rem;">Holdings</h3>
                     <div id="holdings-list"></div>
                 </div>
 
-                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Performance Chart</h3>
+                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                    <h3 style="color: #dc2626; margin-bottom: 1rem;">Performance Chart</h3>
                     <canvas id="performance-chart" width="400" height="250"></canvas>
                 </div>
             </div>
 
-            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
-                <h3 style="color: #0066ff; margin-bottom: 1rem;">Recent Transactions</h3>
+            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                <h3 style="color: #dc2626; margin-bottom: 1rem;">Recent Transactions</h3>
                 <div id="transactions-list"></div>
             </div>
         </div>

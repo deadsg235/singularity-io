@@ -11,13 +11,13 @@
     <link rel="stylesheet" href="style.css">
     <style>
         .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-        .metric-card { background: linear-gradient(135deg, rgba(0, 102, 255, 0.1), rgba(0, 255, 136, 0.1)); border: 1px solid #0066ff; border-radius: 8px; padding: 1.5rem; }
-        .metric-value { font-size: 2rem; font-weight: 900; color: #00ff88; font-family: 'Orbitron', sans-serif; }
-        .metric-label { color: #0066ff; font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .metric-card { background: linear-gradient(135deg, rgba(0, 102, 255, 0.1), rgba(0, 255, 136, 0.1)); border: 1px solid #dc2626; border-radius: 8px; padding: 1.5rem; }
+        .metric-value { font-size: 2rem; font-weight: 900; color: #ef4444; font-family: 'Orbitron', sans-serif; }
+        .metric-label { color: #dc2626; font-size: 0.9rem; margin-bottom: 0.5rem; }
         .metric-change { font-size: 0.8rem; margin-top: 0.5rem; }
-        .positive { color: #00ff88; }
+        .positive { color: #ef4444; }
         .negative { color: #ff4444; }
-        .chart-container { background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+        .chart-container { background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
     </style>
 </head>
 <body>
@@ -129,17 +129,17 @@
             </div>
 
             <div class="chart-container">
-                <h3 style="color: #0066ff; margin-bottom: 1rem;">Revenue Breakdown</h3>
+                <h3 style="color: #dc2626; margin-bottom: 1rem;">Revenue Breakdown</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
                     <div>
                         <canvas id="revenue-chart" width="400" height="200"></canvas>
                     </div>
                     <div style="color: #fff;">
                         <div style="margin-bottom: 1rem;">
-                            <span style="color: #0066ff;">●</span> Trading Fees: $8.2K (66.7%)
+                            <span style="color: #dc2626;">●</span> Trading Fees: $8.2K (66.7%)
                         </div>
                         <div style="margin-bottom: 1rem;">
-                            <span style="color: #00ff88;">●</span> Token Launches: $2.8K (22.8%)
+                            <span style="color: #ef4444;">●</span> Token Launches: $2.8K (22.8%)
                         </div>
                         <div style="margin-bottom: 1rem;">
                             <span style="color: #ff8800;">●</span> Bot Subscriptions: $1.3K (10.5%)
@@ -150,12 +150,12 @@
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
                 <div class="chart-container">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Top Performing Bots</h3>
+                    <h3 style="color: #dc2626; margin-bottom: 1rem;">Top Performing Bots</h3>
                     <div id="bot-leaderboard"></div>
                 </div>
                 
                 <div class="chart-container">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Recent Activity</h3>
+                    <h3 style="color: #dc2626; margin-bottom: 1rem;">Recent Activity</h3>
                     <div id="activity-feed"></div>
                 </div>
             </div>

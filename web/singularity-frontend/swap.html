@@ -10,12 +10,12 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="style.css">
     <style>
-        .swap-container { max-width: 500px; margin: 2rem auto; background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 12px; padding: 2rem; }
+        .swap-container { max-width: 500px; margin: 2rem auto; background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 12px; padding: 2rem; }
         .token-input { background: rgba(0, 0, 0, 0.5); border: 1px solid #333; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
-        .token-select { background: #0066ff; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; cursor: pointer; }
+        .token-select { background: #dc2626; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; cursor: pointer; }
         .amount-input { background: transparent; border: none; color: #fff; font-size: 1.5rem; width: 100%; outline: none; }
         .swap-arrow { text-align: center; margin: 1rem 0; }
-        .swap-button { width: 100%; padding: 1rem; background: #00ff88; color: #000; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
+        .swap-button { width: 100%; padding: 1rem; background: #ef4444; color: #000; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -88,7 +88,7 @@
         </header>
 
         <div class="swap-container">
-            <h3 style="color: #0066ff; margin-bottom: 1.5rem; text-align: center;">Swap Tokens</h3>
+            <h3 style="color: #dc2626; margin-bottom: 1.5rem; text-align: center;">Swap Tokens</h3>
             
             <div class="token-input">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
@@ -107,7 +107,7 @@
             </div>
 
             <div class="swap-arrow">
-                <button onclick="swapTokens()" style="background: #333; border: 1px solid #0066ff; color: #0066ff; border-radius: 50%; width: 40px; height: 40px; cursor: pointer;">⇅</button>
+                <button onclick="swapTokens()" style="background: #333; border: 1px solid #dc2626; color: #dc2626; border-radius: 50%; width: 40px; height: 40px; cursor: pointer;">⇅</button>
             </div>
 
             <div class="token-input">
@@ -145,8 +145,8 @@
         </div>
 
         <div style="max-width: 800px; margin: 2rem auto;">
-            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
-                <h3 style="color: #0066ff; margin-bottom: 1rem;">Recent Swaps</h3>
+            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                <h3 style="color: #dc2626; margin-bottom: 1rem;">Recent Swaps</h3>
                 <div id="recent-swaps"></div>
             </div>
         </div>

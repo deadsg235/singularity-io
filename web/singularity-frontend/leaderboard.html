@@ -12,14 +12,14 @@
     <style>
         .leaderboard-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
         .leaderboard-table th, .leaderboard-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #333; }
-        .leaderboard-table th { color: #0066ff; font-family: 'Orbitron', sans-serif; }
+        .leaderboard-table th { color: #dc2626; font-family: 'Orbitron', sans-serif; }
         .leaderboard-table td { color: #fff; }
-        .rank { color: #00ff88; font-weight: bold; }
-        .profit { color: #00ff88; }
+        .rank { color: #ef4444; font-weight: bold; }
+        .profit { color: #ef4444; }
         .loss { color: #ff4444; }
         .filter-tabs { display: flex; gap: 1rem; margin-bottom: 2rem; }
-        .filter-tab { padding: 0.8rem 1.5rem; background: rgba(0, 102, 255, 0.1); border: 1px solid #0066ff; color: #0066ff; cursor: pointer; border-radius: 4px; font-family: 'Orbitron', sans-serif; }
-        .filter-tab.active { background: #0066ff; color: #fff; }
+        .filter-tab { padding: 0.8rem 1.5rem; background: rgba(0, 102, 255, 0.1); border: 1px solid #dc2626; color: #dc2626; cursor: pointer; border-radius: 4px; font-family: 'Orbitron', sans-serif; }
+        .filter-tab.active { background: #dc2626; color: #fff; }
     </style>
 </head>
 <body>
@@ -31,8 +31,8 @@
                     <p class="tagline">Trading Leaderboard</p>
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                    <a href="index.html" class="header-link" style="color: #0066ff;">Home</a>
-                    <a href="social.html" class="header-link" style="color: #00ff88;">Social</a>
+                    <a href="index.html" class="header-link" style="color: #dc2626;">Home</a>
+                    <a href="social.html" class="header-link" style="color: #ef4444;">Social</a>
                     <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
                     <div id="balance-display" class="balance-display hidden">
                         <div class="balance-item">
@@ -56,7 +56,7 @@
                 <div class="filter-tab" onclick="switchTab('all-time')">All Time</div>
             </div>
 
-            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
+            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
                 <table class="leaderboard-table">
                     <thead>
                         <tr>
@@ -76,13 +76,13 @@
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
-                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Top Performing Strategies</h3>
+                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                    <h3 style="color: #dc2626; margin-bottom: 1rem;">Top Performing Strategies</h3>
                     <div id="top-strategies"></div>
                 </div>
 
-                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Market Leaders</h3>
+                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                    <h3 style="color: #dc2626; margin-bottom: 1rem;">Market Leaders</h3>
                     <div id="market-leaders"></div>
                 </div>
             </div>

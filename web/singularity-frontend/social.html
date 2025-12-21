@@ -11,10 +11,10 @@
     <link rel="stylesheet" href="style.css">
     <style>
         .social-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
-        .trader-card { background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+        .trader-card { background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
         .leaderboard-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0, 102, 255, 0.1); border-radius: 4px; margin-bottom: 0.5rem; }
-        .follow-btn { padding: 0.5rem 1rem; background: #00ff88; color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
-        .signal-card { background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+        .follow-btn { padding: 0.5rem 1rem; background: #ef4444; color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+        .signal-card { background: rgba(0, 255, 136, 0.1); border: 1px solid #ef4444; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
     </style>
 </head>
 <body>
@@ -26,8 +26,8 @@
                     <p class="tagline">Social Trading Platform</p>
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                    <a href="index.html" class="header-link" style="color: #0066ff;">Home</a>
-                    <a href="leaderboard.html" class="header-link" style="color: #00ff88;">Leaderboard</a>
+                    <a href="index.html" class="header-link" style="color: #dc2626;">Home</a>
+                    <a href="leaderboard.html" class="header-link" style="color: #ef4444;">Leaderboard</a>
                     <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
                     <div id="balance-display" class="balance-display hidden">
                         <div class="balance-item">
@@ -45,38 +45,38 @@
 
         <div style="max-width: 1400px; margin: 2rem auto;">
             <div class="social-grid">
-                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Top Traders</h3>
+                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                    <h3 style="color: #dc2626; margin-bottom: 1rem;">Top Traders</h3>
                     <div id="top-traders"></div>
                 </div>
 
-                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Your Following</h3>
+                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                    <h3 style="color: #dc2626; margin-bottom: 1rem;">Your Following</h3>
                     <div id="following-list"></div>
                     <div style="text-align: center; margin-top: 1rem;">
                         <div style="color: #ccc; margin-bottom: 0.5rem;">Copy Trading Active</div>
-                        <div style="color: #00ff88; font-size: 1.2rem;" id="copy-pnl">+$0.00</div>
+                        <div style="color: #ef4444; font-size: 1.2rem;" id="copy-pnl">+$0.00</div>
                     </div>
                 </div>
             </div>
 
-            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
-                <h3 style="color: #0066ff; margin-bottom: 1rem;">Live Trading Signals</h3>
+            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
+                <h3 style="color: #dc2626; margin-bottom: 1rem;">Live Trading Signals</h3>
                 <div id="trading-signals"></div>
             </div>
 
             <div class="social-grid">
-                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Community Feed</h3>
+                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                    <h3 style="color: #dc2626; margin-bottom: 1rem;">Community Feed</h3>
                     <div id="community-feed"></div>
                 </div>
 
-                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #0066ff; border-radius: 8px; padding: 2rem;">
-                    <h3 style="color: #0066ff; margin-bottom: 1rem;">Share Your Trade</h3>
+                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                    <h3 style="color: #dc2626; margin-bottom: 1rem;">Share Your Trade</h3>
                     <div style="margin-bottom: 1rem;">
-                        <textarea id="trade-post" placeholder="Share your trading insights..." rows="3" style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #0066ff; color: #fff; border-radius: 4px;"></textarea>
+                        <textarea id="trade-post" placeholder="Share your trading insights..." rows="3" style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #dc2626; color: #fff; border-radius: 4px;"></textarea>
                     </div>
-                    <button onclick="sharePost()" style="width: 100%; padding: 1rem; background: #0066ff; color: #fff; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer;">Share Post</button>
+                    <button onclick="sharePost()" style="width: 100%; padding: 1rem; background: #dc2626; color: #fff; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer;">Share Post</button>
                 </div>
             </div>
         </div>
