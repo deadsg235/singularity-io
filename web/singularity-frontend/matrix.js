@@ -76,12 +76,12 @@ function animateMatrix() {
             
             if (walletConnected) {
                 const gradient = matrixCtx.createLinearGradient(x, y - 100, x, y + 100);
-                gradient.addColorStop(0, '#ff4400');
-                gradient.addColorStop(0.5, '#ff8800');
-                gradient.addColorStop(1, '#ffaa00');
+                gradient.addColorStop(0, '#dc2626');
+                gradient.addColorStop(0.5, '#ef4444');
+                gradient.addColorStop(1, '#fca5a5');
                 matrixCtx.fillStyle = gradient;
             } else {
-                matrixCtx.fillStyle = `hsl(200, 100%, ${50 + Math.sin(y * 0.01) * 30}%)`;
+                matrixCtx.fillStyle = `hsl(0, 100%, ${30 + Math.sin(y * 0.01) * 20}%)`;
             }
             
             matrixCtx.fillText(char, x, y);

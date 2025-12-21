@@ -176,8 +176,8 @@ function drawConnections() {
         const y2 = padding + target.y * height;
         
         const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-        gradient.addColorStop(0, `rgba(0, 102, 255, ${0.15 * source.value})`);
-        gradient.addColorStop(1, `rgba(0, 102, 255, ${0.15 * target.value})`);
+        gradient.addColorStop(0, `rgba(220, 38, 38, ${0.15 * source.value})`);
+        gradient.addColorStop(1, `rgba(220, 38, 38, ${0.15 * target.value})`);
         
         ctx.strokeStyle = gradient;
         ctx.lineWidth = 1;
@@ -208,8 +208,8 @@ function drawParticles() {
         const y = y1 + (y2 - y1) * particle.progress;
         
         const gradient = ctx.createRadialGradient(x, y, 0, x, y, 10);
-        gradient.addColorStop(0, 'rgba(0, 102, 255, 1)');
-        gradient.addColorStop(1, 'rgba(0, 102, 255, 0)');
+        gradient.addColorStop(0, 'rgba(220, 38, 38, 1)');
+        gradient.addColorStop(1, 'rgba(220, 38, 38, 0)');
         
         ctx.fillStyle = gradient;
         ctx.beginPath();
@@ -237,8 +237,8 @@ function drawNodes() {
         
         // Outer glow
         const outerGlow = ctx.createRadialGradient(x, y, 0, x, y, radius * 3);
-        outerGlow.addColorStop(0, `rgba(0, 102, 255, ${0.4 * node.value})`);
-        outerGlow.addColorStop(1, 'rgba(0, 102, 255, 0)');
+        outerGlow.addColorStop(0, `rgba(220, 38, 38, ${0.4 * node.value})`);
+        outerGlow.addColorStop(1, 'rgba(220, 38, 38, 0)');
         ctx.fillStyle = outerGlow;
         ctx.beginPath();
         ctx.arc(x, y, radius * 3, 0, Math.PI * 2);
@@ -246,9 +246,9 @@ function drawNodes() {
         
         // Main node with gradient
         const nodeGradient = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, 0, x, y, radius);
-        nodeGradient.addColorStop(0, 'rgba(100, 150, 255, 1)');
-        nodeGradient.addColorStop(0.5, `rgba(0, 102, 255, ${0.9})`);
-        nodeGradient.addColorStop(1, `rgba(0, 80, 200, ${0.7})`);
+        nodeGradient.addColorStop(0, 'rgba(255, 150, 150, 1)');
+        nodeGradient.addColorStop(0.5, `rgba(220, 38, 38, ${0.9})`);
+        nodeGradient.addColorStop(1, `rgba(153, 27, 27, ${0.7})`);
         
         ctx.fillStyle = nodeGradient;
         ctx.beginPath();
@@ -262,7 +262,7 @@ function drawNodes() {
         ctx.fill();
         
         // Border
-        ctx.strokeStyle = `rgba(0, 102, 255, ${0.8 + node.value * 0.2})`;
+        ctx.strokeStyle = `rgba(220, 38, 38, ${0.8 + node.value * 0.2})`;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -281,7 +281,7 @@ function drawLayerLabels() {
     
     networkData.layers.forEach((size, idx) => {
         const y = padding + (idx / (networkData.layers.length - 1)) * height;
-        ctx.fillStyle = 'rgba(0, 102, 255, 0.8)';
+        ctx.fillStyle = 'rgba(220, 38, 38, 0.8)';
         ctx.fillText(`${layerNames[idx] || `Layer ${idx}`} (${size})`, 10, y + 5);
     });
 }
@@ -330,15 +330,15 @@ function initChatTerminal() {
     
     const welcome = document.createElement('div');
     welcome.className = 'chat-message system';
-    welcome.innerHTML = `<span style="color: #0066ff;">╔═══════════════════════════════════════╗</span><br>
-<span style="color: #0066ff;">║</span>  SINGULARITY.IO AI TERMINAL v0.2.0  <span style="color: #0066ff;">║</span><br>
-<span style="color: #0066ff;">╚═══════════════════════════════════════╝</span><br><br>
+    welcome.innerHTML = `<span style="color: #dc2626;">╔═══════════════════════════════════════╗</span><br>
+<span style="color: #dc2626;">║</span>  SINGULARITY.IO AI TERMINAL v0.2.0  <span style="color: #dc2626;">║</span><br>
+<span style="color: #dc2626;">╚═══════════════════════════════════════╝</span><br><br>
 <span style="color: #666;">Connected to Groq Llama 3.3 70B</span><br>
 <span style="color: #666;">Type your message or try:</span><br>
-<span style="color: #0066ff;">• "Create a token called MyToken"</span><br>
-<span style="color: #0066ff;">• "What is my wallet status?"</span><br>
-<span style="color: #0066ff;">• "Explain the neural network"</span><br><br>
-<span style="color: #00ff00;">Ready ></span>`;
+<span style="color: #dc2626;">• "Create a token called MyToken"</span><br>
+<span style="color: #dc2626;">• "What is my wallet status?"</span><br>
+<span style="color: #dc2626;">• "Explain the neural network"</span><br><br>
+<span style="color: #ef4444;">Ready ></span>`;
     output.appendChild(welcome);
 }
 
@@ -399,7 +399,7 @@ function addChatMessage(role, text) {
     if (role === 'user') {
         msg.innerHTML = `<span style="color: #fff;">> ${text}</span>`;
     } else if (role === 'assistant') {
-        msg.innerHTML = `<span style="color: #0066ff;">AI:</span> <span style="color: #ccc;">${text}</span>`;
+        msg.innerHTML = `<span style="color: #dc2626;">AI:</span> <span style="color: #ccc;">${text}</span>`;
     } else {
         msg.innerHTML = text;
     }
@@ -451,7 +451,7 @@ async function executeTokenCreation(params) {
         // Trigger storage event for launchpad page
         window.dispatchEvent(new Event('storage'));
         
-        addChatMessage('assistant', `✅ Token created successfully!\n\nName: ${params.name}\nSymbol: ${params.symbol}\nSupply: ${params.supply.toLocaleString()}\nMint: ${mintKeypair.slice(0, 8)}...${mintKeypair.slice(-8)}\n\nView all tokens on the <a href="launchpad.html" style="color: #0066ff;">Token Launchpad</a>`);
+        addChatMessage('assistant', `✅ Token created successfully!\n\nName: ${params.name}\nSymbol: ${params.symbol}\nSupply: ${params.supply.toLocaleString()}\nMint: ${mintKeypair.slice(0, 8)}...${mintKeypair.slice(-8)}\n\nView all tokens on the <a href="token-launchpad.html" style="color: #dc2626;">Token Launchpad</a>`);
     } catch (error) {
         addChatMessage('assistant', `Failed to create token: ${error.message}`);
     }
