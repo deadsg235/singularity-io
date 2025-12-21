@@ -176,12 +176,30 @@ class PhantomWalletAdapter {
     onConnect() {
         const address = this.sdk ? this.addresses[0]?.address : this.publicKey?.toString();
         console.log('Wallet connected:', address);
+        
+        // Store wallet address
+        if (address) {
+            localStorage.setItem('walletAddress', address);
+            // Load balances using unified loader
+            window.walletBalanceLoader.refreshBalances(address);
+        }
+        
         this.updateUI();
         this.dispatchEvent('walletConnected', { publicKey: address });
     }
 
     onDisconnect() {
         console.log('Wallet disconnected');
+        
+        // Clear stored wallet address
+        localStorage.removeItem('walletAddress');
+        
+        // Hide balance display
+        const balanceDisplay = document.getElementById('balance-display');
+        if (balanceDisplay) {
+            balanceDisplay.classList.add('hidden');
+        }
+        
         this.updateUI();
         this.dispatchEvent('walletDisconnected');
     }
