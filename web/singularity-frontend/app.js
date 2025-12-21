@@ -303,19 +303,16 @@ async function connectWallet() {
     
     try {
         if (window.walletAdapter.isConnected()) {
-            // Disconnect wallet
             await window.walletAdapter.disconnect();
             walletAddress = null;
             solanaConnection = null;
             updateStatus('wallet-status', 'Not Connected', false);
             console.log('Wallet disconnected');
         } else {
-            // Connect wallet
-            const response = await window.walletAdapter.connect('Phantom');
+            const response = await window.walletAdapter.connect();
             walletAddress = response.publicKey.toString();
             
             updateStatus('wallet-status', 'Connected', true);
-            loadWalletBalances();
             console.log('Wallet connected:', walletAddress);
         }
     } catch (error) {
@@ -473,117 +470,6 @@ function generateMintAddress() {
 window.addEventListener('beforeunload', () => {
     if (animationFrame) cancelAnimationFrame(animationFrame);
 });
-
-// Load wallet balances
-async function loadWalletBalances() {
-    if (!walletAddress) {
-        console.log('loadWalletBalances: Wallet not connected.');
-        return;
-    }
-    
-    console.log('loadWalletBalances: Attempting to load balances for wallet:', walletAddress);
-
-    let lastError = null;
-    const allEndpoints = [SOLANA_RPC, ...FALLBACK_RPC_ENDPOINTS];
-    
-    for (let attempt = 0; attempt < allEndpoints.length; attempt++) {
-        const endpoint = allEndpoints[attempt];
-        
-        try {
-            console.log(`loadWalletBalances: Trying RPC endpoint ${attempt + 1}/${allEndpoints.length}: ${endpoint}`);
-            
-            const connection = new solanaWeb3.Connection(
-                endpoint,
-                { commitment: 'confirmed', timeout: 10000 } // 10 second timeout
-            );
-
-            const owner = new solanaWeb3.PublicKey(walletAddress);
-
-            // ---------- SOL BALANCE ----------
-            console.log('loadWalletBalances: Fetching SOL balance...');
-            const lamportsPromise = connection.getBalance(owner);
-            const lamports = await Promise.race([
-                lamportsPromise,
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('SOL balance fetch timeout')), 10000)
-                )
-            ]);
-            const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
-
-            document.getElementById('sol-balance').textContent =
-                solBalance.toFixed(4);
-
-            console.log('loadWalletBalances: SOL balance fetched successfully.');
-
-            // ---------- SIO TOKEN BALANCE ----------
-            console.log('loadWalletBalances: Fetching SIO token balance...');
-            const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDRESS);
-
-            const tokenAccountsPromise = connection.getParsedTokenAccountsByOwner(
-                owner,
-                { mint }
-            );
-            const tokenAccounts = await Promise.race([
-                tokenAccountsPromise,
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('SIO token balance fetch timeout')), 10000)
-                )
-            ]);
-
-            let sioBalance = 0;
-
-            if (tokenAccounts.value.length > 0) {
-                const tokenInfo =
-                    tokenAccounts.value[0].account.data.parsed.info;
-
-                sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
-            }
-
-            document.getElementById('sio-balance').textContent =
-                sioBalance.toLocaleString(undefined, {
-                    maximumFractionDigits: 6
-                });
-
-            console.log('loadWalletBalances: Balances updated successfully.');
-            console.log('loadWalletBalances: SOL element:', document.getElementById('sol-balance'));
-            console.log('loadWalletBalances: SIO element:', document.getElementById('sio-balance'));
-
-            console.log('Balances loaded', {
-                sol: solBalance,
-                sio: sioBalance,
-                endpoint: endpoint
-            });
-
-            // Success - update the global connection to use this working endpoint
-            solanaConnection = connection;
-            return;
-
-        } catch (err) {
-            lastError = err;
-            console.warn(`loadWalletBalances: RPC endpoint ${endpoint} failed:`, err.message);
-            
-            // If this is not the last endpoint, wait before trying the next one
-            if (attempt < allEndpoints.length - 1) {
-                const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Exponential backoff, max 5s
-                console.log(`loadWalletBalances: Waiting ${delay}ms before trying next endpoint...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-            }
-        }
-    }
-
-    // All endpoints failed
-    console.error('loadWalletBalances: All RPC endpoints failed. Last error:', lastError);
-
-    document.getElementById('sol-balance').textContent = '—';
-    document.getElementById('sio-balance').textContent = '—';
-
-    alert('Unable to load wallet balances. All RPC endpoints are currently busy. Please try again in a few minutes.');
-    addChatMessage(
-        'assistant',
-        '⚠️ Unable to load balances (all RPC endpoints busy). Try again in a few minutes.'
-    );
-}
-
 
 // Log initialization
 console.log('Singularity.io v0.2.0 - Neural Network Visualization Ready');

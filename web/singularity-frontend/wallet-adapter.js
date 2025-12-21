@@ -1,41 +1,36 @@
-// Phantom SDK Integration for S-IO Platform
+// Phantom Wallet Adapter for S-IO Platform
 
 class PhantomWalletAdapter {
     constructor() {
-        this.sdk = null;
+        this.wallet = null;
         this.connected = false;
         this.connecting = false;
-        this.addresses = [];
+        this.publicKey = null;
         this.init();
     }
 
     async init() {
-        try {
-            this.sdk = new BrowserSDK({
-                appId: 'singularity-io',
-                providers: ['phantom', 'injected'],
-                addressTypes: ['solana'],
-                embeddedWalletType: 'user-wallet'
-            });
-            
-            this.bindEvents();
-            await this.sdk.autoConnect();
-        } catch (error) {
-            console.error('Phantom SDK initialization failed:', error);
-            this.fallbackToInjected();
+        this.detectWallets();
+        this.bindEvents();
+        
+        // Auto-connect if previously connected
+        if (this.isPhantomAvailable() && window.solana.isConnected) {
+            try {
+                await this.connect();
+            } catch (error) {
+                console.log('Auto-connect failed:', error);
+            }
         }
     }
 
-    fallbackToInjected() {
-        this.detectWallets();
-        this.bindEvents();
+    isPhantomAvailable() {
+        return window.solana && window.solana.isPhantom;
     }
 
     detectWallets() {
         this.availableWallets = [];
         
-        // Check for Phantom
-        if (window.solana && window.solana.isPhantom) {
+        if (this.isPhantomAvailable()) {
             this.availableWallets.push({
                 name: 'Phantom',
                 adapter: window.solana,
@@ -44,21 +39,19 @@ class PhantomWalletAdapter {
         }
     }
 
-    async connect(walletName = 'Phantom') {
-        if (this.connecting) return;
+    async connect() {
+        if (this.connecting || this.connected) return;
+        
+        if (!this.isPhantomAvailable()) {
+            throw new Error('Phantom wallet not found. Please install Phantom.');
+        }
         
         this.connecting = true;
         
         try {
-            // Use direct Phantom connection
-            const walletAdapter = this.getWalletAdapter(walletName);
-            if (!walletAdapter) {
-                throw new Error(`${walletName} wallet not found`);
-            }
-
-            const response = await walletAdapter.connect();
+            const response = await window.solana.connect();
             
-            this.wallet = walletAdapter;
+            this.wallet = window.solana;
             this.publicKey = response.publicKey;
             this.connected = true;
             
@@ -103,13 +96,8 @@ class PhantomWalletAdapter {
         }
 
         try {
-            if (this.sdk) {
-                const signedTransaction = await this.sdk.solana.signTransaction(transaction);
-                return signedTransaction;
-            } else {
-                const signedTransaction = await this.wallet.signTransaction(transaction);
-                return signedTransaction;
-            }
+            const signedTransaction = await this.wallet.signTransaction(transaction);
+            return signedTransaction;
         } catch (error) {
             console.error('Transaction signing failed:', error);
             throw error;
@@ -122,13 +110,8 @@ class PhantomWalletAdapter {
         }
 
         try {
-            if (this.sdk) {
-                const signature = await this.sdk.solana.signAndSendTransaction(transaction);
-                return signature;
-            } else {
-                const signature = await this.wallet.signAndSendTransaction(transaction);
-                return signature;
-            }
+            const signature = await this.wallet.signAndSendTransaction(transaction);
+            return signature;
         } catch (error) {
             console.error('Transaction failed:', error);
             throw error;
@@ -142,31 +125,16 @@ class PhantomWalletAdapter {
 
         try {
             const encodedMessage = new TextEncoder().encode(message);
-            if (this.sdk) {
-                const signedMessage = await this.sdk.solana.signMessage(encodedMessage);
-                return signedMessage;
-            } else {
-                const signedMessage = await this.wallet.signMessage(encodedMessage);
-                return signedMessage;
-            }
+            const signedMessage = await this.wallet.signMessage(encodedMessage);
+            return signedMessage;
         } catch (error) {
             console.error('Message signing failed:', error);
             throw error;
         }
     }
 
-    getWalletAdapter(walletName) {
-        const wallet = this.availableWallets.find(w => 
-            w.name.toLowerCase() === walletName.toLowerCase()
-        );
-        return wallet ? wallet.adapter : null;
-    }
-
     bindEvents() {
-        if (this.sdk) {
-            this.sdk.on('connect', () => this.onConnect());
-            this.sdk.on('disconnect', () => this.onDisconnect());
-        } else if (window.solana) {
+        if (this.isPhantomAvailable()) {
             window.solana.on('connect', () => this.onConnect());
             window.solana.on('disconnect', () => this.onDisconnect());
             window.solana.on('accountChanged', (publicKey) => this.onAccountChanged(publicKey));
@@ -174,14 +142,15 @@ class PhantomWalletAdapter {
     }
 
     onConnect() {
-        const address = this.sdk ? this.addresses[0]?.address : this.publicKey?.toString();
+        const address = this.publicKey?.toString();
         console.log('Wallet connected:', address);
         
-        // Store wallet address
         if (address) {
             localStorage.setItem('walletAddress', address);
-            // Load balances using unified loader
-            window.walletBalanceLoader.refreshBalances(address);
+            // Use unified balance loader
+            if (window.walletBalanceLoader) {
+                window.walletBalanceLoader.refreshBalances(address);
+            }
         }
         
         this.updateUI();
@@ -191,10 +160,8 @@ class PhantomWalletAdapter {
     onDisconnect() {
         console.log('Wallet disconnected');
         
-        // Clear stored wallet address
         localStorage.removeItem('walletAddress');
         
-        // Hide balance display
         const balanceDisplay = document.getElementById('balance-display');
         if (balanceDisplay) {
             balanceDisplay.classList.add('hidden');
@@ -206,10 +173,8 @@ class PhantomWalletAdapter {
 
     onAccountChanged(publicKey) {
         console.log('Account changed:', publicKey?.toString());
-        if (this.sdk) {
-            // SDK handles account changes internally
-        } else {
-            this.publicKey = publicKey;
+        this.publicKey = publicKey;
+        if (window.globalWallet) {
             window.globalWallet.publicKey = publicKey;
         }
         this.updateUI();
@@ -242,42 +207,23 @@ class PhantomWalletAdapter {
         window.dispatchEvent(event);
     }
 
-    // Utility methods
     isConnected() {
         return this.connected && this.wallet && this.publicKey;
     }
 
     getPublicKey() {
-        return this.sdk ? this.addresses[0]?.address : this.publicKey;
+        return this.publicKey;
     }
 
     getWalletName() {
-        if (this.sdk) return 'Phantom';
-        if (!this.wallet) return null;
-        
-        if (this.wallet.isPhantom) return 'Phantom';
-        return 'Unknown';
+        return this.wallet?.isPhantom ? 'Phantom' : 'Unknown';
     }
 
     getAvailableWallets() {
-        return this.availableWallets;
+        return this.availableWallets || [];
     }
 }
 
 // Initialize wallet adapter
 const walletAdapter = new PhantomWalletAdapter();
-
-// Export for global use
 window.walletAdapter = walletAdapter;
-
-// Auto-connect if previously connected
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        // SDK handles auto-connect internally
-        if (!walletAdapter.sdk && window.solana && window.solana.isConnected) {
-            await walletAdapter.connect();
-        }
-    } catch (error) {
-        console.log('Auto-connect failed:', error);
-    }
-});
