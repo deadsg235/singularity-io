@@ -7,6 +7,7 @@ class WalletBalanceLoader {
         this.rpcTimeout = 60000; // 1 minute for RPC cache
         this.isLoading = false;
         this.endpoints = [
+            'https://mainnet.helius-rpc.com/?api-key=3a935f34-fd0c-41cd-b423-cf98a2e06df5',
             'https://api.mainnet-beta.solana.com',
             'https://solana-mainnet.rpc.extrnode.com',
             'https://rpc.ankr.com/solana'
