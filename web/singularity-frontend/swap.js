@@ -53,6 +53,18 @@ async function handleWalletClick() {
     }
 }
 
+// Listen for wallet events
+window.addEventListener('walletConnected', () => {
+    document.getElementById('swap-btn').textContent = 'Get Quote';
+    document.getElementById('swap-btn').disabled = false;
+    updateTokenBalances();
+});
+
+window.addEventListener('walletDisconnected', () => {
+    document.getElementById('swap-btn').textContent = 'Connect Wallet';
+    document.getElementById('swap-btn').disabled = true;
+});
+
 function switchRPC() {
     // RPC switching handled by unified balance loader
 }
@@ -190,7 +202,14 @@ async function executeSwap(quote) {
         
         displayRecentSwaps();
         
-        alert(`Swap successful!\nTransaction: ${signature}`);
+        // Success dialog
+        showSwapSuccessDialog({
+            fromAmount,
+            fromSymbol: tokens[fromToken].symbol,
+            toAmount,
+            toSymbol: tokens[toToken].symbol,
+            signature
+        });
         
         document.getElementById('from-amount').value = '';
         document.getElementById('to-amount').value = '';
@@ -234,4 +253,44 @@ function displayRecentSwaps() {
     document.getElementById('recent-swaps').innerHTML = html || '<p style="color: #666; text-align: center;">No recent swaps</p>';
     
     localStorage.setItem('recent-swaps', JSON.stringify(recentSwaps));
+}
+
+function showSwapSuccessDialog({ fromAmount, fromSymbol, toAmount, toSymbol, signature }) {
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.8); display: flex; align-items: center; 
+        justify-content: center; z-index: 10000;
+    `;
+    
+    dialog.innerHTML = `
+        <div style="
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            border: 2px solid #dc2626; border-radius: 12px; padding: 2rem;
+            max-width: 400px; text-align: center; color: #fff;
+        ">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div>
+            <h3 style="color: #dc2626; margin-bottom: 1rem;">Swap Successful!</h3>
+            <div style="margin-bottom: 1.5rem;">
+                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
+                    ${fromAmount} ${fromSymbol} → ${toAmount} ${toSymbol}
+                </div>
+                <div style="color: #666; font-size: 0.9rem;">Transaction confirmed</div>
+            </div>
+            <div style="margin-bottom: 1.5rem;">
+                <a href="https://solscan.io/tx/${signature}" target="_blank" 
+                   style="color: #0066ff; text-decoration: none; font-size: 0.9rem;">
+                    View on Solscan →
+                </a>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" 
+                    style="background: #dc2626; color: #fff; border: none; 
+                           padding: 0.8rem 2rem; border-radius: 6px; cursor: pointer;">
+                Close
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(dialog);
+    setTimeout(() => dialog.remove(), 10000);
 }
