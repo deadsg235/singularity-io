@@ -1,0 +1,15 @@
+# Rust files (not needed for Python API)
+*.rs
+Cargo.toml
+Cargo.lock
+target/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Development files
+.env
+*.log
+.DS_Store
