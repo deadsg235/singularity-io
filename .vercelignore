@@ -1,35 +1,15 @@
-# Ignore large files and directories
-packages/
-examples/
-crate/
+# Rust files
+*.rs
+Cargo.toml
+Cargo.lock
 target/
-neural_network/
-blockchain/
-wallet-adapter-book/
-partial-idl-parser/
-singularity-agent/
-solfunmeme-introspector/
-
-# Ignore development files
-*.md
-*.toml
-*.lock
-*.yml
-*.yaml
-.github/
-.changeset/
-.devcontainer/
 .cargo/
 
-# Ignore documentation
-README*
-CHANGELOG*
-LICENSE
-*.svg
-*.png
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
 
-# Keep only essential API and web files
-!api/
-!web/
-!vercel.json
-!package.json
+# Development
+.env
+*.log
