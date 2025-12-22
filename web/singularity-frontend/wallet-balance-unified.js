@@ -24,7 +24,7 @@ class WalletBalanceLoader {
             return cached.data;
         }
 
-        if (this.isLoading) return { sol: 0, sio: 0 };
+        if (this.isLoading) return cached?.data || { sol: 0, sio: 0 };
         
         this.isLoading = true;
         
@@ -137,12 +137,9 @@ class WalletBalanceLoader {
     async refreshBalances(walletAddress) {
         if (!walletAddress) return;
         
-        // Clear cache to force refresh
-        this.cache.delete(walletAddress);
         const balances = await this.loadBalances(walletAddress);
         this.updateBalanceDisplay(balances);
         
-        // Dispatch event for other components
         window.dispatchEvent(new CustomEvent('balanceUpdated', { 
             detail: { address: walletAddress, balances } 
         }));
