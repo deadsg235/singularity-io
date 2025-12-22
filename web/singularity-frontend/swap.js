@@ -1,22 +1,11 @@
-const { Connection, PublicKey, VersionedTransaction } = solanaWeb3;
-
-let wallet = null;
 let connection;
 let recentSwaps = [];
-let solanaConnection = null; // Add solanaConnection for this page
-const SIO_MINT_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump'; // Add SIO Mint
 
-
-const FALLBACK_RPC_ENDPOINTS = [
-    'https://solana-mainnet.rpc.extrnode.com',
+const RPC_ENDPOINTS = [
+    'https://api.mainnet-beta.solana.com',
     'https://rpc.ankr.com/solana',
-    'https://solana-mainnet.api.syndica.io',
-    'https://api.metaplex.solana.com',
-    'https://solana-mainnet.phantom.tech',
-    'https://solana-mainnet-public.allthatnode.com'
+    'https://solana-mainnet.rpc.extrnode.com'
 ];
-
-let currentRpcIndex = 0;
 
 const tokens = {
     'So11111111111111111111111111111111111111112': { symbol: 'SOL', decimals: 9 },
@@ -26,176 +15,77 @@ const tokens = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    connection = new Connection(RPC_ENDPOINTS[0], 'confirmed');
-    document.getElementById('wallet-btn').addEventListener('click', connectWallet);
+    connection = new solanaWeb3.Connection(RPC_ENDPOINTS[0], 'confirmed');
+    document.getElementById('wallet-btn').addEventListener('click', handleWalletClick);
     document.getElementById('from-amount').addEventListener('input', updateQuote);
-    document.getElementById('from-token').addEventListener('change', updateQuote);
-    document.getElementById('to-token').addEventListener('change', updateQuote);
+    document.getElementById('from-token').addEventListener('change', () => {
+        updateTokenBalances();
+        updateQuote();
+    });
+    document.getElementById('to-token').addEventListener('change', () => {
+        updateTokenBalances();
+        updateQuote();
+    });
     
     loadRecentSwaps();
+    
+    // Listen for balance updates
+    window.addEventListener('balanceUpdated', (event) => {
+        updateTokenBalances();
+    });
 });
 
-function switchRPC() {
-    currentRpcIndex = (currentRpcIndex + 1) % RPC_ENDPOINTS.length;
-    connection = new Connection(RPC_ENDPOINTS[currentRpcIndex], 'confirmed');
-    console.log('Switched to RPC:', RPC_ENDPOINTS[currentRpcIndex]);
-}
-
-async function connectWallet() {
-    try {
-        if (wallet) {
-            // If already connected, disconnect
-            if (window.solana && window.solana.isPhantom) {
-                await window.solana.disconnect();
-            }
-            wallet = null;
-            solanaConnection = null;
-
-            const btn = document.getElementById('wallet-btn');
-            btn.textContent = 'Connect Wallet';
-            btn.classList.remove('connected');
-
-            document.getElementById('balance-display').classList.add('hidden');
-            if (window.setWalletConnected) window.setWalletConnected(false);
-
-            document.getElementById('swap-btn').textContent = 'Connect Wallet';
-            document.getElementById('swap-btn').disabled = true;
-
-            console.log('Wallet disconnected');
-            return;
-        }
-
-        if (!window.solana?.isPhantom) {
-            alert('Install Phantom Wallet');
-            return;
-        }
-        
-        const resp = await window.solana.connect();
-        wallet = resp.publicKey;
-        
-        const btn = document.getElementById('wallet-btn');
-        btn.textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
-        btn.classList.add('connected');
-        
-        document.getElementById('swap-btn').textContent = 'Get Quote';
-        document.getElementById('swap-btn').disabled = false;
-        
-        if (window.setWalletConnected) window.setWalletConnected(true);
-        
-        // Show balance display and load balances
-        document.getElementById('balance-display').classList.remove('hidden');
-        loadWalletBalances(); // Call loadWalletBalances
-        
-        console.log('Wallet connected:', wallet.toString());
-    } catch (error) {
-        console.error('Wallet connection error:', error);
-        if (window.setWalletConnected) window.setWalletConnected(false);
-    }
-}
-
-// loadWalletBalances function for this page
-async function loadWalletBalances() {
-    if (!wallet) return;
-
-    let lastError = null;
-    const allEndpoints = [RPC_ENDPOINTS[currentRpcIndex], ...FALLBACK_RPC_ENDPOINTS];
-    
-    for (let attempt = 0; attempt < allEndpoints.length; attempt++) {
-        const endpoint = allEndpoints[attempt];
-        
+async function handleWalletClick() {
+    if (window.walletAdapter?.isConnected()) {
+        await window.walletAdapter.disconnect();
+        document.getElementById('swap-btn').textContent = 'Connect Wallet';
+        document.getElementById('swap-btn').disabled = true;
+    } else {
         try {
-            console.log(`loadWalletBalances: Trying RPC endpoint ${attempt + 1}/${allEndpoints.length}: ${endpoint}`);
-            
-            const connection = new solanaWeb3.Connection(
-                endpoint,
-                { commitment: 'confirmed' }
-            );
-
-            const owner = new solanaWeb3.PublicKey(wallet);
-
-            // ---------- SOL BALANCE ----------
-            const lamports = await connection.getBalance(owner);
-            const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
-
-            document.getElementById('sol-balance').textContent =
-                solBalance.toFixed(4);
-
-            // ---------- SIO TOKEN BALANCE ----------
-            const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDRESS);
-
-            const tokenAccounts =
-                await connection.getParsedTokenAccountsByOwner(
-                    owner,
-                    { mint }
-                );
-
-            let sioBalance = 0;
-
-            if (tokenAccounts.value.length > 0) {
-                const tokenInfo =
-                    tokenAccounts.value[0].account.data.parsed.info;
-
-                sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
-            }
-
-            document.getElementById('sio-balance').textContent =
-                sioBalance.toLocaleString(undefined, {
-                    maximumFractionDigits: 6
-                });
-
-            console.log('Balances loaded', {
-                sol: solBalance,
-                sio: sioBalance,
-                endpoint: endpoint
-            });
-
-            // Success - update the global connection
-            solanaConnection = connection;
-            return;
-
-        } catch (err) {
-            lastError = err;
-            console.warn(`loadWalletBalances: RPC endpoint ${endpoint} failed:`, err.message);
-            
-            // If this is not the last endpoint, wait before trying the next one
-            if (attempt < allEndpoints.length - 1) {
-                const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Exponential backoff, max 5s
-                console.log(`loadWalletBalances: Waiting ${delay}ms before trying next endpoint...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-            }
+            await window.walletAdapter.connect('phantom');
+            document.getElementById('swap-btn').textContent = 'Get Quote';
+            document.getElementById('swap-btn').disabled = false;
+            updateTokenBalances();
+        } catch (error) {
+            console.error('Wallet connection failed:', error);
+            alert('Failed to connect wallet: ' + error.message);
         }
     }
-
-    // All endpoints failed
-    console.error('loadWalletBalances: All RPC endpoints failed. Last error:', lastError);
-
-    document.getElementById('sol-balance').textContent = '—';
-    document.getElementById('sio-balance').textContent = '—';
-
-    // This page doesn't have addChatMessage, so just log to console
-    console.warn('⚠️ Unable to load balances (all RPC endpoints busy). Try again in a few minutes.');
 }
 
-async function updateBalances() {
-    if (!wallet) return;
+function switchRPC() {
+    // RPC switching handled by unified balance loader
+}
+
+function updateTokenBalances() {
+    if (!window.walletAdapter?.isConnected()) {
+        document.getElementById('from-balance').textContent = 'Balance: 0';
+        document.getElementById('to-balance').textContent = 'Balance: 0';
+        return;
+    }
     
-    try {
-        const response = await fetch(`/api/wallet/analytics/${wallet.toString()}`);
-        const data = await response.json();
-        
-        const fromToken = document.getElementById('from-token').value;
-        
-        if (fromToken === 'So11111111111111111111111111111111111111112') {
-            document.getElementById('from-balance').textContent = `Balance: ${data.sol_balance.toFixed(4)}`;
-        } else if (fromToken === 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump') {
-            document.getElementById('from-balance').textContent = `Balance: ${data.sio_balance.toLocaleString()}`;
-        } else {
-            document.getElementById('from-balance').textContent = 'Balance: 0';
-        }
-        
-    } catch (error) {
-        console.error('Failed to get balance:', error);
-        document.getElementById('from-balance').textContent = 'Balance: Unable to load';
+    const fromToken = document.getElementById('from-token').value;
+    const toToken = document.getElementById('to-token').value;
+    
+    const solBalance = document.getElementById('sol-balance')?.textContent || '0';
+    const sioBalance = document.getElementById('sio-balance')?.textContent || '0';
+    
+    // Update from balance
+    if (fromToken === 'So11111111111111111111111111111111111111112') {
+        document.getElementById('from-balance').textContent = `Balance: ${solBalance}`;
+    } else if (fromToken === 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump') {
+        document.getElementById('from-balance').textContent = `Balance: ${sioBalance}`;
+    } else {
+        document.getElementById('from-balance').textContent = 'Balance: 0';
+    }
+    
+    // Update to balance
+    if (toToken === 'So11111111111111111111111111111111111111112') {
+        document.getElementById('to-balance').textContent = `Balance: ${solBalance}`;
+    } else if (toToken === 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump') {
+        document.getElementById('to-balance').textContent = `Balance: ${sioBalance}`;
+    } else {
+        document.getElementById('to-balance').textContent = 'Balance: 0';
     }
 }
 
@@ -254,7 +144,7 @@ function swapTokens() {
 }
 
 async function executeSwap(quote) {
-    if (!wallet || !quote) {
+    if (!window.walletAdapter?.isConnected() || !quote) {
         alert('Connect wallet and get quote first');
         return;
     }
@@ -263,12 +153,14 @@ async function executeSwap(quote) {
         document.getElementById('swap-btn').textContent = 'Swapping...';
         document.getElementById('swap-btn').disabled = true;
         
+        const walletPublicKey = window.walletAdapter.getPublicKey();
+        
         const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 quoteResponse: quote,
-                userPublicKey: wallet.toString(),
+                userPublicKey: walletPublicKey.toString(),
                 wrapAndUnwrapSol: true,
                 dynamicComputeUnitLimit: true,
                 prioritizationFeeLamports: 'auto'
@@ -277,7 +169,7 @@ async function executeSwap(quote) {
         
         const { swapTransaction } = await swapResponse.json();
         const txBuf = Buffer.from(swapTransaction, 'base64');
-        const tx = VersionedTransaction.deserialize(txBuf);
+        const tx = solanaWeb3.VersionedTransaction.deserialize(txBuf);
         
         const signed = await window.solana.signTransaction(tx);
         const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
@@ -298,11 +190,15 @@ async function executeSwap(quote) {
         
         displayRecentSwaps();
         
-        alert(`Swap successful!\\nTransaction: ${signature}`);
+        alert(`Swap successful!\nTransaction: ${signature}`);
         
         document.getElementById('from-amount').value = '';
         document.getElementById('to-amount').value = '';
-        await updateBalances();
+        
+        // Refresh balances
+        if (window.walletBalanceLoader) {
+            window.walletBalanceLoader.refreshBalances(walletPublicKey.toString());
+        }
         
     } catch (error) {
         alert('Swap failed: ' + error.message);

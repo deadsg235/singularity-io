@@ -37,6 +37,7 @@
                             <span class="balance-label">S-IO</span>
                             <span id="sio-balance">0</span>
                         </div>
+                        <button id="refresh-balance-btn" class="refresh-btn" title="Refresh Balance">↻</button>
                     </div>
                 </div>
             </div>
@@ -55,7 +56,7 @@
                         <label style="color: #dc2626; display: block; margin-bottom: 0.5rem;">Amount to Stake</label>
                         <input type="number" id="stake-amount" placeholder="0" style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #dc2626; color: #fff; border-radius: 4px;">
                         <div style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">
-                            Balance: <span id="sio-balance">0 S-IO</span>
+                            Balance: <span id="stake-sio-balance">0 S-IO</span>
                         </div>
                     </div>
                     
@@ -167,8 +168,8 @@
     </div>
 
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
-    <script src="wallet-balance-loader.js"></script>
-    <script src="sio-token.js"></script>
+    <script src="wallet-balance-unified.js"></script>
+    <script src="wallet-adapter.js"></script>
     <script src="matrix.js"></script>
     <script src="staking.js"></script>
 </body>
