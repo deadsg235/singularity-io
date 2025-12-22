@@ -41,29 +41,15 @@ class WalletBalanceLoader {
             return balances;
         } catch (error) {
             console.warn('Balance load failed:', error);
-            return { sol: 0, sio: 0 };
+            return cached?.data || { sol: 0, sio: 0 };
         } finally {
             this.isLoading = false;
         }
     }
 
     async tryAnalyticsEndpoint(walletAddress) {
-        try {
-            const response = await fetch(`/api/wallet/analytics/${walletAddress}`, {
-                timeout: 5000
-            });
-            
-            if (!response.ok) throw new Error('Analytics endpoint failed');
-            
-            const data = await response.json();
-            return {
-                sol: data.sol_balance || 0,
-                sio: data.sio_balance || 0
-            };
-        } catch (error) {
-            console.log('Analytics endpoint failed, trying direct RPC');
-            return null;
-        }
+        // Skip analytics, use direct RPC
+        return null;
     }
 
     async tryDirectRPC(walletAddress) {
@@ -154,13 +140,17 @@ class WalletBalanceLoader {
 // Global instance
 window.walletBalanceLoader = new WalletBalanceLoader();
 
-// Auto-refresh every 60 seconds if wallet connected
-setInterval(() => {
-    const walletAddress = localStorage.getItem('walletAddress');
+// Auto-refresh when wallet connects
+window.addEventListener('walletConnected', (event) => {
+    const walletAddress = event.detail.publicKey;
     if (walletAddress) {
         window.walletBalanceLoader.refreshBalances(walletAddress);
+        // Set up periodic refresh
+        setInterval(() => {
+            window.walletBalanceLoader.refreshBalances(walletAddress);
+        }, 30000);
     }
-}, 60000);
+});
 
 // Clear cache every 5 minutes to prevent memory buildup
 setInterval(() => {
