@@ -48,22 +48,8 @@ class WalletBalanceLoader {
     }
 
     async tryAnalyticsEndpoint(walletAddress) {
-        try {
-            const response = await fetch(`/api/wallet/analytics/${walletAddress}`, {
-                timeout: 5000
-            });
-            
-            if (!response.ok) throw new Error('Analytics endpoint failed');
-            
-            const data = await response.json();
-            return {
-                sol: data.sol_balance || 0,
-                sio: data.sio_balance || 0
-            };
-        } catch (error) {
-            console.log('Analytics endpoint failed, trying direct RPC');
-            return null;
-        }
+        // Skip analytics endpoint, go directly to RPC
+        return null;
     }
 
     async tryDirectRPC(walletAddress) {
@@ -137,8 +123,6 @@ class WalletBalanceLoader {
     async refreshBalances(walletAddress) {
         if (!walletAddress) return;
         
-        // Clear cache to force refresh
-        this.cache.delete(walletAddress);
         const balances = await this.loadBalances(walletAddress);
         this.updateBalanceDisplay(balances);
         
@@ -146,6 +130,25 @@ class WalletBalanceLoader {
         window.dispatchEvent(new CustomEvent('balanceUpdated', { 
             detail: { address: walletAddress, balances } 
         }));
+        
+        return balances;
+    }
+
+    startPeriodicRefresh(walletAddress) {
+        this.stopPeriodicRefresh();
+        
+        if (!walletAddress) return;
+        
+        this.refreshInterval = setInterval(() => {
+            this.refreshBalances(walletAddress);
+        }, 30000); // 30 seconds
+    }
+    
+    stopPeriodicRefresh() {
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+            this.refreshInterval = null;
+        }
     }
 
     clearCache() {
@@ -157,13 +160,19 @@ class WalletBalanceLoader {
 // Global instance
 window.walletBalanceLoader = new WalletBalanceLoader();
 
-// Auto-refresh every 60 seconds if wallet connected
-setInterval(() => {
-    const walletAddress = localStorage.getItem('walletAddress');
+// Auto-refresh when wallet connects
+window.addEventListener('walletConnected', (event) => {
+    const walletAddress = event.detail.publicKey;
     if (walletAddress) {
+        window.walletBalanceLoader.startPeriodicRefresh(walletAddress);
         window.walletBalanceLoader.refreshBalances(walletAddress);
     }
-}, 60000);
+});
+
+// Stop refresh when wallet disconnects
+window.addEventListener('walletDisconnected', () => {
+    window.walletBalanceLoader.stopPeriodicRefresh();
+});
 
 // Clear cache every 5 minutes to prevent memory buildup
 setInterval(() => {
