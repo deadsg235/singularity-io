@@ -1,11 +1,4 @@
 {
-  "buildCommand": "echo 'Python only build'",
-  "installCommand": "pip install -r api/requirements.txt",
-  "functions": {
-    "api/index.py": {
-      "runtime": "python3.12"
-    }
-  },
   "builds": [
     {
       "src": "api/index.py",
