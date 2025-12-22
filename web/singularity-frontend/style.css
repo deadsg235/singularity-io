@@ -124,6 +124,22 @@ header {
     font-family: 'Orbitron', monospace;
 }
 
+.refresh-btn {
+    background: var(--primary-red);
+    color: var(--text-primary);
+    border: none;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+    background: var(--secondary-red);
+    transform: rotate(180deg);
+}
+
 /* Main Content */
 main {
     max-width: 1400px;

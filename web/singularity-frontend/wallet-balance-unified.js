@@ -152,6 +152,26 @@ window.addEventListener('walletConnected', (event) => {
     }
 });
 
+// Manual refresh button
+document.addEventListener('DOMContentLoaded', () => {
+    const refreshBtn = document.getElementById('refresh-balance-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            const walletAddress = localStorage.getItem('walletAddress');
+            if (walletAddress) {
+                window.walletBalanceLoader.cache.delete(walletAddress);
+                window.walletBalanceLoader.refreshBalances(walletAddress);
+            }
+        });
+    }
+    
+    // Auto-load on page load if wallet connected
+    const walletAddress = localStorage.getItem('walletAddress');
+    if (walletAddress) {
+        window.walletBalanceLoader.refreshBalances(walletAddress);
+    }
+});
+
 // Clear cache every 5 minutes to prevent memory buildup
 setInterval(() => {
     window.walletBalanceLoader.clearCache();
