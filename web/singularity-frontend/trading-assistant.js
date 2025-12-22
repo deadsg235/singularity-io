@@ -1,13 +1,23 @@
-// AI Trading Assistant
+// AI Trading Assistant with LLM Backend
+const API_BASE = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : '';
+
 class TradingAssistant {
     constructor() {
         this.chatHistory = [];
+        this.walletAddress = null;
         this.init();
     }
 
     init() {
         this.initChat();
         this.bindEvents();
+        this.getWalletAddress();
+    }
+
+    getWalletAddress() {
+        this.walletAddress = localStorage.getItem('walletAddress');
     }
 
     initChat() {
@@ -19,7 +29,7 @@ class TradingAssistant {
         welcome.innerHTML = `<span style="color: #dc2626;">╔═══════════════════════════════════════╗</span><br>
 <span style="color: #dc2626;">║</span>  AI TRADING ASSISTANT v1.0           <span style="color: #dc2626;">║</span><br>
 <span style="color: #dc2626;">╚═══════════════════════════════════════╝</span><br><br>
-<span style="color: #666;">Connected to Solana Mainnet</span><br>
+<span style="color: #666;">Connected to Groq Llama 3.3 70B</span><br>
 <span style="color: #666;">Try commands like:</span><br>
 <span style="color: #dc2626;">• "Buy 0.1 SOL"</span><br>
 <span style="color: #dc2626;">• "What's the SOL price?"</span><br>
@@ -55,46 +65,30 @@ class TradingAssistant {
         this.addMessage('user', message);
         input.value = '';
 
-        // Simulate AI response
-        await this.processCommand(message);
-    }
-
-    async processCommand(command) {
-        const lowerCommand = command.toLowerCase();
-        
-        // Simulate processing delay
-        this.addMessage('assistant', 'Processing your request...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Remove processing message
-        const chat = document.getElementById('trading-chat');
-        chat.removeChild(chat.lastChild);
-
-        let response = '';
-
-        if (lowerCommand.includes('price') && lowerCommand.includes('sol')) {
-            response = '📊 SOL Current Price: $185.42 (+2.3% 24h)\\n\\nMarket Cap: $87.2B\\nVolume: $2.1B\\nSupply: 470.8M SOL';
-        } else if (lowerCommand.includes('buy') && lowerCommand.includes('sol')) {
-            const amount = this.extractAmount(command);
-            response = `🛒 Trade Preview:\\n\\nBuy ${amount} SOL\\nEstimated Cost: $${(amount * 185.42).toFixed(2)}\\nSlippage: 0.5%\\nFee: ~$0.25\\n\\n⚠️ Please confirm this trade in your wallet.`;
-        } else if (lowerCommand.includes('portfolio') || lowerCommand.includes('balance')) {
-            response = '💰 Your Portfolio:\\n\\nSOL: 2.45 ($454.28)\\nUSDC: 1,250.00\\nS-IO: 5,000 ($125.00)\\n\\nTotal Value: $1,829.28\\n24h Change: +$45.67 (+2.56%)';
-        } else if (lowerCommand.includes('market') || lowerCommand.includes('trends')) {
-            response = '📈 Market Analysis:\\n\\nSOL: Bullish trend, breaking resistance\\nBTC: Consolidating around $95k\\nETH: Following BTC movement\\n\\nSentiment: 72% Bullish\\nFear & Greed Index: 68 (Greed)';
-        } else if (lowerCommand.includes('gainers')) {
-            response = '🚀 Top Gainers (24h):\\n\\n1. BONK: +15.2%\\n2. JUP: +12.8%\\n3. RAY: +9.4%\\n4. ORCA: +7.1%\\n5. MNGO: +6.8%';
-        } else if (lowerCommand.includes('alert')) {
-            response = '🔔 Price Alert Set:\\n\\nAsset: SOL\\nTarget: $200\\nCurrent: $185.42\\n\\nYou\\'ll be notified when SOL reaches $200.';
-        } else {
-            response = 'I can help you with:\\n\\n• Trading commands ("buy", "sell", "swap")\\n• Price checks ("SOL price", "market data")\\n• Portfolio analysis ("show balance")\\n• Market insights ("trends", "gainers")\\n\\nTry asking me something specific!';
+        try {
+            const response = await fetch(`${API_BASE}/api/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    message: `Trading Assistant: ${message}`, 
+                    wallet: this.walletAddress,
+                    history: this.chatHistory 
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                this.addMessage('assistant', data.response || `Error ${response.status}`);
+            } else {
+                const resp = data.response;
+                this.addMessage('assistant', resp);
+                this.chatHistory.push({ user: message, assistant: resp });
+            }
+        } catch (error) {
+            console.error('Trading chat error:', error);
+            this.addMessage('assistant', `Connection error: ${error.message}`);
         }
-
-        this.addMessage('assistant', response);
-    }
-
-    extractAmount(command) {
-        const match = command.match(/(\d+\.?\d*)/);
-        return match ? parseFloat(match[1]) : 0.1;
     }
 
     addMessage(role, text) {
@@ -105,7 +99,7 @@ class TradingAssistant {
         if (role === 'user') {
             msg.innerHTML = `<span style="color: #fff;">> ${text}</span>`;
         } else if (role === 'assistant') {
-            msg.innerHTML = `<span style="color: #dc2626;">AI:</span> <span style="color: #ccc;">${text.replace(/\\n/g, '<br>')}</span>`;
+            msg.innerHTML = `<span style="color: #dc2626;">AI:</span> <span style="color: #ccc;">${text}</span>`;
         }
         
         chat.appendChild(msg);
