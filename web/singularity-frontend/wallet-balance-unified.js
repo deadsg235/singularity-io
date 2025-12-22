@@ -48,7 +48,7 @@ class WalletBalanceLoader {
     }
 
     async tryAnalyticsEndpoint(walletAddress) {
-        // Skip analytics endpoint, go directly to RPC
+        // Skip analytics, use direct RPC only
         return null;
     }
 
