@@ -29,6 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     loadRecentSwaps();
     
+    // Check if wallet already connected on page load
+    setTimeout(() => {
+        if (window.walletAdapter?.isConnected()) {
+            document.getElementById('swap-btn').textContent = 'Get Quote';
+            document.getElementById('swap-btn').disabled = false;
+            updateTokenBalances();
+        }
+    }, 1000);
+    
     // Listen for balance updates
     window.addEventListener('balanceUpdated', (event) => {
         updateTokenBalances();
@@ -108,6 +117,16 @@ async function updateQuote() {
     
     if (!fromAmount || fromAmount <= 0 || fromToken === toToken) {
         document.getElementById('to-amount').value = '';
+        if (window.walletAdapter?.isConnected()) {
+            document.getElementById('swap-btn').textContent = 'Enter Amount';
+            document.getElementById('swap-btn').disabled = true;
+        }
+        return;
+    }
+    
+    if (!window.walletAdapter?.isConnected()) {
+        document.getElementById('swap-btn').textContent = 'Connect Wallet';
+        document.getElementById('swap-btn').disabled = true;
         return;
     }
     
@@ -133,11 +152,14 @@ async function updateQuote() {
             `1 ${tokens[fromToken].symbol} = ${rate.toFixed(4)} ${tokens[toToken].symbol}`;
         
         document.getElementById('swap-btn').textContent = 'Execute Swap';
+        document.getElementById('swap-btn').disabled = false;
         document.getElementById('swap-btn').onclick = () => executeSwap(quote);
         
     } catch (error) {
         console.error('Quote failed:', error);
         document.getElementById('to-amount').value = 'Error';
+        document.getElementById('swap-btn').textContent = 'Quote Failed';
+        document.getElementById('swap-btn').disabled = true;
     }
 }
 
