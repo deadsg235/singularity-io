@@ -147,6 +147,21 @@
 
         <div style="max-width: 800px; margin: 2rem auto;">
             <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                <h3 style="color: #dc2626; margin-bottom: 1rem;">Market Analytics</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div style="text-align: center; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                        <div style="color: #666; font-size: 0.9rem;">SOL Price</div>
+                        <div style="color: #fff; font-size: 1.5rem;" id="sol-price">$0.00</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                        <div style="color: #666; font-size: 0.9rem;">S-IO Price</div>
+                        <div style="color: #dc2626; font-size: 1.5rem;" id="sio-price">$0.00</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                        <div style="color: #666; font-size: 0.9rem;">24h Volume</div>
+                        <div style="color: #fff; font-size: 1.5rem;" id="volume-24h">$0</div>
+                    </div>
+                </div>
                 <h3 style="color: #dc2626; margin-bottom: 1rem;">Recent Swaps</h3>
                 <div id="recent-swaps"></div>
             </div>

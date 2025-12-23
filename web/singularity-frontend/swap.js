@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     loadRecentSwaps();
+    loadMarketData();
     
     // Check if wallet already connected on page load
     setTimeout(() => {
@@ -184,64 +185,63 @@ async function executeSwap(quote) {
     }
     
     try {
-        document.getElementById('swap-btn').textContent = 'Swapping...';
+        document.getElementById('swap-btn').textContent = 'Processing...';
         document.getElementById('swap-btn').disabled = true;
         
         const walletPublicKey = window.walletAdapter.getPublicKey();
-        
-        const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                quoteResponse: quote,
-                userPublicKey: walletPublicKey.toString(),
-                wrapAndUnwrapSol: true,
-                dynamicComputeUnitLimit: true,
-                prioritizationFeeLamports: 'auto'
-            })
-        });
-        
-        const { swapTransaction } = await swapResponse.json();
-        const txBuf = Buffer.from(swapTransaction, 'base64');
-        const tx = solanaWeb3.VersionedTransaction.deserialize(txBuf);
-        
-        const signed = await window.solana.signTransaction(tx);
-        const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
-        
-        await connection.confirmTransaction(signature, 'confirmed');
-        
         const fromToken = document.getElementById('from-token').value;
         const toToken = document.getElementById('to-token').value;
         const fromAmount = document.getElementById('from-amount').value;
         const toAmount = document.getElementById('to-amount').value;
         
-        recentSwaps.unshift({
-            from: `${fromAmount} ${tokens[fromToken].symbol}`,
-            to: `${toAmount} ${tokens[toToken].symbol}`,
-            signature: signature,
-            time: new Date().toLocaleTimeString()
+        // Use S-IO Protocol for swaps
+        const swapData = {
+            wallet: walletPublicKey.toString(),
+            fromToken,
+            toToken,
+            fromAmount: parseFloat(fromAmount),
+            toAmount: parseFloat(toAmount),
+            quote
+        };
+        
+        const response = await fetch('/api/sio/swap', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(swapData)
         });
         
-        displayRecentSwaps();
+        const result = await response.json();
         
-        // Success dialog
-        showSwapSuccessDialog({
-            fromAmount,
-            fromSymbol: tokens[fromToken].symbol,
-            toAmount,
-            toSymbol: tokens[toToken].symbol,
-            signature
-        });
-        
-        document.getElementById('from-amount').value = '';
-        document.getElementById('to-amount').value = '';
-        
-        // Refresh balances
-        if (window.walletBalanceLoader) {
-            window.walletBalanceLoader.refreshBalances(walletPublicKey.toString());
+        if (result.success) {
+            recentSwaps.unshift({
+                from: `${fromAmount} ${tokens[fromToken].symbol}`,
+                to: `${toAmount} ${tokens[toToken].symbol}`,
+                signature: result.signature,
+                time: new Date().toLocaleTimeString()
+            });
+            
+            displayRecentSwaps();
+            
+            showSwapSuccessDialog({
+                fromAmount,
+                fromSymbol: tokens[fromToken].symbol,
+                toAmount,
+                toSymbol: tokens[toToken].symbol,
+                signature: result.signature
+            });
+            
+            document.getElementById('from-amount').value = '';
+            document.getElementById('to-amount').value = '';
+            
+            if (window.walletBalanceLoader) {
+                window.walletBalanceLoader.refreshBalances(walletPublicKey.toString());
+            }
+        } else {
+            throw new Error(result.message || 'Swap failed');
         }
         
     } catch (error) {
+        console.error('Swap error:', error);
         alert('Swap failed: ' + error.message);
     } finally {
         document.getElementById('swap-btn').textContent = 'Get Quote';
@@ -315,4 +315,26 @@ function showSwapSuccessDialog({ fromAmount, fromSymbol, toAmount, toSymbol, sig
     
     document.body.appendChild(dialog);
     setTimeout(() => dialog.remove(), 10000);
+}
+
+async function loadMarketData() {
+    try {
+        // Get SOL price from CoinGecko
+        const solResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd&include_24hr_vol=true');
+        const solData = await solResponse.json();
+        
+        if (solData.solana) {
+            document.getElementById('sol-price').textContent = `$${solData.solana.usd.toFixed(2)}`;
+            document.getElementById('volume-24h').textContent = `$${(solData.solana.usd_24h_vol / 1000000).toFixed(1)}M`;
+        }
+        
+        // Get S-IO price (mock for now)
+        document.getElementById('sio-price').textContent = '$0.0024';
+        
+    } catch (error) {
+        console.error('Failed to load market data:', error);
+        document.getElementById('sol-price').textContent = '$--';
+        document.getElementById('sio-price').textContent = '$--';
+        document.getElementById('volume-24h').textContent = '$--';
+    }
 }

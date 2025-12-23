@@ -26,6 +26,7 @@ try:
     from revenue import router as revenue_router
     from social import router as social_router
     from staking import router as staking_router
+    from sio_swap import router as swap_router
 except ImportError as e:
     print(f"Some API modules not available: {e}")
 
@@ -50,6 +51,7 @@ try:
     app.include_router(revenue_router)
     app.include_router(social_router)
     app.include_router(staking_router)
+    app.include_router(swap_router)
 except NameError:
     pass  # Routers not available
 
