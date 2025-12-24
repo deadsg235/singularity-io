@@ -77,12 +77,14 @@ async function handleWalletClick() {
 window.addEventListener('walletConnected', () => {
     document.getElementById('swap-btn').textContent = 'Get Quote';
     document.getElementById('swap-btn').disabled = false;
+    document.getElementById('swap-btn').onclick = null;
     updateTokenBalances();
 });
 
 window.addEventListener('walletDisconnected', () => {
     document.getElementById('swap-btn').textContent = 'Connect Wallet';
     document.getElementById('swap-btn').disabled = true;
+    document.getElementById('swap-btn').onclick = null;
 });
 
 function switchRPC() {
@@ -268,6 +270,7 @@ async function executeSwap(quote) {
     } finally {
         document.getElementById('swap-btn').textContent = 'Get Quote';
         document.getElementById('swap-btn').disabled = false;
+        document.getElementById('swap-btn').onclick = null;
     }
 }
 
