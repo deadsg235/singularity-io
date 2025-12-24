@@ -1,3 +1,6 @@
+let currentSolPrice = 0;
+let currentSlippage = 0.5;
+
 let connection;
 let recentSwaps = [];
 
@@ -150,7 +153,8 @@ async function updateQuote() {
         const fromDecimals = tokens[fromToken].decimals;
         const inputAmount = Math.floor(parseFloat(fromAmount) * Math.pow(10, fromDecimals));
         
-        const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${fromToken}&outputMint=${toToken}&amount=${inputAmount}&slippageBps=${Math.floor(currentSlippage * 100)}`;
+        const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${fromToken}&outputMint=${toToken}&amount=${inputAmount}&slippageBps=50`;
+        console.log('Fetching quote from:', quoteUrl);
         const response = await fetch(quoteUrl, {
             method: 'GET',
             headers: {
@@ -239,33 +243,26 @@ async function executeSwap(quote) {
             quote
         };
         
-        let signature;
+        // Use S-IO Protocol for swaps
+        console.log('Sending swap request to S-IO API:', swapData);
+        const response = await fetch('/api/sio/swap', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(swapData)
+        });
         
-        // Use S-IO Protocol for swaps with fallback to mock
-        try {
-            const response = await fetch('/api/sio/swap', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(swapData)
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                signature = result.signature;
-            } else {
-                throw new Error(result.message || 'S-IO swap failed');
-            }
-        } catch (apiError) {
-            console.warn('S-IO API unavailable, using mock swap:', apiError);
-            // Mock swap for development
-            signature = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log('S-IO API response status:', response.status);
+        const result = await response.json();
+        console.log('S-IO API result:', result);
+        
+        if (!result.success) {
+            throw new Error(result.message || 'Swap failed');
         }
         
         recentSwaps.unshift({
             from: `${fromAmount} ${tokens[fromToken].symbol}`,
             to: `${toAmount} ${tokens[toToken].symbol}`,
-            signature: signature,
+            signature: result.signature,
             time: new Date().toLocaleTimeString()
         });
         
@@ -276,7 +273,7 @@ async function executeSwap(quote) {
             fromSymbol: tokens[fromToken].symbol,
             toAmount,
             toSymbol: tokens[toToken].symbol,
-            signature: signature
+            signature: result.signature
         });
         
         document.getElementById('from-amount').value = '';
@@ -363,9 +360,6 @@ function showSwapSuccessDialog({ fromAmount, fromSymbol, toAmount, toSymbol, sig
     document.body.appendChild(dialog);
     setTimeout(() => dialog.remove(), 10000);
 }
-
-let currentSolPrice = 0;
-let currentSlippage = 0.5;
 
 async function loadMarketData() {
     try {
