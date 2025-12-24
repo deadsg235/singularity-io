@@ -84,26 +84,42 @@ async function stakeTokens() {
     try {
         const walletAddress = window.walletAdapter.getPublicKey().toString();
         
-        stakingData.balance -= amount;
-        stakingData.staked += amount;
+        const response = await fetch('/api/sio/stake', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                wallet: walletAddress,
+                amount: amount,
+                pool_type: 'standard'
+            })
+        });
         
-        // Save staking data locally
-        localStorage.setItem(`sio-staking-${walletAddress}`, JSON.stringify({
-            staked: stakingData.staked,
-            rewards: stakingData.rewards,
-            lastUpdate: Date.now()
-        }));
+        const result = await response.json();
         
-        document.getElementById('stake-amount').value = '';
-        loadUserStaking();
-        
-        alert(`Successfully staked ${amount.toLocaleString()} S-IO!`);
+        if (result.success) {
+            stakingData.balance -= amount;
+            stakingData.staked += amount;
+            
+            localStorage.setItem(`sio-staking-${walletAddress}`, JSON.stringify({
+                staked: stakingData.staked,
+                rewards: stakingData.rewards,
+                lastUpdate: Date.now()
+            }));
+            
+            document.getElementById('stake-amount').value = '';
+            loadUserStaking();
+            
+            alert(`✅ S-IO Protocol Stake\n${amount.toLocaleString()} S-IO staked\nTx: ${result.signature}`);
+        } else {
+            throw new Error(result.message || 'Staking failed');
+        }
     } catch (error) {
+        console.error('Staking error:', error);
         alert('Staking failed: ' + error.message);
     }
 }
 
-function unstakeTokens() {
+async function unstakeTokens() {
     if (!window.walletAdapter?.isConnected()) {
         alert('Please connect your wallet to unstake');
         return;
@@ -126,15 +142,38 @@ function unstakeTokens() {
         return;
     }
     
-    stakingData.staked -= unstakeAmount;
-    stakingData.balance += unstakeAmount;
-    
-    loadUserStaking();
-    
-    alert(`Successfully unstaked ${unstakeAmount.toLocaleString()} S-IO!`);
+    try {
+        const walletAddress = window.walletAdapter.getPublicKey().toString();
+        
+        const response = await fetch('/api/sio/unstake', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                wallet: walletAddress,
+                amount: unstakeAmount,
+                pool_type: 'standard'
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            stakingData.staked -= unstakeAmount;
+            stakingData.balance += unstakeAmount;
+            
+            loadUserStaking();
+            
+            alert(`✅ S-IO Protocol Unstake\n${unstakeAmount.toLocaleString()} S-IO unstaked\nTx: ${result.signature}`);
+        } else {
+            throw new Error(result.message || 'Unstaking failed');
+        }
+    } catch (error) {
+        console.error('Unstaking error:', error);
+        alert('Unstaking failed: ' + error.message);
+    }
 }
 
-function claimRewards() {
+async function claimRewards() {
     if (!window.walletAdapter?.isConnected()) {
         alert('Please connect your wallet to claim rewards');
         return;
@@ -145,14 +184,36 @@ function claimRewards() {
         return;
     }
     
-    const claimedAmount = stakingData.rewards;
-    
-    stakingData.balance += claimedAmount;
-    stakingData.rewards = 0;
-    
-    loadUserStaking();
-    
-    alert(`Successfully claimed ${claimedAmount.toFixed(2)} S-IO rewards!`);
+    try {
+        const walletAddress = window.walletAdapter.getPublicKey().toString();
+        
+        const response = await fetch('/api/sio/claim-rewards', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                wallet: walletAddress,
+                pool_type: 'standard'
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const claimedAmount = result.rewards;
+            
+            stakingData.balance += claimedAmount;
+            stakingData.rewards = 0;
+            
+            loadUserStaking();
+            
+            alert(`✅ S-IO Protocol Rewards\n${claimedAmount.toFixed(6)} S-IO claimed\nTx: ${result.signature}`);
+        } else {
+            throw new Error(result.message || 'Claim failed');
+        }
+    } catch (error) {
+        console.error('Claim error:', error);
+        alert('Claim failed: ' + error.message);
+    }
 }
 
 function updateRewards() {

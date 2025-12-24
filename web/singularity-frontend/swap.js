@@ -30,6 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
     loadRecentSwaps();
     loadMarketData();
     
+    // Real-time price updates every 30 seconds
+    setInterval(loadMarketData, 30000);
+    
     // Check if wallet already connected on page load
     setTimeout(() => {
         if (window.walletAdapter?.isConnected()) {
@@ -118,6 +121,7 @@ async function updateQuote() {
     
     if (!fromAmount || fromAmount <= 0 || fromToken === toToken) {
         document.getElementById('to-amount').value = '';
+        document.getElementById('exchange-rate').textContent = 'Enter amount';
         if (window.walletAdapter?.isConnected()) {
             document.getElementById('swap-btn').textContent = 'Enter Amount';
             document.getElementById('swap-btn').disabled = true;
@@ -132,6 +136,8 @@ async function updateQuote() {
     }
     
     try {
+        document.getElementById('exchange-rate').textContent = 'Getting quote...';
+        
         const fromDecimals = tokens[fromToken].decimals;
         const inputAmount = Math.floor(parseFloat(fromAmount) * Math.pow(10, fromDecimals));
         
@@ -149,8 +155,16 @@ async function updateQuote() {
         document.getElementById('to-amount').value = outputAmount.toFixed(6);
         
         const rate = outputAmount / parseFloat(fromAmount);
-        document.getElementById('exchange-rate').textContent = 
-            `1 ${tokens[fromToken].symbol} = ${rate.toFixed(4)} ${tokens[toToken].symbol}`;
+        let rateText = `1 ${tokens[fromToken].symbol} = ${rate.toFixed(4)} ${tokens[toToken].symbol}`;
+        
+        // Add USD value if SOL is involved
+        if (fromToken === 'So11111111111111111111111111111111111111112' && currentSolPrice > 0) {
+            rateText += ` (~$${(rate * currentSolPrice).toFixed(2)})`;
+        } else if (toToken === 'So11111111111111111111111111111111111111112' && currentSolPrice > 0) {
+            rateText += ` (~$${(rate * currentSolPrice).toFixed(2)})`;
+        }
+        
+        document.getElementById('exchange-rate').textContent = rateText;
         
         document.getElementById('swap-btn').textContent = 'Execute Swap';
         document.getElementById('swap-btn').disabled = false;
@@ -159,6 +173,7 @@ async function updateQuote() {
     } catch (error) {
         console.error('Quote failed:', error);
         document.getElementById('to-amount').value = 'Error';
+        document.getElementById('exchange-rate').textContent = 'Quote failed';
         document.getElementById('swap-btn').textContent = 'Quote Failed';
         document.getElementById('swap-btn').disabled = true;
     }
@@ -317,6 +332,8 @@ function showSwapSuccessDialog({ fromAmount, fromSymbol, toAmount, toSymbol, sig
     setTimeout(() => dialog.remove(), 10000);
 }
 
+let currentSolPrice = 0;
+
 async function loadMarketData() {
     try {
         // Get SOL price from CoinGecko
@@ -324,8 +341,17 @@ async function loadMarketData() {
         const solData = await solResponse.json();
         
         if (solData.solana) {
-            document.getElementById('sol-price').textContent = `$${solData.solana.usd.toFixed(2)}`;
+            currentSolPrice = solData.solana.usd;
+            const priceText = `$${currentSolPrice.toFixed(2)}`;
+            
+            // Update all SOL price displays
+            document.getElementById('sol-price').textContent = priceText;
+            document.getElementById('sol-price-swap').textContent = priceText;
             document.getElementById('volume-24h').textContent = `$${(solData.solana.usd_24h_vol / 1000000).toFixed(1)}M`;
+            
+            // Update swap fee in USD
+            const feeInUsd = (0.0025 * currentSolPrice).toFixed(3);
+            document.getElementById('swap-fee').textContent = `~$${feeInUsd}`;
         }
         
         // Get S-IO price (mock for now)
@@ -334,6 +360,7 @@ async function loadMarketData() {
     } catch (error) {
         console.error('Failed to load market data:', error);
         document.getElementById('sol-price').textContent = '$--';
+        document.getElementById('sol-price-swap').textContent = '$--';
         document.getElementById('sio-price').textContent = '$--';
         document.getElementById('volume-24h').textContent = '$--';
     }
