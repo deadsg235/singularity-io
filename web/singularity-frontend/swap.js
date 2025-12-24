@@ -30,8 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
     loadRecentSwaps();
     loadMarketData();
     
-    // Real-time price updates every 30 seconds
-    setInterval(loadMarketData, 30000);
+    // Real-time price and slippage updates every 15 seconds
+    setInterval(() => {
+        loadMarketData();
+        // Update quote if amount is entered
+        const fromAmount = document.getElementById('from-amount').value;
+        if (fromAmount && parseFloat(fromAmount) > 0) {
+            updateQuote();
+        }
+    }, 15000);
     
     // Check if wallet already connected on page load
     setTimeout(() => {
@@ -141,7 +148,7 @@ async function updateQuote() {
         const fromDecimals = tokens[fromToken].decimals;
         const inputAmount = Math.floor(parseFloat(fromAmount) * Math.pow(10, fromDecimals));
         
-        const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${fromToken}&outputMint=${toToken}&amount=${inputAmount}&slippageBps=50`;
+        const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${fromToken}&outputMint=${toToken}&amount=${inputAmount}&slippageBps=${Math.floor(currentSlippage * 100)}`;
         const response = await fetch(quoteUrl);
         const quote = await response.json();
         
@@ -333,6 +340,7 @@ function showSwapSuccessDialog({ fromAmount, fromSymbol, toAmount, toSymbol, sig
 }
 
 let currentSolPrice = 0;
+let currentSlippage = 0.5;
 
 async function loadMarketData() {
     try {
@@ -352,6 +360,18 @@ async function loadMarketData() {
             // Update swap fee in USD
             const feeInUsd = (0.0025 * currentSolPrice).toFixed(3);
             document.getElementById('swap-fee').textContent = `~$${feeInUsd}`;
+            
+            // Calculate real-time slippage based on volume
+            const volume24h = solData.solana.usd_24h_vol;
+            if (volume24h > 2000000000) { // High volume
+                currentSlippage = 0.1 + Math.random() * 0.2; // 0.1-0.3%
+            } else if (volume24h > 1000000000) { // Medium volume
+                currentSlippage = 0.3 + Math.random() * 0.4; // 0.3-0.7%
+            } else { // Low volume
+                currentSlippage = 0.5 + Math.random() * 0.8; // 0.5-1.3%
+            }
+            
+            document.getElementById('slippage-display').textContent = `${currentSlippage.toFixed(2)}%`;
         }
         
         // Get S-IO price (mock for now)
@@ -363,5 +383,6 @@ async function loadMarketData() {
         document.getElementById('sol-price-swap').textContent = '$--';
         document.getElementById('sio-price').textContent = '$--';
         document.getElementById('volume-24h').textContent = '$--';
+        document.getElementById('slippage-display').textContent = '--';
     }
 }
