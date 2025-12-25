@@ -153,15 +153,9 @@ async function updateQuote() {
         const fromDecimals = tokens[fromToken].decimals;
         const inputAmount = Math.floor(parseFloat(fromAmount) * Math.pow(10, fromDecimals));
         
-        const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${fromToken}&outputMint=${toToken}&amount=${inputAmount}&slippageBps=50`;
+        const quoteUrl = `https://api.jup.ag/price/v2?ids=${fromToken}&vsToken=${toToken}`;
         console.log('Fetching quote from:', quoteUrl);
-        const response = await fetch(quoteUrl, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-        });
+        const response = await fetch(quoteUrl);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -169,30 +163,24 @@ async function updateQuote() {
         
         const quote = await response.json();
         
-        if (quote.error) {
-            throw new Error(quote.error);
+        if (quote.error || !quote.data || !quote.data[fromToken]) {
+            throw new Error('No price data available');
         }
         
-        const toDecimals = tokens[toToken].decimals;
-        const outputAmount = quote.outAmount / Math.pow(10, toDecimals);
+        const priceData = quote.data[fromToken];
+        const rate = priceData.price || 0;
+        const outputAmount = parseFloat(fromAmount) * rate;
         
         document.getElementById('to-amount').value = outputAmount.toFixed(6);
         
         const rate = outputAmount / parseFloat(fromAmount);
-        let rateText = `1 ${tokens[fromToken].symbol} = ${rate.toFixed(4)} ${tokens[toToken].symbol}`;
-        
-        // Add USD value if SOL is involved
-        if (fromToken === 'So11111111111111111111111111111111111111112' && currentSolPrice > 0) {
-            rateText += ` (~$${(rate * currentSolPrice).toFixed(2)})`;
-        } else if (toToken === 'So11111111111111111111111111111111111111112' && currentSolPrice > 0) {
-            rateText += ` (~$${(rate * currentSolPrice).toFixed(2)})`;
-        }
+        let rateText = `1 ${tokens[fromToken].symbol} = ${rate.toFixed(6)} ${tokens[toToken].symbol}`;
         
         document.getElementById('exchange-rate').textContent = rateText;
         
         document.getElementById('swap-btn').textContent = 'Execute Swap';
         document.getElementById('swap-btn').disabled = false;
-        document.getElementById('swap-btn').onclick = () => executeSwap(quote);
+        document.getElementById('swap-btn').onclick = () => executeSwap({ rate, outputAmount });
         
     } catch (error) {
         console.error('Quote failed:', error);
