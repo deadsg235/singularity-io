@@ -20,15 +20,27 @@ const tokens = {
 document.addEventListener('DOMContentLoaded', () => {
     connection = new solanaWeb3.Connection(RPC_ENDPOINTS[0], 'confirmed');
     document.getElementById('wallet-btn').addEventListener('click', async () => {
-        if (window.walletAdapter?.isConnected()) {
-            await window.walletAdapter.disconnect();
-        } else {
-            try {
-                await window.walletAdapter.connect('phantom');
-            } catch (error) {
-                console.error('Wallet connection failed:', error);
-                alert('Failed to connect wallet: ' + error.message);
-            }
+        console.log('Wallet button clicked');
+        if (!window.solana?.isPhantom) {
+            alert('Install Phantom Wallet');
+            return;
+        }
+        
+        try {
+            const resp = await window.solana.connect();
+            console.log('Wallet connected:', resp.publicKey.toString());
+            
+            const btn = document.getElementById('wallet-btn');
+            btn.textContent = `${resp.publicKey.toString().slice(0, 4)}...${resp.publicKey.toString().slice(-4)}`;
+            btn.classList.add('connected');
+            
+            document.getElementById('balance-display').classList.remove('hidden');
+            document.getElementById('swap-btn').textContent = 'Get Quote';
+            document.getElementById('swap-btn').disabled = false;
+            
+        } catch (error) {
+            console.error('Wallet connection failed:', error);
+            alert('Failed to connect wallet: ' + error.message);
         }
     });
     document.getElementById('from-amount').addEventListener('input', updateQuote);
@@ -88,7 +100,7 @@ function switchRPC() {
 }
 
 function updateTokenBalances() {
-    if (!window.walletAdapter?.isConnected()) {
+    if (!window.solana?.isPhantom) {
         document.getElementById('from-balance').textContent = 'Balance: 0';
         document.getElementById('to-balance').textContent = 'Balance: 0';
         return;
@@ -134,7 +146,7 @@ async function updateQuote() {
         return;
     }
     
-    if (!window.walletAdapter?.isConnected()) {
+    if (!window.solana?.isPhantom) {
         document.getElementById('swap-btn').textContent = 'Connect Wallet';
         document.getElementById('swap-btn').disabled = true;
         return;
