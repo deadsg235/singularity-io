@@ -100,7 +100,7 @@ function switchRPC() {
 }
 
 function updateTokenBalances() {
-    if (!window.solana?.isPhantom) {
+    if (!window.solana?.publicKey) {
         document.getElementById('from-balance').textContent = 'Balance: 0';
         document.getElementById('to-balance').textContent = 'Balance: 0';
         return;
@@ -139,7 +139,7 @@ async function updateQuote() {
     if (!fromAmount || fromAmount <= 0 || fromToken === toToken) {
         document.getElementById('to-amount').value = '';
         document.getElementById('exchange-rate').textContent = 'Enter amount';
-        if (window.walletAdapter?.isConnected()) {
+        if (window.solana?.publicKey) {
             document.getElementById('swap-btn').textContent = 'Enter Amount';
             document.getElementById('swap-btn').disabled = true;
         }
