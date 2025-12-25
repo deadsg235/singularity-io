@@ -19,7 +19,18 @@ const tokens = {
 
 document.addEventListener('DOMContentLoaded', () => {
     connection = new solanaWeb3.Connection(RPC_ENDPOINTS[0], 'confirmed');
-    document.getElementById('wallet-btn').addEventListener('click', handleWalletClick);
+    document.getElementById('wallet-btn').addEventListener('click', async () => {
+        if (window.walletAdapter?.isConnected()) {
+            await window.walletAdapter.disconnect();
+        } else {
+            try {
+                await window.walletAdapter.connect('phantom');
+            } catch (error) {
+                console.error('Wallet connection failed:', error);
+                alert('Failed to connect wallet: ' + error.message);
+            }
+        }
+    });
     document.getElementById('from-amount').addEventListener('input', updateQuote);
     document.getElementById('from-token').addEventListener('change', () => {
         updateTokenBalances();
@@ -57,24 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTokenBalances();
     });
 });
-
-async function handleWalletClick() {
-    if (window.walletAdapter?.isConnected()) {
-        await window.walletAdapter.disconnect();
-        document.getElementById('swap-btn').textContent = 'Connect Wallet';
-        document.getElementById('swap-btn').disabled = true;
-    } else {
-        try {
-            await window.walletAdapter.connect('phantom');
-            document.getElementById('swap-btn').textContent = 'Get Quote';
-            document.getElementById('swap-btn').disabled = false;
-            updateTokenBalances();
-        } catch (error) {
-            console.error('Wallet connection failed:', error);
-            alert('Failed to connect wallet: ' + error.message);
-        }
-    }
-}
 
 // Listen for wallet events
 window.addEventListener('walletConnected', () => {
