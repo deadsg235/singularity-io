@@ -158,7 +158,7 @@ async function updateQuote() {
         const fromDecimals = tokens[fromToken].decimals;
         const inputAmount = Math.floor(parseFloat(fromAmount) * Math.pow(10, fromDecimals));
         
-        const quoteUrl = `https://api.jup.ag/price/v2?ids=${fromToken}&vsToken=${toToken}`;
+        const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${fromToken}&outputMint=${toToken}&amount=${inputAmount}&slippageBps=50`;
         console.log('Fetching quote from:', quoteUrl);
         const response = await fetch(quoteUrl);
         
@@ -168,24 +168,30 @@ async function updateQuote() {
         
         const quote = await response.json();
         
-        if (quote.error || !quote.data || !quote.data[fromToken]) {
-            throw new Error('No price data available');
+        if (quote.error) {
+            throw new Error(quote.error);
         }
         
-        const priceData = quote.data[fromToken];
-        const rate = priceData.price || 0;
-        const outputAmount = parseFloat(fromAmount) * rate;
+        const toDecimals = tokens[toToken].decimals;
+        const outputAmount = quote.outAmount / Math.pow(10, toDecimals);
         
         document.getElementById('to-amount').value = outputAmount.toFixed(6);
         
         const rate = outputAmount / parseFloat(fromAmount);
-        let rateText = `1 ${tokens[fromToken].symbol} = ${rate.toFixed(6)} ${tokens[toToken].symbol}`;
+        let rateText = `1 ${tokens[fromToken].symbol} = ${rate.toFixed(4)} ${tokens[toToken].symbol}`;
+        
+        // Add USD value if SOL is involved
+        if (fromToken === 'So11111111111111111111111111111111111111112' && currentSolPrice > 0) {
+            rateText += ` (~$${currentSolPrice.toFixed(2)})`;
+        } else if (toToken === 'So11111111111111111111111111111111111111112' && currentSolPrice > 0) {
+            rateText += ` (~$${(outputAmount * currentSolPrice / parseFloat(fromAmount)).toFixed(2)})`;
+        }
         
         document.getElementById('exchange-rate').textContent = rateText;
         
         document.getElementById('swap-btn').textContent = 'Execute Swap';
         document.getElementById('swap-btn').disabled = false;
-        document.getElementById('swap-btn').onclick = () => executeSwap({ rate, outputAmount });
+        document.getElementById('swap-btn').onclick = () => executeSwap(quote);
         
     } catch (error) {
         console.error('Quote failed:', error);
@@ -212,7 +218,7 @@ function swapTokens() {
 }
 
 async function executeSwap(quote) {
-    if (!window.walletAdapter?.isConnected() || !quote) {
+    if (!window.solana?.isPhantom || !quote) {
         alert('Connect wallet and get quote first');
         return;
     }
@@ -221,32 +227,43 @@ async function executeSwap(quote) {
         document.getElementById('swap-btn').textContent = 'Processing...';
         document.getElementById('swap-btn').disabled = true;
         
-        const walletPublicKey = window.walletAdapter.getPublicKey();
         const fromToken = document.getElementById('from-token').value;
         const toToken = document.getElementById('to-token').value;
         const fromAmount = document.getElementById('from-amount').value;
         const toAmount = document.getElementById('to-amount').value;
         
-        const swapData = {
-            wallet: walletPublicKey.toString(),
+        // Get Jupiter swap transaction
+        const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                quoteResponse: quote,
+                userPublicKey: window.solana.publicKey.toString(),
+                wrapAndUnwrapSol: true
+            })
+        });
+        
+        const { swapTransaction } = await swapResponse.json();
+        
+        // Send to S-IO Protocol for processing
+        const sioData = {
+            wallet: window.solana.publicKey.toString(),
             fromToken,
             toToken,
             fromAmount: parseFloat(fromAmount),
             toAmount: parseFloat(toAmount),
+            jupiterTransaction: swapTransaction,
             quote
         };
         
-        // Use S-IO Protocol for swaps
-        console.log('Sending swap request to S-IO API:', swapData);
-        const response = await fetch('/api/sio/swap', {
+        console.log('Sending swap to S-IO Protocol:', sioData);
+        const sioResponse = await fetch('/api/sio/swap', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(swapData)
+            body: JSON.stringify(sioData)
         });
         
-        console.log('S-IO API response status:', response.status);
-        const result = await response.json();
-        console.log('S-IO API result:', result);
+        const result = await sioResponse.json();
         
         if (!result.success) {
             throw new Error(result.message || 'Swap failed');
@@ -271,10 +288,6 @@ async function executeSwap(quote) {
         
         document.getElementById('from-amount').value = '';
         document.getElementById('to-amount').value = '';
-        
-        if (window.walletBalanceLoader) {
-            window.walletBalanceLoader.refreshBalances(walletPublicKey.toString());
-        }
         
     } catch (error) {
         console.error('Swap error:', error);
