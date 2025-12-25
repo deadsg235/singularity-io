@@ -12,8 +12,7 @@ class SwapRequest(BaseModel):
     toToken: str
     fromAmount: float
     toAmount: float
-    quote: Dict[Any, Any]
-    jupiterTransaction: str = None
+    quote: dict = {}
 
 @router.post("/api/sio/swap")
 async def execute_swap(request: SwapRequest):
@@ -26,15 +25,9 @@ async def execute_swap(request: SwapRequest):
         if request.fromToken == request.toToken:
             raise HTTPException(status_code=400, detail="Cannot swap same token")
         
-        # Process Jupiter transaction through S-IO Protocol
-        jupiter_tx = getattr(request, 'jupiterTransaction', None)
-        
-        if jupiter_tx:
-            signature = f"sio_jup_{int(time.time())}_{hash(request.wallet)[:8]}"
-            protocol = "S-IO + Jupiter"
-        else:
-            signature = f"sio_{int(time.time())}_{hash(request.wallet)[:8]}"
-            protocol = "S-IO"
+        # Process swap through S-IO Protocol
+        signature = f"sio_{int(time.time())}_{hash(request.wallet)[:8]}"
+        protocol = "S-IO"
         
         # Log swap for analytics
         swap_data = {

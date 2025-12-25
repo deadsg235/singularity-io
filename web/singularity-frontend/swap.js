@@ -251,6 +251,14 @@ async function executeSwap(quote) {
             body: JSON.stringify(sioData)
         });
         
+        console.log('S-IO API response status:', sioResponse.status);
+        
+        if (!sioResponse.ok) {
+            const errorText = await sioResponse.text();
+            console.error('S-IO API error:', errorText);
+            throw new Error(`API Error: ${sioResponse.status}`);
+        }
+        
         const result = await sioResponse.json();
         
         if (!result.success) {
