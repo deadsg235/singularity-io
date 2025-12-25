@@ -5,9 +5,9 @@ let connection;
 let recentSwaps = [];
 
 const RPC_ENDPOINTS = [
-    'https://api.mainnet-beta.solana.com',
-    'https://rpc.ankr.com/solana',
-    'https://solana-mainnet.rpc.extrnode.com'
+    'https://solana-mainnet.phantom.tech',
+    'https://api.metaplex.solana.com',
+    'https://solana-mainnet-public.allthatnode.com'
 ];
 
 const tokens = {
