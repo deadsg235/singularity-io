@@ -1,5 +1,5 @@
 [workspace]
-members = ["crate", "partial-idl-parser"]
+members = ["crate", "partial-idl-parser", "higher-guardian"]
 resolver = "2"
 
 [workspace.package]

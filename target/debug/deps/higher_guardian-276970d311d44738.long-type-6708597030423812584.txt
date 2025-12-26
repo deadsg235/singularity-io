@@ -1,0 +1,1 @@
+std::option::Option<windows_core::strings::pcwstr::PCWSTR>: IntoParam<windows_core::strings::pcwstr::PCWSTR, CopyType>

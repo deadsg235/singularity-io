@@ -124,7 +124,7 @@ impl Utils {
         let first_part = &base58_str[..4];
         let last_part = &base58_str[base58_str.len() - 4..];
 
-        Ok(Cow::Borrowed(first_part) + "..." + last_part)
+        Ok(Cow::Borrowed(first_part) + "..." + last_part)create this hiigher guardian bas
     }
 
     /// Same as [Self::shorten_base58] but with a custom range

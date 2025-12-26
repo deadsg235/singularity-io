@@ -1,5 +1,5 @@
-   1.352289500s  INFO prepare_target{force=false package_id=wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate) target="wallet_adapter"}: cargo::core::compiler::fingerprint: fingerprint error for wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("wallet_adapter", ["lib"], "C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\crate\\src\\lib.rs", Edition2021) }
-   1.352869700s  INFO prepare_target{force=false package_id=wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate) target="wallet_adapter"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\wallet-adapter-42f5d82ebd404d5f\test-lib-wallet_adapter`
+   0.395800900s  INFO prepare_target{force=false package_id=higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian) target="higher_guardian"}: cargo::core::compiler::fingerprint: fingerprint error for higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("higher_guardian", ["lib"], "C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\higher-guardian\\src\\lib.rs", Edition2021) }
+   0.395855500s  INFO prepare_target{force=false package_id=higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian) target="higher_guardian"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\higher-guardian-4b5cbbde29c06cfe\lib-higher_guardian`
 
 Caused by:
     The system cannot find the file specified. (os error 2)
@@ -26,8 +26,181 @@ Stack backtrace:
   18: git_midx_writer_dump
   19: BaseThreadInitThunk
   20: RtlUserThreadStart
-   1.390775500s  INFO prepare_target{force=false package_id=solana-sdk v2.3.1 target="solana_sdk"}: cargo::core::compiler::fingerprint: fingerprint error for solana-sdk v2.3.1/Check { test: false }/TargetInner { ..: lib_target("solana_sdk", ["cdylib", "rlib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\solana-sdk-2.3.1\\src\\lib.rs", Edition2021) }
-   1.390803400s  INFO prepare_target{force=false package_id=solana-sdk v2.3.1 target="solana_sdk"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\solana-sdk-1bd1609e7a58bc8f\lib-solana_sdk`
+   0.424741100s  INFO prepare_target{force=false package_id=higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian) target="higher_guardian"}: cargo::core::compiler::fingerprint: fingerprint error for higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("higher_guardian", ["lib"], "C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\higher-guardian\\src\\lib.rs", Edition2021) }
+   0.424772600s  INFO prepare_target{force=false package_id=higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian) target="higher_guardian"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\higher-guardian-c4946497f12e75c5\test-lib-higher_guardian`
+
+Caused by:
+    The system cannot find the file specified. (os error 2)
+
+Stack backtrace:
+   0: git_midx_writer_dump
+   1: git_midx_writer_dump
+   2: git_midx_writer_dump
+   3: git_midx_writer_dump
+   4: git_filter_source_repo
+   5: git_filter_source_path
+   6: git_filter_source_path
+   7: git_filter_source_path
+   8: git_filter_source_path
+   9: git_filter_source_repo
+  10: git_filter_source_repo
+  11: git_filter_source_repo
+  12: git_filter_source_repo
+  13: git_filter_source_repo
+  14: <unknown>
+  15: <unknown>
+  16: git_midx_writer_dump
+  17: git_filter_source_repo
+  18: git_midx_writer_dump
+  19: BaseThreadInitThunk
+  20: RtlUserThreadStart
+   0.425518300s  INFO prepare_target{force=false package_id=higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian) target="main"}: cargo::core::compiler::fingerprint: fingerprint error for higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian)/Check { test: false }/TargetInner { name: "main", doc: true, ..: with_path("C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\higher-guardian\\src\\main.rs", Edition2021) }
+   0.425536400s  INFO prepare_target{force=false package_id=higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian) target="main"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\higher-guardian-ba9300758676a2fd\bin-main`
+
+Caused by:
+    The system cannot find the file specified. (os error 2)
+
+Stack backtrace:
+   0: git_midx_writer_dump
+   1: git_midx_writer_dump
+   2: git_midx_writer_dump
+   3: git_midx_writer_dump
+   4: git_filter_source_repo
+   5: git_filter_source_path
+   6: git_filter_source_path
+   7: git_filter_source_path
+   8: git_filter_source_path
+   9: git_filter_source_repo
+  10: git_filter_source_repo
+  11: git_filter_source_repo
+  12: git_filter_source_repo
+  13: git_filter_source_repo
+  14: <unknown>
+  15: <unknown>
+  16: git_midx_writer_dump
+  17: git_filter_source_repo
+  18: git_midx_writer_dump
+  19: BaseThreadInitThunk
+  20: RtlUserThreadStart
+   0.426065900s  INFO prepare_target{force=false package_id=higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian) target="main"}: cargo::core::compiler::fingerprint: fingerprint error for higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian)/Check { test: true }/TargetInner { name: "main", doc: true, ..: with_path("C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\higher-guardian\\src\\main.rs", Edition2021) }
+   0.426084500s  INFO prepare_target{force=false package_id=higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian) target="main"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\higher-guardian-7e640635f658ccb8\test-bin-main`
+
+Caused by:
+    The system cannot find the file specified. (os error 2)
+
+Stack backtrace:
+   0: git_midx_writer_dump
+   1: git_midx_writer_dump
+   2: git_midx_writer_dump
+   3: git_midx_writer_dump
+   4: git_filter_source_repo
+   5: git_filter_source_path
+   6: git_filter_source_path
+   7: git_filter_source_path
+   8: git_filter_source_path
+   9: git_filter_source_repo
+  10: git_filter_source_repo
+  11: git_filter_source_repo
+  12: git_filter_source_repo
+  13: git_filter_source_repo
+  14: <unknown>
+  15: <unknown>
+  16: git_midx_writer_dump
+  17: git_filter_source_repo
+  18: git_midx_writer_dump
+  19: BaseThreadInitThunk
+  20: RtlUserThreadStart
+   0.426554100s  INFO prepare_target{force=false package_id=higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian) target="wireguard_demo"}: cargo::core::compiler::fingerprint: fingerprint error for higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian)/Check { test: false }/TargetInner { name: "wireguard_demo", doc: true, ..: with_path("C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\higher-guardian\\src\\main_demo.rs", Edition2021) }
+   0.426574300s  INFO prepare_target{force=false package_id=higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian) target="wireguard_demo"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\higher-guardian-33cf8d600c0fc018\bin-wireguard_demo`
+
+Caused by:
+    The system cannot find the file specified. (os error 2)
+
+Stack backtrace:
+   0: git_midx_writer_dump
+   1: git_midx_writer_dump
+   2: git_midx_writer_dump
+   3: git_midx_writer_dump
+   4: git_filter_source_repo
+   5: git_filter_source_path
+   6: git_filter_source_path
+   7: git_filter_source_path
+   8: git_filter_source_path
+   9: git_filter_source_repo
+  10: git_filter_source_repo
+  11: git_filter_source_repo
+  12: git_filter_source_repo
+  13: git_filter_source_repo
+  14: <unknown>
+  15: <unknown>
+  16: git_midx_writer_dump
+  17: git_filter_source_repo
+  18: git_midx_writer_dump
+  19: BaseThreadInitThunk
+  20: RtlUserThreadStart
+   0.427021400s  INFO prepare_target{force=false package_id=higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian) target="wireguard_demo"}: cargo::core::compiler::fingerprint: fingerprint error for higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian)/Check { test: true }/TargetInner { name: "wireguard_demo", doc: true, ..: with_path("C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\higher-guardian\\src\\main_demo.rs", Edition2021) }
+   0.427040000s  INFO prepare_target{force=false package_id=higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian) target="wireguard_demo"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\higher-guardian-b4085c995f97116d\test-bin-wireguard_demo`
+
+Caused by:
+    The system cannot find the file specified. (os error 2)
+
+Stack backtrace:
+   0: git_midx_writer_dump
+   1: git_midx_writer_dump
+   2: git_midx_writer_dump
+   3: git_midx_writer_dump
+   4: git_filter_source_repo
+   5: git_filter_source_path
+   6: git_filter_source_path
+   7: git_filter_source_path
+   8: git_filter_source_path
+   9: git_filter_source_repo
+  10: git_filter_source_repo
+  11: git_filter_source_repo
+  12: git_filter_source_repo
+  13: git_filter_source_repo
+  14: <unknown>
+  15: <unknown>
+  16: git_midx_writer_dump
+  17: git_filter_source_repo
+  18: git_midx_writer_dump
+  19: BaseThreadInitThunk
+  20: RtlUserThreadStart
+   0.448572500s  INFO prepare_target{force=false package_id=wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate) target="wallet_adapter"}: cargo::core::compiler::fingerprint: stale: changed "C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\crate\\src\\utils.rs"
+   0.448595100s  INFO prepare_target{force=false package_id=wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate) target="wallet_adapter"}: cargo::core::compiler::fingerprint:           (vs) "C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\target\\debug\\.fingerprint\\wallet-adapter-af8346ed820598ec\\dep-lib-wallet_adapter"
+   0.448600800s  INFO prepare_target{force=false package_id=wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate) target="wallet_adapter"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 13410879767, nanos: 751292300 } < FileTime { seconds: 13411261369, nanos: 35866700 }
+   0.460599900s  INFO prepare_target{force=false package_id=wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate) target="wallet_adapter"}: cargo::core::compiler::fingerprint: fingerprint dirty for wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("wallet_adapter", ["lib"], "C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\crate\\src\\lib.rs", Edition2021) }
+   0.460637300s  INFO prepare_target{force=false package_id=wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate) target="wallet_adapter"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\target\\debug\\.fingerprint\\wallet-adapter-af8346ed820598ec\\dep-lib-wallet_adapter", reference_mtime: FileTime { seconds: 13410879767, nanos: 751292300 }, stale: "C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\crate\\src\\utils.rs", stale_mtime: FileTime { seconds: 13411261369, nanos: 35866700 } }))
+   0.577359300s  INFO prepare_target{force=false package_id=wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate) target="wallet_adapter"}: cargo::core::compiler::fingerprint: fingerprint error for wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("wallet_adapter", ["lib"], "C:\\Users\\deads\\OneDrive\\Documents\\AGI\\singularity-io\\crate\\src\\lib.rs", Edition2021) }
+   0.577393800s  INFO prepare_target{force=false package_id=wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate) target="wallet_adapter"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\wallet-adapter-93d971b1bd1c3c3d\test-lib-wallet_adapter`
+
+Caused by:
+    The system cannot find the file specified. (os error 2)
+
+Stack backtrace:
+   0: git_midx_writer_dump
+   1: git_midx_writer_dump
+   2: git_midx_writer_dump
+   3: git_midx_writer_dump
+   4: git_filter_source_repo
+   5: git_filter_source_path
+   6: git_filter_source_path
+   7: git_filter_source_path
+   8: git_filter_source_path
+   9: git_filter_source_repo
+  10: git_filter_source_repo
+  11: git_filter_source_repo
+  12: git_filter_source_repo
+  13: git_filter_source_repo
+  14: <unknown>
+  15: <unknown>
+  16: git_midx_writer_dump
+  17: git_filter_source_repo
+  18: git_midx_writer_dump
+  19: BaseThreadInitThunk
+  20: RtlUserThreadStart
+   0.579599400s  INFO prepare_target{force=false package_id=solana-sdk v2.3.1 target="solana_sdk"}: cargo::core::compiler::fingerprint: fingerprint error for solana-sdk v2.3.1/Check { test: false }/TargetInner { ..: lib_target("solana_sdk", ["cdylib", "rlib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\solana-sdk-2.3.1\\src\\lib.rs", Edition2021) }
+   0.579626400s  INFO prepare_target{force=false package_id=solana-sdk v2.3.1 target="solana_sdk"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\solana-sdk-7fcbc44f16b08cef\lib-solana_sdk`
 
 Caused by:
     The system cannot find the file specified. (os error 2)
@@ -55,8 +228,8 @@ Stack backtrace:
   19: git_midx_writer_dump
   20: BaseThreadInitThunk
   21: RtlUserThreadStart
-   1.920914700s  INFO prepare_target{force=false package_id=solana-client-traits v2.2.1 target="solana_client_traits"}: cargo::core::compiler::fingerprint: fingerprint error for solana-client-traits v2.2.1/Check { test: false }/TargetInner { ..: lib_target("solana_client_traits", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\solana-client-traits-2.2.1\\src\\lib.rs", Edition2021) }
-   1.920949300s  INFO prepare_target{force=false package_id=solana-client-traits v2.2.1 target="solana_client_traits"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\solana-client-traits-27caf4b0d4ae4005\lib-solana_client_traits`
+   0.612693300s  INFO prepare_target{force=false package_id=solana-client-traits v2.2.1 target="solana_client_traits"}: cargo::core::compiler::fingerprint: fingerprint error for solana-client-traits v2.2.1/Check { test: false }/TargetInner { ..: lib_target("solana_client_traits", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\solana-client-traits-2.2.1\\src\\lib.rs", Edition2021) }
+   0.612754100s  INFO prepare_target{force=false package_id=solana-client-traits v2.2.1 target="solana_client_traits"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\solana-client-traits-27caf4b0d4ae4005\lib-solana_client_traits`
 
 Caused by:
     The system cannot find the file specified. (os error 2)
@@ -85,8 +258,8 @@ Stack backtrace:
   20: git_midx_writer_dump
   21: BaseThreadInitThunk
   22: RtlUserThreadStart
-   2.230216900s  INFO prepare_target{force=false package_id=solana-transaction v2.2.3 target="solana_transaction"}: cargo::core::compiler::fingerprint: fingerprint error for solana-transaction v2.2.3/Check { test: false }/TargetInner { ..: lib_target("solana_transaction", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\solana-transaction-2.2.3\\src\\lib.rs", Edition2021) }
-   2.230248100s  INFO prepare_target{force=false package_id=solana-transaction v2.2.3 target="solana_transaction"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\solana-transaction-4589734fdb521d26\lib-solana_transaction`
+   0.624344700s  INFO prepare_target{force=false package_id=solana-transaction v2.2.3 target="solana_transaction"}: cargo::core::compiler::fingerprint: fingerprint error for solana-transaction v2.2.3/Check { test: false }/TargetInner { ..: lib_target("solana_transaction", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\solana-transaction-2.2.3\\src\\lib.rs", Edition2021) }
+   0.624372600s  INFO prepare_target{force=false package_id=solana-transaction v2.2.3 target="solana_transaction"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\solana-transaction-4589734fdb521d26\lib-solana_transaction`
 
 Caused by:
     The system cannot find the file specified. (os error 2)
@@ -116,8 +289,8 @@ Stack backtrace:
   21: git_midx_writer_dump
   22: BaseThreadInitThunk
   23: RtlUserThreadStart
-   2.240385100s  INFO prepare_target{force=false package_id=solana-precompiles v2.2.2 target="solana_precompiles"}: cargo::core::compiler::fingerprint: fingerprint error for solana-precompiles v2.2.2/Check { test: false }/TargetInner { ..: lib_target("solana_precompiles", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\solana-precompiles-2.2.2\\src\\lib.rs", Edition2021) }
-   2.240423600s  INFO prepare_target{force=false package_id=solana-precompiles v2.2.2 target="solana_precompiles"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\solana-precompiles-c8008b678b2c3ffb\lib-solana_precompiles`
+   0.625452400s  INFO prepare_target{force=false package_id=solana-precompiles v2.2.2 target="solana_precompiles"}: cargo::core::compiler::fingerprint: fingerprint error for solana-precompiles v2.2.2/Check { test: false }/TargetInner { ..: lib_target("solana_precompiles", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\solana-precompiles-2.2.2\\src\\lib.rs", Edition2021) }
+   0.625474700s  INFO prepare_target{force=false package_id=solana-precompiles v2.2.2 target="solana_precompiles"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\solana-precompiles-c8008b678b2c3ffb\lib-solana_precompiles`
 
 Caused by:
     The system cannot find the file specified. (os error 2)
@@ -148,8 +321,8 @@ Stack backtrace:
   22: git_midx_writer_dump
   23: BaseThreadInitThunk
   24: RtlUserThreadStart
-   2.352930300s  INFO prepare_target{force=false package_id=solana-secp256r1-program v2.2.4 target="solana_secp256r1_program"}: cargo::core::compiler::fingerprint: fingerprint error for solana-secp256r1-program v2.2.4/Check { test: false }/TargetInner { ..: lib_target("solana_secp256r1_program", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\solana-secp256r1-program-2.2.4\\src\\lib.rs", Edition2021) }
-   2.352957600s  INFO prepare_target{force=false package_id=solana-secp256r1-program v2.2.4 target="solana_secp256r1_program"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\solana-secp256r1-program-0f04388698aa37f3\lib-solana_secp256r1_program`
+   0.632982300s  INFO prepare_target{force=false package_id=solana-secp256r1-program v2.2.4 target="solana_secp256r1_program"}: cargo::core::compiler::fingerprint: fingerprint error for solana-secp256r1-program v2.2.4/Check { test: false }/TargetInner { ..: lib_target("solana_secp256r1_program", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\solana-secp256r1-program-2.2.4\\src\\lib.rs", Edition2021) }
+   0.633008300s  INFO prepare_target{force=false package_id=solana-secp256r1-program v2.2.4 target="solana_secp256r1_program"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\solana-secp256r1-program-0f04388698aa37f3\lib-solana_secp256r1_program`
 
 Caused by:
     The system cannot find the file specified. (os error 2)
@@ -181,8 +354,8 @@ Stack backtrace:
   23: git_midx_writer_dump
   24: BaseThreadInitThunk
   25: RtlUserThreadStart
-   2.353639400s  INFO prepare_target{force=false package_id=openssl v0.10.75 target="openssl"}: cargo::core::compiler::fingerprint: fingerprint error for openssl v0.10.75/Check { test: false }/TargetInner { ..: lib_target("openssl", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\openssl-0.10.75\\src\\lib.rs", Edition2021) }
-   2.353657100s  INFO prepare_target{force=false package_id=openssl v0.10.75 target="openssl"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\openssl-1c21ec84da99e027\lib-openssl`
+   0.633850700s  INFO prepare_target{force=false package_id=openssl v0.10.75 target="openssl"}: cargo::core::compiler::fingerprint: fingerprint error for openssl v0.10.75/Check { test: false }/TargetInner { ..: lib_target("openssl", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\openssl-0.10.75\\src\\lib.rs", Edition2021) }
+   0.633872000s  INFO prepare_target{force=false package_id=openssl v0.10.75 target="openssl"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\openssl-1c21ec84da99e027\lib-openssl`
 
 Caused by:
     The system cannot find the file specified. (os error 2)
@@ -215,8 +388,8 @@ Stack backtrace:
   24: git_midx_writer_dump
   25: BaseThreadInitThunk
   26: RtlUserThreadStart
-   2.380627500s  INFO prepare_target{force=false package_id=openssl v0.10.75 target="build-script-build"}: cargo::core::compiler::fingerprint: fingerprint error for openssl v0.10.75/RunCustomBuild/TargetInner { ..: custom_build_target("build-script-build", "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\openssl-0.10.75\\build.rs", Edition2021) }
-   2.380652400s  INFO prepare_target{force=false package_id=openssl v0.10.75 target="build-script-build"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\openssl-e50858934df0151c\run-build-script-build-script-build`
+   0.638913000s  INFO prepare_target{force=false package_id=openssl v0.10.75 target="build-script-build"}: cargo::core::compiler::fingerprint: fingerprint error for openssl v0.10.75/RunCustomBuild/TargetInner { ..: custom_build_target("build-script-build", "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\openssl-0.10.75\\build.rs", Edition2021) }
+   0.638941000s  INFO prepare_target{force=false package_id=openssl v0.10.75 target="build-script-build"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\openssl-e50858934df0151c\run-build-script-build-script-build`
 
 Caused by:
     The system cannot find the file specified. (os error 2)
@@ -251,8 +424,8 @@ Stack backtrace:
   26: git_midx_writer_dump
   27: BaseThreadInitThunk
   28: RtlUserThreadStart
-   2.381704300s  INFO prepare_target{force=false package_id=openssl-sys v0.9.111 target="build-script-main"}: cargo::core::compiler::fingerprint: fingerprint error for openssl-sys v0.9.111/RunCustomBuild/TargetInner { ..: custom_build_target("build-script-main", "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\openssl-sys-0.9.111\\build\\main.rs", Edition2021) }
-   2.381726300s  INFO prepare_target{force=false package_id=openssl-sys v0.9.111 target="build-script-main"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\openssl-sys-0063f1aa9acd281d\run-build-script-build-script-main`
+   0.640228700s  INFO prepare_target{force=false package_id=openssl-sys v0.9.111 target="build-script-main"}: cargo::core::compiler::fingerprint: fingerprint error for openssl-sys v0.9.111/RunCustomBuild/TargetInner { ..: custom_build_target("build-script-main", "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\openssl-sys-0.9.111\\build\\main.rs", Edition2021) }
+   0.640250500s  INFO prepare_target{force=false package_id=openssl-sys v0.9.111 target="build-script-main"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\openssl-sys-0063f1aa9acd281d\run-build-script-build-script-main`
 
 Caused by:
     The system cannot find the file specified. (os error 2)
@@ -288,8 +461,8 @@ Stack backtrace:
   27: git_midx_writer_dump
   28: BaseThreadInitThunk
   29: RtlUserThreadStart
-   2.382655500s  INFO prepare_target{force=false package_id=openssl-sys v0.9.111 target="openssl_sys"}: cargo::core::compiler::fingerprint: fingerprint error for openssl-sys v0.9.111/Check { test: false }/TargetInner { ..: lib_target("openssl_sys", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\openssl-sys-0.9.111\\src\\lib.rs", Edition2021) }
-   2.382675000s  INFO prepare_target{force=false package_id=openssl-sys v0.9.111 target="openssl_sys"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\openssl-sys-ff6450c2df4d79e3\lib-openssl_sys`
+   0.641314600s  INFO prepare_target{force=false package_id=openssl-sys v0.9.111 target="openssl_sys"}: cargo::core::compiler::fingerprint: fingerprint error for openssl-sys v0.9.111/Check { test: false }/TargetInner { ..: lib_target("openssl_sys", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\openssl-sys-0.9.111\\src\\lib.rs", Edition2021) }
+   0.641342600s  INFO prepare_target{force=false package_id=openssl-sys v0.9.111 target="openssl_sys"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\openssl-sys-ff6450c2df4d79e3\lib-openssl_sys`
 
 Caused by:
     The system cannot find the file specified. (os error 2)
@@ -323,8 +496,8 @@ Stack backtrace:
   25: git_midx_writer_dump
   26: BaseThreadInitThunk
   27: RtlUserThreadStart
-   2.931868800s  INFO prepare_target{force=false package_id=solana-system-transaction v2.2.1 target="solana_system_transaction"}: cargo::core::compiler::fingerprint: fingerprint error for solana-system-transaction v2.2.1/Check { test: false }/TargetInner { ..: lib_target("solana_system_transaction", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\solana-system-transaction-2.2.1\\src\\lib.rs", Edition2021) }
-   2.931927000s  INFO prepare_target{force=false package_id=solana-system-transaction v2.2.1 target="solana_system_transaction"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\solana-system-transaction-32ce8396adf46262\lib-solana_system_transaction`
+   0.657505500s  INFO prepare_target{force=false package_id=solana-system-transaction v2.2.1 target="solana_system_transaction"}: cargo::core::compiler::fingerprint: fingerprint error for solana-system-transaction v2.2.1/Check { test: false }/TargetInner { ..: lib_target("solana_system_transaction", ["lib"], "C:\\Users\\deads\\.cargo\\registry\\src\\index.crates.io-1949cf8c6b5b557f\\solana-system-transaction-2.2.1\\src\\lib.rs", Edition2021) }
+   0.657531800s  INFO prepare_target{force=false package_id=solana-system-transaction v2.2.1 target="solana_system_transaction"}: cargo::core::compiler::fingerprint:     err: failed to read `C:\Users\deads\OneDrive\Documents\AGI\singularity-io\target\debug\.fingerprint\solana-system-transaction-32ce8396adf46262\lib-solana_system_transaction`
 
 Caused by:
     The system cannot find the file specified. (os error 2)
@@ -354,6 +527,7 @@ Stack backtrace:
   21: BaseThreadInitThunk
   22: RtlUserThreadStart
    Compiling openssl-sys v0.9.111
+    Checking higher-guardian v0.1.0 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\higher-guardian)
 warning: openssl-sys@0.9.111: Could not find directory of OpenSSL installation, and this `-sys` crate cannot proceed without this knowledge. If OpenSSL is installed and this crate had trouble finding it,  you can set the `OPENSSL_DIR` environment variable for the compilation process. See stderr section below for further information.
 error: failed to run custom build command for `openssl-sys v0.9.111`
 note: To improve backtraces for build dependencies, set the CARGO_PROFILE_DEV_BUILD_OVERRIDE_DEBUG=true environment variable to enable debug information generation.
@@ -452,3 +626,7 @@ Caused by:
 
 
 warning: build failed, waiting for other jobs to finish...
+    Checking wallet-adapter v1.1.2 (C:\Users\deads\OneDrive\Documents\AGI\singularity-io\crate)
+error: could not compile `higher-guardian` (lib) due to 18 previous errors; 2 warnings emitted
+error: could not compile `higher-guardian` (lib test) due to 18 previous errors; 2 warnings emitted
+error: could not compile `wallet-adapter` (lib) due to 1 previous error
