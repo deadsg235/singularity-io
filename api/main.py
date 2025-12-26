@@ -28,6 +28,7 @@ try:
     from staking import router as staking_router
     from sio_swap import router as swap_router
     from sio_staking import router as sio_staking_router
+    from guardian_analytics import router as guardian_router
 except ImportError as e:
     print(f"Some API modules not available: {e}")
 
@@ -54,6 +55,7 @@ try:
     app.include_router(staking_router)
     app.include_router(swap_router)
     app.include_router(sio_staking_router)
+    app.include_router(guardian_router)
 except NameError:
     pass  # Routers not available
 
