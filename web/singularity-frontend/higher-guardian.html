@@ -33,7 +33,15 @@
         }
         .card h3 { color: #00d4ff; margin-bottom: 1rem; font-size: 1.1rem; }
         .metric { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
-        .metric-value { font-weight: bold; }
+        .metric-value { font-weight: bold; transition: color 0.3s ease; }
+        .new-activity {
+            animation: slideIn 0.5s ease-out;
+            background: rgba(0, 212, 255, 0.1);
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
         .risk-low { color: #00ff88; }
         .risk-moderate { color: #ffaa00; }
         .risk-high { color: #ff4444; }

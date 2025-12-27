@@ -1,8 +1,9 @@
 class HigherGuardianAnalytics {
     constructor() {
         this.apiBase = '/api/guardian';
-        this.refreshInterval = 30000; // 30 seconds
+        this.refreshInterval = 5000; // 5 seconds for real-time
         this.isConnected = false;
+        this.lastUpdate = Date.now();
         this.init();
     }
 
@@ -10,22 +11,26 @@ class HigherGuardianAnalytics {
         await this.loadData();
         this.startAutoRefresh();
         this.setupEventListeners();
+        this.startRealTimeUpdates();
     }
 
     async loadData() {
         try {
-            const [overview, activity, tunnels, security] = await Promise.all([
+            const [overview, activity, tunnels, security, aiSystems] = await Promise.all([
                 this.fetchOverview(),
                 this.fetchActivity(),
                 this.fetchTunnels(),
-                this.fetchSecurity()
+                this.fetchSecurity(),
+                this.fetchAISystems()
             ]);
 
             this.updateOverview(overview);
             this.updateActivity(activity);
             this.updateTunnels(tunnels);
             this.updateSecurity(security);
+            this.updateAISystems(aiSystems);
             this.updateConnectionStatus(true);
+            this.lastUpdate = Date.now();
         } catch (error) {
             console.error('Failed to load Guardian data:', error);
             this.updateConnectionStatus(false);
@@ -34,81 +39,53 @@ class HigherGuardianAnalytics {
 
     async fetchOverview() {
         const response = await fetch(`${this.apiBase}/overview`);
-        if (!response.ok) {
-            // Fallback data
-            return {
-                totalActions: 1247 + Math.floor(Math.random() * 100),
-                blockedActions: 23 + Math.floor(Math.random() * 10),
-                humanApprovals: 7 + Math.floor(Math.random() * 5),
-                ethicalViolations: 3 + Math.floor(Math.random() * 3),
-                uptime: 99.8,
-                riskDistribution: {
-                    low: 892,
-                    moderate: 234,
-                    high: 98,
-                    critical: 23
-                }
-            };
-        }
         return response.json();
     }
 
     async fetchActivity() {
         const response = await fetch(`${this.apiBase}/activity`);
-        if (!response.ok) {
-            // Fallback data
-            return [
-                { type: 'blocked', message: 'AI Action Blocked: network_configuration', timestamp: Date.now() - 120000 },
-                { type: 'alert', message: 'Traffic Alert: singularity-tunnel exceeded 1GB', timestamp: Date.now() - 300000 },
-                { type: 'approved', message: 'Tunnel Approved: backup-tunnel', timestamp: Date.now() - 720000 },
-                { type: 'ethics', message: 'Ethics Check: transparency violation detected', timestamp: Date.now() - 1080000 },
-                { type: 'health', message: 'System Health: All systems operational', timestamp: Date.now() - 1500000 }
-            ];
-        }
         return response.json();
     }
 
     async fetchTunnels() {
         const response = await fetch(`${this.apiBase}/tunnels`);
-        if (!response.ok) {
-            // Fallback data
-            return {
-                active: [
-                    { name: 'singularity-tunnel', status: 'active', traffic: '1.2 GB' },
-                    { name: 'backup-tunnel', status: 'active', traffic: '0.8 GB' }
-                ],
-                blocked: [
-                    { name: 'restricted-tunnel', status: 'blocked', reason: 'Endpoint not whitelisted' }
-                ],
-                totalTraffic: '2.4 GB'
-            };
-        }
         return response.json();
     }
 
     async fetchSecurity() {
         const response = await fetch(`${this.apiBase}/security`);
-        if (!response.ok) {
-            // Fallback data
-            return {
-                blockedIPs: 12,
-                firewallRules: 8,
-                suspiciousActivities: 5,
-                exfiltrationAlerts: 1
-            };
-        }
+        return response.json();
+    }
+
+    async fetchAISystems() {
+        const response = await fetch(`${this.apiBase}/ai-systems`);
         return response.json();
     }
 
     updateOverview(data) {
-        document.getElementById('totalActions').textContent = data.totalActions.toLocaleString();
-        document.getElementById('blockedActions').textContent = data.blockedActions;
-        document.getElementById('humanApprovals').textContent = data.humanApprovals;
-        document.getElementById('ethicalViolations').textContent = data.ethicalViolations;
-        document.getElementById('uptime').textContent = `${data.uptime}%`;
+        // Animate number changes
+        this.animateNumber('totalActions', data.totalActions);
+        this.animateNumber('blockedActions', data.blockedActions);
+        this.animateNumber('humanApprovals', data.humanApprovals);
+        this.animateNumber('ethicalViolations', data.ethicalViolations);
+        document.getElementById('uptime').textContent = `${data.uptime.toFixed(1)}%`;
 
-        // Update risk chart
         this.updateRiskChart(data.riskDistribution);
+    }
+
+    animateNumber(elementId, newValue) {
+        const element = document.getElementById(elementId);
+        const currentValue = parseInt(element.textContent.replace(/,/g, '')) || 0;
+        
+        if (currentValue !== newValue) {
+            element.style.transition = 'color 0.3s ease';
+            element.style.color = '#00ff88';
+            element.textContent = newValue.toLocaleString();
+            
+            setTimeout(() => {
+                element.style.color = '';
+            }, 1000);
+        }
     }
 
     updateRiskChart(distribution) {
@@ -121,26 +98,50 @@ class HigherGuardianAnalytics {
             <div class="bar risk-high" style="height: ${(distribution.high / total) * 100}%" title="High: ${distribution.high}"></div>
             <div class="bar risk-critical" style="height: ${(distribution.critical / total) * 100}%" title="Critical: ${distribution.critical}"></div>
         `;
+        
+        // Update risk distribution numbers
+        const riskElements = {
+            'Low Risk': distribution.low,
+            'Moderate Risk': distribution.moderate,
+            'High Risk': distribution.high,
+            'Critical Risk': distribution.critical
+        };
+        
+        Object.entries(riskElements).forEach(([label, value]) => {
+            const element = document.querySelector(`[data-risk="${label}"]`);
+            if (element) element.textContent = value;
+        });
     }
 
     updateActivity(activities) {
         const log = document.getElementById('activityLog');
-        log.innerHTML = '';
-
+        const currentActivities = Array.from(log.children).map(child => child.dataset.timestamp);
+        
         activities.forEach(activity => {
-            const item = document.createElement('div');
-            item.className = 'activity-item';
-            
-            const icon = this.getActivityIcon(activity.type);
-            const timeAgo = this.formatTimeAgo(activity.timestamp);
-            
-            item.innerHTML = `
-                <div>${icon} ${activity.message}</div>
-                <div class="timestamp">${timeAgo}</div>
-            `;
-            
-            log.appendChild(item);
+            if (!currentActivities.includes(activity.timestamp.toString())) {
+                const item = document.createElement('div');
+                item.className = 'activity-item new-activity';
+                item.dataset.timestamp = activity.timestamp;
+                
+                const icon = this.getActivityIcon(activity.type);
+                const timeAgo = this.formatTimeAgo(activity.timestamp);
+                
+                item.innerHTML = `
+                    <div>${icon} ${activity.message}</div>
+                    <div class="timestamp">${timeAgo}</div>
+                `;
+                
+                log.insertBefore(item, log.firstChild);
+                
+                // Animate new activity
+                setTimeout(() => item.classList.remove('new-activity'), 100);
+            }
         });
+        
+        // Remove old activities (keep max 10)
+        while (log.children.length > 10) {
+            log.removeChild(log.lastChild);
+        }
     }
 
     updateTunnels(data) {
@@ -162,16 +163,30 @@ class HigherGuardianAnalytics {
             tunnelList.appendChild(item);
         });
 
-        document.getElementById('activeTunnels').textContent = data.active.length;
-        document.getElementById('blockedTunnels').textContent = data.blocked.length;
+        this.animateNumber('activeTunnels', data.active.length);
+        this.animateNumber('blockedTunnels', data.blocked.length);
         document.getElementById('trafficMonitored').textContent = data.totalTraffic;
     }
 
     updateSecurity(data) {
-        document.getElementById('blockedIPs').textContent = data.blockedIPs;
-        document.getElementById('firewallRules').textContent = data.firewallRules;
-        document.getElementById('suspiciousActivities').textContent = data.suspiciousActivities;
-        document.getElementById('exfiltrationAlerts').textContent = data.exfiltrationAlerts;
+        this.animateNumber('blockedIPs', data.blockedIPs);
+        this.animateNumber('firewallRules', data.firewallRules);
+        this.animateNumber('suspiciousActivities', data.suspiciousActivities);
+        this.animateNumber('exfiltrationAlerts', data.exfiltrationAlerts);
+    }
+
+    updateAISystems(data) {
+        const container = document.querySelector('.card:nth-child(5)');
+        if (!container) return;
+        
+        const metricsHtml = Object.entries(data).map(([system, info]) => `
+            <div class="metric">
+                <span>${system}</span>
+                <span class="metric-value">${info.actions} actions</span>
+            </div>
+        `).join('');
+        
+        container.innerHTML = `<h3>🤖 AI Systems</h3>${metricsHtml}`;
     }
 
     updateConnectionStatus(connected) {
@@ -204,19 +219,19 @@ class HigherGuardianAnalytics {
     formatTimeAgo(timestamp) {
         const now = Date.now();
         const diff = now - timestamp;
-        const minutes = Math.floor(diff / 60000);
+        const seconds = Math.floor(diff / 1000);
         
-        if (minutes < 1) return 'Just now';
-        if (minutes === 1) return '1 minute ago';
-        if (minutes < 60) return `${minutes} minutes ago`;
+        if (seconds < 10) return 'Just now';
+        if (seconds < 60) return `${seconds}s ago`;
+        
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
         
         const hours = Math.floor(minutes / 60);
-        if (hours === 1) return '1 hour ago';
-        if (hours < 24) return `${hours} hours ago`;
+        if (hours < 24) return `${hours}h ago`;
         
         const days = Math.floor(hours / 24);
-        if (days === 1) return '1 day ago';
-        return `${days} days ago`;
+        return `${days}d ago`;
     }
 
     startAutoRefresh() {
@@ -225,23 +240,48 @@ class HigherGuardianAnalytics {
         }, this.refreshInterval);
     }
 
+    startRealTimeUpdates() {
+        // Simulate real-time events
+        setInterval(() => {
+            if (Math.random() < 0.3) { // 30% chance
+                this.simulateEvent();
+            }
+        }, 10000); // Every 10 seconds
+    }
+
+    async simulateEvent() {
+        const events = ['blocked', 'alert', 'approved', 'ethics', 'tunnel'];
+        const eventType = events[Math.floor(Math.random() * events.length)];
+        
+        try {
+            await fetch(`${this.apiBase}/simulate-event`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ event_type: eventType })
+            });
+        } catch (error) {
+            console.log('Simulation event failed:', error);
+        }
+    }
+
     setupEventListeners() {
-        // Refresh button
         const refreshBtn = document.querySelector('.refresh-btn');
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => {
                 this.loadData();
+                refreshBtn.style.transform = 'rotate(360deg)';
+                setTimeout(() => refreshBtn.style.transform = '', 500);
             });
         }
 
-        // Status indicator animation
+        // Real-time status indicator
         setInterval(() => {
             const statusDot = document.querySelector('.status-dot');
             if (this.isConnected) {
                 statusDot.style.opacity = '0.5';
                 setTimeout(() => statusDot.style.opacity = '1', 200);
             }
-        }, 5000);
+        }, 3000);
     }
 }
 
