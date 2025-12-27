@@ -87,7 +87,7 @@
         <div class="status">
             <div class="status-dot"></div>
             <span>System Active</span>
-            <button class="refresh-btn" onclick="refreshData()">Refresh</button>
+            <button class="refresh-btn" onclick="window.guardianAnalytics?.loadData()">Refresh</button>
         </div>
     </div>
 
@@ -245,49 +245,6 @@
         </div>
     </div>
 
-    <script>
-        function refreshData() {
-            // Simulate real-time data updates
-            const totalActions = document.getElementById('totalActions');
-            const currentValue = parseInt(totalActions.textContent);
-            totalActions.textContent = currentValue + Math.floor(Math.random() * 10);
-            
-            // Add new activity
-            const activityLog = document.getElementById('activityLog');
-            const activities = [
-                '✅ System Check: All components operational',
-                '🔍 Traffic Analysis: Normal patterns detected',
-                '⚠️ Policy Update: New endpoint whitelist applied',
-                '📊 Health Monitor: Performance metrics updated',
-                '🛡️ Guardian Active: Monitoring 3 AI systems'
-            ];
-            
-            const newActivity = document.createElement('div');
-            newActivity.className = 'activity-item';
-            newActivity.innerHTML = `
-                <div>${activities[Math.floor(Math.random() * activities.length)]}</div>
-                <div class="timestamp">Just now</div>
-            `;
-            
-            activityLog.insertBefore(newActivity, activityLog.firstChild);
-            
-            // Remove old activities (keep max 10)
-            while (activityLog.children.length > 10) {
-                activityLog.removeChild(activityLog.lastChild);
-            }
-            
-            console.log('Higher Guardian data refreshed');
-        }
-
-        // Auto-refresh every 30 seconds
-        setInterval(refreshData, 30000);
-
-        // Simulate real-time updates
-        setInterval(() => {
-            const statusDot = document.querySelector('.status-dot');
-            statusDot.style.opacity = '0.5';
-            setTimeout(() => statusDot.style.opacity = '1', 200);
-        }, 5000);
-    </script>
+    <script src="higher-guardian.js"></script>
 </body>
 </html>

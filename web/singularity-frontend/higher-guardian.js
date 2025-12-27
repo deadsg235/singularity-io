@@ -254,10 +254,9 @@ class HigherGuardianAnalytics {
         const eventType = events[Math.floor(Math.random() * events.length)];
         
         try {
-            await fetch(`${this.apiBase}/simulate-event`, {
+            await fetch(`${this.apiBase}/simulate-event?event_type=${eventType}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ event_type: eventType })
+                headers: { 'Content-Type': 'application/json' }
             });
         } catch (error) {
             console.log('Simulation event failed:', error);
