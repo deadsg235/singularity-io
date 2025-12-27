@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Higher Guardian Advanced Analytics | Singularity.io</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        .header {
+            background: rgba(255,255,255,0.05);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { font-size: 1.5rem; font-weight: bold; color: #00d4ff; }
+        .status { display: flex; align-items: center; gap: 0.5rem; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #00ff88; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        .dashboard { padding: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00d4ff, #0099cc);
+        }
+        .card h3 { color: #00d4ff; margin-bottom: 1rem; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
+        
+        .threat-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            border-left: 4px solid;
+            animation: slideIn 0.5s ease-out;
+        }
+        .threat-critical { border-color: #ff0066; background: rgba(255, 0, 102, 0.1); }
+        .threat-high { border-color: #ff4444; background: rgba(255, 68, 68, 0.1); }
+        .threat-medium { border-color: #ffaa00; background: rgba(255, 170, 0, 0.1); }
+        .threat-low { border-color: #00ff88; background: rgba(0, 255, 136, 0.1); }
+        
+        .network-graph {
+            height: 200px;
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .node {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #00d4ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #000;
+            animation: nodeGlow 3s ease-in-out infinite;
+        }
+        @keyframes nodeGlow { 0%, 100% { box-shadow: 0 0 10px #00d4ff; } 50% { box-shadow: 0 0 20px #00d4ff; } }
+        
+        .connection {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, #00d4ff, transparent);
+            animation: dataFlow 2s linear infinite;
+        }
+        @keyframes dataFlow { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+        
+        .performance-chart {
+            height: 120px;
+            display: flex;
+            align-items: end;
+            gap: 2px;
+            padding: 10px 0;
+        }
+        .perf-bar {
+            flex: 1;
+            background: linear-gradient(to top, #00d4ff, #0099cc);
+            border-radius: 2px 2px 0 0;
+            min-height: 5px;
+            animation: barGrow 0.5s ease-out;
+        }
+        @keyframes barGrow { from { height: 0; } }
+        
+        .ai-behavior {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .behavior-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 6px;
+        }
+        .risk-indicator {
+            width: 60px;
+            height: 4px;
+            border-radius: 2px;
+            background: #333;
+            overflow: hidden;
+        }
+        .risk-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .risk-low { background: #00ff88; }
+        .risk-medium { background: #ffaa00; }
+        .risk-high { background: #ff4444; }
+        
+        @keyframes slideIn { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .real-time-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            border: 1px solid #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <div class="real-time-indicator">🔴 LIVE</div>
+    
+    <div class="header">
+        <div class="logo">🛡️ Higher Guardian Advanced Analytics</div>
+        <div class="status">
+            <div class="status-dot"></div>
+            <span>Real-time Monitoring Active</span>
+        </div>
+    </div>
+
+    <div class="dashboard">
+        <div class="card">
+            <h3>🚨 Threat Detection</h3>
+            <div id="threatList" class="threat-list">
+                <div class="threat-item threat-medium">
+                    <div><strong>Suspicious Network Activity</strong></div>
+                    <div style="font-size: 0.8rem; color: #ccc;">Unusual traffic pattern detected</div>
+                    <div style="font-size: 0.7rem; color: #888;">2 minutes ago</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🧠 AI Behavior Analysis</h3>
+            <div id="aiBehavior" class="ai-behavior">
+                <div class="behavior-item">
+                    <div>
+                        <div><strong>wireguard-ai</strong></div>
+                        <div style="font-size: 0.8rem; color: #ccc;">network_config: 47 actions</div>
+                    </div>
+                    <div class="risk-indicator">
+                        <div class="risk-fill risk-low" style="width: 30%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🌐 Network Topology</h3>
+            <div id="networkGraph" class="network-graph">
+                <div class="node" style="top: 20px; left: 20px;">GC</div>
+                <div class="node" style="top: 20px; right: 20px;">WG</div>
+                <div class="node" style="bottom: 20px; left: 20px;">AI</div>
+                <div class="node" style="bottom: 20px; right: 20px;">TD</div>
+                <div class="connection" style="top: 40px; left: 60px; width: calc(100% - 120px);"></div>
+                <div class="connection" style="bottom: 40px; left: 60px; width: calc(100% - 120px);"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📈 Performance Metrics</h3>
+            <div style="margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Response Time</span>
+                    <span id="responseTime">45ms</span>
+                </div>
+                <div id="responseChart" class="performance-chart"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🔒 Security Events</h3>
+            <div id="securityEvents">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Blocked IPs</span>
+                    <span id="blockedIPs">12</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Active Firewalls</span>
+                    <span id="activeFirewalls">8</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Threat Mitigation</span>
+                    <span id="threatMitigation">99.2%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>⚡ System Health</h3>
+            <div id="systemHealth">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>CPU Usage</span>
+                    <span id="cpuUsage">45%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Memory Usage</span>
+                    <span id="memoryUsage">512 MB</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Network Throughput</span>
+                    <span id="networkThroughput">125 Mbps</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AdvancedGuardianAnalytics {
+            constructor() {
+                this.ws = null;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.init();
+            }
+
+            init() {
+                this.connectWebSocket();
+                this.startPeriodicUpdates();
+            }
+
+            connectWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/api/guardian/ws`;
+                
+                this.ws = new WebSocket(wsUrl);
+                
+                this.ws.onopen = () => {
+                    console.log('WebSocket connected');
+                    this.reconnectAttempts = 0;
+                };
+                
+                this.ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    this.handleRealTimeEvent(data);
+                };
+                
+                this.ws.onclose = () => {
+                    console.log('WebSocket disconnected');
+                    this.reconnectWebSocket();
+                };
+                
+                this.ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+            }
+
+            reconnectWebSocket() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    setTimeout(() => this.connectWebSocket(), 5000);
+                }
+            }
+
+            handleRealTimeEvent(data) {
+                switch (data.type) {
+                    case 'threat_detected':
+                        this.addThreatEvent(data.data);
+                        break;
+                    case 'ai_behavior_update':
+                        this.updateAIBehavior(data.data);
+                        break;
+                    case 'performance_update':
+                        this.updatePerformanceMetrics(data.data);
+                        break;
+                }
+            }
+
+            addThreatEvent(threat) {
+                const threatList = document.getElementById('threatList');
+                const threatItem = document.createElement('div');
+                threatItem.className = `threat-item threat-${threat.severity}`;
+                threatItem.innerHTML = `
+                    <div><strong>${threat.type.replace('_', ' ').toUpperCase()}</strong></div>
+                    <div style="font-size: 0.8rem; color: #ccc;">${threat.description}</div>
+                    <div style="font-size: 0.7rem; color: #888;">Just now</div>
+                `;
+                threatList.insertBefore(threatItem, threatList.firstChild);
+                
+                // Keep only last 5 threats
+                while (threatList.children.length > 5) {
+                    threatList.removeChild(threatList.lastChild);
+                }
+            }
+
+            async updatePerformanceMetrics() {
+                try {
+                    const response = await fetch('/api/guardian/performance');
+                    const data = await response.json();
+                    
+                    // Update response time
+                    const latestResponseTime = data.response_time_ms[data.response_time_ms.length - 1];
+                    document.getElementById('responseTime').textContent = `${latestResponseTime}ms`;
+                    
+                    // Update CPU usage
+                    const latestCPU = data.cpu_usage_percent[data.cpu_usage_percent.length - 1];
+                    document.getElementById('cpuUsage').textContent = `${latestCPU}%`;
+                    
+                    // Update memory usage
+                    const latestMemory = data.memory_usage_mb[data.memory_usage_mb.length - 1];
+                    document.getElementById('memoryUsage').textContent = `${latestMemory} MB`;
+                    
+                    // Update network throughput
+                    const latestNetwork = data.network_throughput_mbps[data.network_throughput_mbps.length - 1];
+                    document.getElementById('networkThroughput').textContent = `${latestNetwork} Mbps`;
+                    
+                    // Update response time chart
+                    this.updateChart('responseChart', data.response_time_ms.slice(-20));
+                    
+                } catch (error) {
+                    console.error('Failed to update performance metrics:', error);
+                }
+            }
+
+            updateChart(chartId, data) {
+                const chart = document.getElementById(chartId);
+                const max = Math.max(...data);
+                
+                chart.innerHTML = data.map(value => 
+                    `<div class="perf-bar" style="height: ${(value / max) * 100}%"></div>`
+                ).join('');
+            }
+
+            async updateAIBehavior() {
+                try {
+                    const response = await fetch('/api/guardian/ai-behavior');
+                    const data = await response.json();
+                    
+                    const container = document.getElementById('aiBehavior');
+                    container.innerHTML = '';
+                    
+                    Object.entries(data).forEach(([aiId, patterns]) => {
+                        patterns.forEach(pattern => {
+                            const item = document.createElement('div');
+                            item.className = 'behavior-item';
+                            
+                            const riskClass = pattern.risk_score > 0.7 ? 'risk-high' : 
+                                            pattern.risk_score > 0.4 ? 'risk-medium' : 'risk-low';
+                            
+                            item.innerHTML = `
+                                <div>
+                                    <div><strong>${aiId}</strong></div>
+                                    <div style="font-size: 0.8rem; color: #ccc;">${pattern.pattern_type}: ${pattern.frequency} actions</div>
+                                </div>
+                                <div class="risk-indicator">
+                                    <div class="risk-fill ${riskClass}" style="width: ${pattern.risk_score * 100}%"></div>
+                                </div>
+                            `;
+                            container.appendChild(item);
+                        });
+                    });
+                } catch (error) {
+                    console.error('Failed to update AI behavior:', error);
+                }
+            }
+
+            async simulateThreat() {
+                try {
+                    await fetch('/api/guardian/simulate-threat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            threat_type: 'malware',
+                            severity: 'high'
+                        })
+                    });
+                } catch (error) {
+                    console.error('Failed to simulate threat:', error);
+                }
+            }
+
+            startPeriodicUpdates() {
+                // Update performance metrics every 5 seconds
+                setInterval(() => this.updatePerformanceMetrics(), 5000);
+                
+                // Update AI behavior every 10 seconds
+                setInterval(() => this.updateAIBehavior(), 10000);
+                
+                // Simulate random threats every 30 seconds
+                setInterval(() => {
+                    if (Math.random() < 0.3) {
+                        this.simulateThreat();
+                    }
+                }, 30000);
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.advancedGuardian = new AdvancedGuardianAnalytics();
+        });
+    </script>
+</body>
+</html>
