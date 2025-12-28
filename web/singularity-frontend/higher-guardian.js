@@ -1,7 +1,7 @@
 class HigherGuardianAnalytics {
     constructor() {
-        this.apiBase = '/api/guardian';
-        this.refreshInterval = 5000; // 5 seconds for real-time
+        this.apiBase = 'http://localhost:8000/api/guardian';
+        this.refreshInterval = 2000;
         this.isConnected = false;
         this.lastUpdate = Date.now();
         this.init();
@@ -16,14 +16,17 @@ class HigherGuardianAnalytics {
 
     async loadData() {
         try {
+            console.log('Fetching Guardian data...');
             const [overview, activity, tunnels, security, aiSystems] = await Promise.all([
-                this.fetchOverview(),
-                this.fetchActivity(),
-                this.fetchTunnels(),
-                this.fetchSecurity(),
-                this.fetchAISystems()
+                fetch(`${this.apiBase}/overview`).then(r => r.json()),
+                fetch(`${this.apiBase}/activity`).then(r => r.json()),
+                fetch(`${this.apiBase}/tunnels`).then(r => r.json()),
+                fetch(`${this.apiBase}/security`).then(r => r.json()),
+                fetch(`${this.apiBase}/ai-systems`).then(r => r.json())
             ]);
 
+            console.log('Data received:', { overview, activity, tunnels, security, aiSystems });
+            
             this.updateOverview(overview);
             this.updateActivity(activity);
             this.updateTunnels(tunnels);
@@ -63,13 +66,11 @@ class HigherGuardianAnalytics {
     }
 
     updateOverview(data) {
-        // Animate number changes
         this.animateNumber('totalActions', data.totalActions);
         this.animateNumber('blockedActions', data.blockedActions);
         this.animateNumber('humanApprovals', data.humanApprovals);
         this.animateNumber('ethicalViolations', data.ethicalViolations);
         document.getElementById('uptime').textContent = `${data.uptime.toFixed(1)}%`;
-
         this.updateRiskChart(data.riskDistribution);
     }
 
@@ -98,50 +99,25 @@ class HigherGuardianAnalytics {
             <div class="bar risk-high" style="height: ${(distribution.high / total) * 100}%" title="High: ${distribution.high}"></div>
             <div class="bar risk-critical" style="height: ${(distribution.critical / total) * 100}%" title="Critical: ${distribution.critical}"></div>
         `;
-        
-        // Update risk distribution numbers
-        const riskElements = {
-            'Low Risk': distribution.low,
-            'Moderate Risk': distribution.moderate,
-            'High Risk': distribution.high,
-            'Critical Risk': distribution.critical
-        };
-        
-        Object.entries(riskElements).forEach(([label, value]) => {
-            const element = document.querySelector(`[data-risk="${label}"]`);
-            if (element) element.textContent = value;
-        });
     }
 
     updateActivity(activities) {
         const log = document.getElementById('activityLog');
-        const currentActivities = Array.from(log.children).map(child => child.dataset.timestamp);
+        log.innerHTML = '';
         
-        activities.forEach(activity => {
-            if (!currentActivities.includes(activity.timestamp.toString())) {
-                const item = document.createElement('div');
-                item.className = 'activity-item new-activity';
-                item.dataset.timestamp = activity.timestamp;
-                
-                const icon = this.getActivityIcon(activity.type);
-                const timeAgo = this.formatTimeAgo(activity.timestamp);
-                
-                item.innerHTML = `
-                    <div>${icon} ${activity.message}</div>
-                    <div class="timestamp">${timeAgo}</div>
-                `;
-                
-                log.insertBefore(item, log.firstChild);
-                
-                // Animate new activity
-                setTimeout(() => item.classList.remove('new-activity'), 100);
-            }
+        activities.slice(0, 10).forEach(activity => {
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            const icon = this.getActivityIcon(activity.type);
+            const timeAgo = this.formatTimeAgo(activity.timestamp);
+            
+            item.innerHTML = `
+                <div>${icon} ${activity.message}</div>
+                <div class="timestamp">${timeAgo}</div>
+            `;
+            
+            log.appendChild(item);
         });
-        
-        // Remove old activities (keep max 10)
-        while (log.children.length > 10) {
-            log.removeChild(log.lastChild);
-        }
     }
 
     updateTunnels(data) {
@@ -151,7 +127,6 @@ class HigherGuardianAnalytics {
         [...data.active, ...data.blocked].forEach(tunnel => {
             const item = document.createElement('div');
             item.className = 'tunnel-item';
-            
             const statusClass = tunnel.status === 'active' ? 'status-active' : 'status-blocked';
             const statusText = tunnel.status.toUpperCase();
             
@@ -241,12 +216,7 @@ class HigherGuardianAnalytics {
     }
 
     startRealTimeUpdates() {
-        // Simulate real-time events
-        setInterval(() => {
-            if (Math.random() < 0.3) { // 30% chance
-                this.simulateEvent();
-            }
-        }, 10000); // Every 10 seconds
+        // Remove simulation - just refresh data
     }
 
     async simulateEvent() {

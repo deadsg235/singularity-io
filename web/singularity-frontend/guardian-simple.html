@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Higher Guardian Analytics | Singularity.io</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        .header {
+            background: rgba(255,255,255,0.05);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { font-size: 1.5rem; font-weight: bold; color: #00d4ff; }
+        .status { display: flex; align-items: center; gap: 0.5rem; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #00ff88; }
+        .dashboard { padding: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+        .card h3 { color: #00d4ff; margin-bottom: 1rem; font-size: 1.1rem; }
+        .metric { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+        .metric-value { font-weight: bold; transition: color 0.3s ease; }
+        .risk-low { color: #00ff88; }
+        .risk-moderate { color: #ffaa00; }
+        .risk-high { color: #ff4444; }
+        .risk-critical { color: #ff0066; }
+        .activity-log { max-height: 200px; overflow-y: auto; }
+        .activity-item {
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .timestamp { color: #888; font-size: 0.8rem; }
+        .tunnel-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+        }
+        .tunnel-status { padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.8rem; }
+        .status-active { background: rgba(0,255,136,0.2); color: #00ff88; }
+        .status-blocked { background: rgba(255,68,68,0.2); color: #ff4444; }
+        .refresh-btn {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🛡️ Higher Guardian Analytics</div>
+        <div class="status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">System Active</span>
+            <button class="refresh-btn" onclick="loadData()">Refresh</button>
+        </div>
+    </div>
+
+    <div class="dashboard">
+        <div class="card">
+            <h3>📊 System Overview</h3>
+            <div class="metric">
+                <span>Total Actions Monitored</span>
+                <span class="metric-value" id="totalActions">Loading...</span>
+            </div>
+            <div class="metric">
+                <span>Actions Blocked</span>
+                <span class="metric-value risk-high" id="blockedActions">Loading...</span>
+            </div>
+            <div class="metric">
+                <span>Human Approvals Required</span>
+                <span class="metric-value risk-moderate" id="humanApprovals">Loading...</span>
+            </div>
+            <div class="metric">
+                <span>Ethical Violations</span>
+                <span class="metric-value risk-critical" id="ethicalViolations">Loading...</span>
+            </div>
+            <div class="metric">
+                <span>System Uptime</span>
+                <span class="metric-value risk-low" id="uptime">Loading...</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🌐 WireGuard Tunnels</h3>
+            <div id="tunnelList">Loading...</div>
+            <div style="margin-top: 1rem;">
+                <div class="metric">
+                    <span>Active Tunnels</span>
+                    <span class="metric-value risk-low" id="activeTunnels">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span>Blocked Tunnels</span>
+                    <span class="metric-value risk-high" id="blockedTunnels">Loading...</span>
+                </div>
+                <div class="metric">
+                    <span>Traffic Monitored</span>
+                    <span class="metric-value" id="trafficMonitored">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📈 Recent Activity</h3>
+            <div class="activity-log" id="activityLog">Loading...</div>
+        </div>
+
+        <div class="card">
+            <h3>🤖 AI Systems</h3>
+            <div id="aiSystems">Loading...</div>
+        </div>
+
+        <div class="card">
+            <h3>🔒 Security Metrics</h3>
+            <div class="metric">
+                <span>Blocked IPs</span>
+                <span class="metric-value risk-high" id="blockedIPs">Loading...</span>
+            </div>
+            <div class="metric">
+                <span>Firewall Rules</span>
+                <span class="metric-value" id="firewallRules">Loading...</span>
+            </div>
+            <div class="metric">
+                <span>Suspicious Activities</span>
+                <span class="metric-value risk-moderate" id="suspiciousActivities">Loading...</span>
+            </div>
+            <div class="metric">
+                <span>Data Exfiltration Alerts</span>
+                <span class="metric-value risk-critical" id="exfiltrationAlerts">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/guardian';
+        
+        async function loadData() {
+            try {
+                console.log('Loading Guardian data...');
+                
+                const [overview, activity, tunnels, security, aiSystems] = await Promise.all([
+                    fetch(`${API_BASE}/overview`).then(r => r.json()),
+                    fetch(`${API_BASE}/activity`).then(r => r.json()),
+                    fetch(`${API_BASE}/tunnels`).then(r => r.json()),
+                    fetch(`${API_BASE}/security`).then(r => r.json()),
+                    fetch(`${API_BASE}/ai-systems`).then(r => r.json())
+                ]);
+
+                console.log('Data loaded:', { overview, activity, tunnels, security, aiSystems });
+
+                // Update overview
+                document.getElementById('totalActions').textContent = overview.totalActions;
+                document.getElementById('blockedActions').textContent = overview.blockedActions;
+                document.getElementById('humanApprovals').textContent = overview.humanApprovals;
+                document.getElementById('ethicalViolations').textContent = overview.ethicalViolations;
+                document.getElementById('uptime').textContent = `${overview.uptime.toFixed(1)}%`;
+
+                // Update tunnels
+                const tunnelList = document.getElementById('tunnelList');
+                tunnelList.innerHTML = '';
+                [...tunnels.active, ...tunnels.blocked].forEach(tunnel => {
+                    const item = document.createElement('div');
+                    item.className = 'tunnel-item';
+                    const statusClass = tunnel.status === 'active' ? 'status-active' : 'status-blocked';
+                    item.innerHTML = `
+                        <span>${tunnel.name}</span>
+                        <span class="tunnel-status ${statusClass}">${tunnel.status.toUpperCase()}</span>
+                    `;
+                    tunnelList.appendChild(item);
+                });
+
+                document.getElementById('activeTunnels').textContent = tunnels.active.length;
+                document.getElementById('blockedTunnels').textContent = tunnels.blocked.length;
+                document.getElementById('trafficMonitored').textContent = tunnels.totalTraffic;
+
+                // Update activity
+                const activityLog = document.getElementById('activityLog');
+                activityLog.innerHTML = '';
+                activity.slice(0, 10).forEach(act => {
+                    const item = document.createElement('div');
+                    item.className = 'activity-item';
+                    const timeAgo = formatTimeAgo(act.timestamp);
+                    item.innerHTML = `
+                        <div>${getActivityIcon(act.type)} ${act.message}</div>
+                        <div class="timestamp">${timeAgo}</div>
+                    `;
+                    activityLog.appendChild(item);
+                });
+
+                // Update AI systems
+                const aiSystemsDiv = document.getElementById('aiSystems');
+                aiSystemsDiv.innerHTML = '';
+                Object.entries(aiSystems).forEach(([system, info]) => {
+                    const metric = document.createElement('div');
+                    metric.className = 'metric';
+                    metric.innerHTML = `
+                        <span>${system}</span>
+                        <span class="metric-value">${info.actions} actions</span>
+                    `;
+                    aiSystemsDiv.appendChild(metric);
+                });
+
+                // Update security
+                document.getElementById('blockedIPs').textContent = security.blockedIPs;
+                document.getElementById('firewallRules').textContent = security.firewallRules;
+                document.getElementById('suspiciousActivities').textContent = security.suspiciousActivities;
+                document.getElementById('exfiltrationAlerts').textContent = security.exfiltrationAlerts;
+
+                // Update status
+                document.getElementById('statusDot').style.background = '#00ff88';
+                document.getElementById('statusText').textContent = 'System Active';
+
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                document.getElementById('statusDot').style.background = '#ff4444';
+                document.getElementById('statusText').textContent = 'Connection Lost';
+            }
+        }
+
+        function getActivityIcon(type) {
+            const icons = {
+                blocked: '🚫',
+                alert: '⚠️',
+                approved: '✅',
+                ethics: '🔍',
+                health: '📊',
+                tunnel: '🌐',
+                security: '🔒'
+            };
+            return icons[type] || '📋';
+        }
+
+        function formatTimeAgo(timestamp) {
+            const now = Date.now();
+            const diff = now - timestamp;
+            const seconds = Math.floor(diff / 1000);
+            
+            if (seconds < 10) return 'Just now';
+            if (seconds < 60) return `${seconds}s ago`;
+            
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            
+            const days = Math.floor(hours / 24);
+            return `${days}d ago`;
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', loadData);
+
+        // Auto-refresh every 2 seconds
+        setInterval(loadData, 2000);
+
+        // Status indicator animation
+        setInterval(() => {
+            const statusDot = document.getElementById('statusDot');
+            statusDot.style.opacity = '0.5';
+            setTimeout(() => statusDot.style.opacity = '1', 200);
+        }, 3000);
+    </script>
+</body>
+</html>
