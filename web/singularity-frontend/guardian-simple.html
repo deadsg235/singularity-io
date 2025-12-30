@@ -22,7 +22,7 @@
         }
         .logo { font-size: 1.5rem; font-weight: bold; color: #00d4ff; }
         .status { display: flex; align-items: center; gap: 0.5rem; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #00ff88; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #00ff88; transition: all 0.3s; }
         .dashboard { padding: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
         .card {
             background: rgba(255,255,255,0.05);
@@ -33,7 +33,8 @@
         }
         .card h3 { color: #00d4ff; margin-bottom: 1rem; font-size: 1.1rem; }
         .metric { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
-        .metric-value { font-weight: bold; transition: color 0.3s ease; }
+        .metric-value { font-weight: bold; transition: all 0.3s ease; }
+        .metric-value.updated { color: #00ff88; transform: scale(1.1); }
         .risk-low { color: #00ff88; }
         .risk-moderate { color: #ffaa00; }
         .risk-high { color: #ff4444; }
@@ -45,6 +46,11 @@
             background: rgba(255,255,255,0.02);
             border-radius: 6px;
             font-size: 0.9rem;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         .timestamp { color: #888; font-size: 0.8rem; }
         .tunnel-item {
@@ -67,7 +73,11 @@
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
+            transition: transform 0.3s;
         }
+        .refresh-btn:hover { transform: scale(1.05); }
+        .loading { opacity: 0.5; }
+        .error { color: #ff4444; }
     </style>
 </head>
 <body>
@@ -75,7 +85,7 @@
         <div class="logo">🛡️ Higher Guardian Analytics</div>
         <div class="status">
             <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">System Active</span>
+            <span id="statusText">Connecting...</span>
             <button class="refresh-btn" onclick="loadData()">Refresh</button>
         </div>
     </div>
@@ -156,7 +166,20 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8000/api/guardian';
+        const API_BASE = '/api/guardian';
+        let previousData = {};
+        
+        function animateValueChange(elementId, newValue) {
+            const element = document.getElementById(elementId);
+            const oldValue = element.textContent;
+            
+            if (oldValue !== newValue.toString() && oldValue !== 'Loading...') {
+                element.classList.add('updated');
+                setTimeout(() => element.classList.remove('updated'), 1000);
+            }
+            
+            element.textContent = newValue;
+        }
         
         async function loadData() {
             try {
@@ -170,14 +193,12 @@
                     fetch(`${API_BASE}/ai-systems`).then(r => r.json())
                 ]);
 
-                console.log('Data loaded:', { overview, activity, tunnels, security, aiSystems });
-
-                // Update overview
-                document.getElementById('totalActions').textContent = overview.totalActions;
-                document.getElementById('blockedActions').textContent = overview.blockedActions;
-                document.getElementById('humanApprovals').textContent = overview.humanApprovals;
-                document.getElementById('ethicalViolations').textContent = overview.ethicalViolations;
-                document.getElementById('uptime').textContent = `${overview.uptime.toFixed(1)}%`;
+                // Update overview with animations
+                animateValueChange('totalActions', overview.totalActions);
+                animateValueChange('blockedActions', overview.blockedActions);
+                animateValueChange('humanApprovals', overview.humanApprovals);
+                animateValueChange('ethicalViolations', overview.ethicalViolations);
+                animateValueChange('uptime', `${overview.uptime.toFixed(1)}%`);
 
                 // Update tunnels
                 const tunnelList = document.getElementById('tunnelList');
@@ -193,23 +214,32 @@
                     tunnelList.appendChild(item);
                 });
 
-                document.getElementById('activeTunnels').textContent = tunnels.active.length;
-                document.getElementById('blockedTunnels').textContent = tunnels.blocked.length;
-                document.getElementById('trafficMonitored').textContent = tunnels.totalTraffic;
+                animateValueChange('activeTunnels', tunnels.active.length);
+                animateValueChange('blockedTunnels', tunnels.blocked.length);
+                animateValueChange('trafficMonitored', tunnels.totalTraffic);
 
-                // Update activity
+                // Update activity with new items only
                 const activityLog = document.getElementById('activityLog');
-                activityLog.innerHTML = '';
+                const currentTimestamps = Array.from(activityLog.children).map(child => child.dataset.timestamp);
+                
                 activity.slice(0, 10).forEach(act => {
-                    const item = document.createElement('div');
-                    item.className = 'activity-item';
-                    const timeAgo = formatTimeAgo(act.timestamp);
-                    item.innerHTML = `
-                        <div>${getActivityIcon(act.type)} ${act.message}</div>
-                        <div class="timestamp">${timeAgo}</div>
-                    `;
-                    activityLog.appendChild(item);
+                    if (!currentTimestamps.includes(act.timestamp.toString())) {
+                        const item = document.createElement('div');
+                        item.className = 'activity-item';
+                        item.dataset.timestamp = act.timestamp;
+                        const timeAgo = formatTimeAgo(act.timestamp);
+                        item.innerHTML = `
+                            <div>${getActivityIcon(act.type)} ${act.message}</div>
+                            <div class="timestamp">${timeAgo}</div>
+                        `;
+                        activityLog.insertBefore(item, activityLog.firstChild);
+                    }
                 });
+                
+                // Keep only last 10 activities
+                while (activityLog.children.length > 10) {
+                    activityLog.removeChild(activityLog.lastChild);
+                }
 
                 // Update AI systems
                 const aiSystemsDiv = document.getElementById('aiSystems');
@@ -225,10 +255,10 @@
                 });
 
                 // Update security
-                document.getElementById('blockedIPs').textContent = security.blockedIPs;
-                document.getElementById('firewallRules').textContent = security.firewallRules;
-                document.getElementById('suspiciousActivities').textContent = security.suspiciousActivities;
-                document.getElementById('exfiltrationAlerts').textContent = security.exfiltrationAlerts;
+                animateValueChange('blockedIPs', security.blockedIPs);
+                animateValueChange('firewallRules', security.firewallRules);
+                animateValueChange('suspiciousActivities', security.suspiciousActivities);
+                animateValueChange('exfiltrationAlerts', security.exfiltrationAlerts);
 
                 // Update status
                 document.getElementById('statusDot').style.background = '#00ff88';
@@ -275,15 +305,15 @@
         // Load data on page load
         document.addEventListener('DOMContentLoaded', loadData);
 
-        // Auto-refresh every 2 seconds
-        setInterval(loadData, 2000);
+        // Auto-refresh every 1 second for real-time updates
+        setInterval(loadData, 1000);
 
         // Status indicator animation
         setInterval(() => {
             const statusDot = document.getElementById('statusDot');
             statusDot.style.opacity = '0.5';
             setTimeout(() => statusDot.style.opacity = '1', 200);
-        }, 3000);
+        }, 2000);
     </script>
 </body>
 </html>
