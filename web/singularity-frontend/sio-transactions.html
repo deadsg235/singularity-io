@@ -8,7 +8,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 100%);
             color: #ffffff;
             min-height: 100vh;
         }
@@ -21,10 +21,10 @@
             margin-bottom: 2rem;
             text-align: center;
         }
-        .header h1 { color: #00d4ff; font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .header h1 { color: #dc2626; font-size: 2.5rem; margin-bottom: 0.5rem; }
         .balance-card {
-            background: rgba(0,212,255,0.1);
-            border: 1px solid #00d4ff;
+            background: rgba(220,38,38,0.1);
+            border: 1px solid #dc2626;
             border-radius: 12px;
             padding: 1.5rem;
             margin: 1rem 0;
@@ -39,7 +39,7 @@
             padding: 1rem;
             margin: 1rem 0;
         }
-        .wallet-address { font-family: monospace; color: #00d4ff; word-break: break-all; }
+        .wallet-address { font-family: monospace; color: #dc2626; word-break: break-all; }
         .transactions-card {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
@@ -52,10 +52,10 @@
             align-items: center;
             margin-bottom: 2rem;
         }
-        .transactions-header h2 { color: #00d4ff; }
+        .transactions-header h2 { color: #dc2626; }
         .refresh-btn {
-            background: #00d4ff;
-            color: #000;
+            background: #dc2626;
+            color: #fff;
             border: none;
             padding: 0.5rem 1rem;
             border-radius: 6px;
@@ -78,8 +78,8 @@
             margin-bottom: 1rem;
         }
         .transaction-type {
-            background: rgba(0,212,255,0.2);
-            color: #00d4ff;
+            background: rgba(220,38,38,0.2);
+            color: #dc2626;
             padding: 0.3rem 0.8rem;
             border-radius: 12px;
             font-size: 0.8rem;
@@ -118,8 +118,8 @@
             color: #888;
         }
         .connect-wallet-btn {
-            background: #00d4ff;
-            color: #000;
+            background: #dc2626;
+            color: #fff;
             border: none;
             padding: 1rem 2rem;
             border-radius: 6px;
@@ -141,14 +141,16 @@
             padding: 1rem;
             text-align: center;
         }
-        .stat-value { font-size: 1.5rem; font-weight: bold; color: #00d4ff; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: #dc2626; }
         .stat-label { color: #888; font-size: 0.9rem; margin-top: 0.5rem; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 S-IO Transaction History</h1>
+            <a href="index.html" style="text-decoration: none; color: inherit;">
+                <h1>📊 S-IO Transaction History</h1>
+            </a>
             <p>Track your S-IO token transactions and balance</p>
             
             <div id="walletSection">

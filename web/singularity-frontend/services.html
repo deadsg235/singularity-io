@@ -8,13 +8,13 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 50%, #2a0a0a 100%);
             color: #ffffff;
             min-height: 100vh;
         }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
         .header { text-align: center; margin-bottom: 40px; }
-        .header h1 { font-size: 3em; margin-bottom: 10px; background: linear-gradient(45deg, #00d4ff, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header h1 { font-size: 3em; margin-bottom: 10px; background: linear-gradient(45deg, #dc2626, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .balance-card { 
             background: rgba(255,255,255,0.1); 
             border-radius: 15px; 
@@ -34,11 +34,11 @@
             position: relative;
             overflow: hidden;
         }
-        .service-card:hover { transform: translateY(-5px); border-color: #00d4ff; }
+        .service-card:hover { transform: translateY(-5px); border-color: #dc2626; }
         .service-card.unlocked { border-color: #4CAF50; background: rgba(76,175,80,0.1); }
         .service-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .service-name { font-size: 1.4em; font-weight: bold; }
-        .service-price { color: #00d4ff; font-weight: bold; }
+        .service-price { color: #dc2626; font-weight: bold; }
         .service-description { margin-bottom: 15px; opacity: 0.8; }
         .features-list { list-style: none; margin-bottom: 20px; }
         .features-list li { padding: 5px 0; }
@@ -46,7 +46,7 @@
         .unlock-btn {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            background: linear-gradient(45deg, #dc2626, #b91c1c);
             border: none;
             border-radius: 8px;
             color: white;
@@ -68,7 +68,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .filter-btn.active { background: #00d4ff; }
+        .filter-btn.active { background: #dc2626; }
         .status-indicator { 
             position: absolute; 
             top: 15px; 
@@ -85,7 +85,9 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>S-IO Services</h1>
+            <a href="index.html" style="text-decoration: none; color: inherit;">
+                <h1>S-IO Services</h1>
+            </a>
             <p>Unlock the full potential of Singularity.io</p>
         </div>
 
@@ -135,12 +137,16 @@
             if (!currentWallet) return;
             try {
                 const response = await fetch(`/api/sio/balance/${currentWallet}`);
+                if (!response.ok) throw new Error('Failed to fetch balance');
                 const balance = await response.json();
                 document.getElementById('available-balance').textContent = balance.available.toLocaleString();
                 document.getElementById('locked-balance').textContent = balance.locked.toLocaleString();
                 document.getElementById('total-balance').textContent = balance.balance.toLocaleString();
             } catch (err) {
                 console.error('Failed to load balance:', err);
+                document.getElementById('available-balance').textContent = 'Error';
+                document.getElementById('locked-balance').textContent = 'Error';
+                document.getElementById('total-balance').textContent = 'Error';
             }
         }
 
@@ -148,20 +154,27 @@
             if (!currentWallet) return;
             try {
                 const response = await fetch(`/api/sio/services/${currentWallet}`);
+                if (!response.ok) {
+                    unlockedServices = {};
+                    return;
+                }
                 unlockedServices = await response.json();
             } catch (err) {
                 console.error('Failed to load unlocked services:', err);
+                unlockedServices = {};
             }
         }
 
         async function loadServices() {
             try {
                 const response = await fetch('/api/services/catalog');
+                if (!response.ok) throw new Error('Failed to fetch services');
                 const catalog = await response.json();
                 services = catalog.services;
                 renderServices(services);
             } catch (err) {
                 console.error('Failed to load services:', err);
+                document.getElementById('services-grid').innerHTML = '<div style="text-align: center; color: #888;">Failed to load services. Please try again later.</div>';
             }
         }
 

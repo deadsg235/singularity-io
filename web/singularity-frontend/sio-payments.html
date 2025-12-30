@@ -8,13 +8,13 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 100%);
             color: #ffffff;
             min-height: 100vh;
         }
         .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
         .header { text-align: center; margin-bottom: 3rem; }
-        .header h1 { color: #00d4ff; font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .header h1 { color: #dc2626; font-size: 2.5rem; margin-bottom: 0.5rem; }
         .header p { color: #888; font-size: 1.1rem; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
         .card {
@@ -24,7 +24,7 @@
             padding: 2rem;
             backdrop-filter: blur(10px);
         }
-        .card h2 { color: #00d4ff; margin-bottom: 1.5rem; }
+        .card h2 { color: #dc2626; margin-bottom: 1.5rem; }
         .service-item {
             background: rgba(255,255,255,0.02);
             border: 1px solid rgba(255,255,255,0.1);
@@ -34,9 +34,9 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .service-item:hover { background: rgba(0,212,255,0.1); border-color: #00d4ff; }
-        .service-item.selected { background: rgba(0,212,255,0.2); border-color: #00d4ff; }
-        .service-name { font-weight: bold; color: #00d4ff; }
+        .service-item:hover { background: rgba(220,38,38,0.1); border-color: #dc2626; }
+        .service-item.selected { background: rgba(220,38,38,0.2); border-color: #dc2626; }
+        .service-name { font-weight: bold; color: #dc2626; }
         .service-price { color: #00ff88; font-weight: bold; margin-top: 0.5rem; }
         .service-desc { color: #ccc; font-size: 0.9rem; margin-top: 0.5rem; }
         .form-group { margin-bottom: 1rem; }
@@ -51,8 +51,8 @@
             font-size: 1rem;
         }
         .btn {
-            background: #00d4ff;
-            color: #000;
+            background: #dc2626;
+            color: #fff;
             border: none;
             padding: 1rem 2rem;
             border-radius: 6px;
@@ -62,7 +62,7 @@
             width: 100%;
             transition: all 0.3s ease;
         }
-        .btn:hover { background: #0099cc; transform: translateY(-2px); }
+        .btn:hover { background: #b91c1c; transform: translateY(-2px); }
         .btn:disabled { background: #666; cursor: not-allowed; transform: none; }
         .transaction-item {
             background: rgba(255,255,255,0.02);
@@ -72,7 +72,7 @@
             margin-bottom: 1rem;
         }
         .transaction-header { display: flex; justify-content: space-between; align-items: center; }
-        .transaction-service { font-weight: bold; color: #00d4ff; }
+        .transaction-service { font-weight: bold; color: #dc2626; }
         .transaction-amount { color: #00ff88; font-weight: bold; }
         .transaction-status {
             padding: 0.2rem 0.5rem;
@@ -85,8 +85,8 @@
         .status-failed { background: rgba(255,68,68,0.2); color: #ff4444; }
         .transaction-time { color: #888; font-size: 0.9rem; margin-top: 0.5rem; }
         .balance-display {
-            background: rgba(0,212,255,0.1);
-            border: 1px solid #00d4ff;
+            background: rgba(220,38,38,0.1);
+            border: 1px solid #dc2626;
             border-radius: 8px;
             padding: 1rem;
             margin-bottom: 1.5rem;
@@ -107,7 +107,9 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💳 S-IO Payment Gateway</h1>
+            <a href="index.html" style="text-decoration: none; color: inherit;">
+                <h1>💳 S-IO Payment Gateway</h1>
+            </a>
             <p>Pay for premium services with S-IO tokens</p>
         </div>
 

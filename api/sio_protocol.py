@@ -31,17 +31,25 @@ class ServiceUnlock(BaseModel):
     amount: float
     duration_days: int
 
-# Mock storage
-balances: Dict[str, SIOBalance] = {}
+# Mock storage with test data
+balances: Dict[str, SIOBalance] = {
+    "HxpisaTe3e2fgZcfvpTAwRo2QGDxzHpSZDr6j15Jt5Qp": SIOBalance(
+        wallet="HxpisaTe3e2fgZcfvpTAwRo2QGDxzHpSZDr6j15Jt5Qp",
+        balance=5000000.0,
+        locked=0.0,
+        available=5000000.0
+    )
+}
 transactions: List[SIOTransaction] = []
 unlocked_services: Dict[str, Dict] = {}
 
 @router.get("/balance/{wallet}")
 async def get_balance(wallet: str):
     if wallet not in balances:
+        # Initialize new wallet with default balance
         balances[wallet] = SIOBalance(
             wallet=wallet,
-            balance=1000000.0,  # Mock balance
+            balance=1000000.0,  # 1M S-IO default
             locked=0.0,
             available=1000000.0
         )
@@ -50,7 +58,7 @@ async def get_balance(wallet: str):
 @router.post("/transfer")
 async def transfer_sio(from_wallet: str, to_wallet: str, amount: float, service: str):
     if from_wallet not in balances:
-        raise HTTPException(400, "Insufficient balance")
+        await get_balance(from_wallet)
     
     balance = balances[from_wallet]
     if balance.available < amount:
