@@ -31,10 +31,12 @@ class ServiceUnlock(BaseModel):
     amount: float
     duration_days: int
 
-# Mock storage with test data
+# Mock storage with test data from test_sio.py
+TEST_WALLET = "HxpisaTe3e2fgZcfvpTAwRo2QGDxzHpSZDr6j15Jt5Qp"
+
 balances: Dict[str, SIOBalance] = {
-    "HxpisaTe3e2fgZcfvpTAwRo2QGDxzHpSZDr6j15Jt5Qp": SIOBalance(
-        wallet="HxpisaTe3e2fgZcfvpTAwRo2QGDxzHpSZDr6j15Jt5Qp",
+    TEST_WALLET: SIOBalance(
+        wallet=TEST_WALLET,
         balance=5000000.0,
         locked=0.0,
         available=5000000.0
@@ -128,3 +130,21 @@ async def get_unlocked_services(wallet: str):
 @router.get("/transactions/{wallet}")
 async def get_transactions(wallet: str):
     return [tx for tx in transactions if tx.from_wallet == wallet or tx.to_wallet == wallet]
+
+@router.get("/stats")
+async def get_sio_stats():
+    """Get S-IO system statistics"""
+    total_wallets = len(balances)
+    total_balance = sum(b.balance for b in balances.values())
+    total_locked = sum(b.locked for b in balances.values())
+    total_transactions = len(transactions)
+    
+    return {
+        "token_address": SIO_TOKEN_ADDRESS,
+        "total_wallets": total_wallets,
+        "total_balance": total_balance,
+        "total_locked": total_locked,
+        "total_transactions": total_transactions,
+        "test_wallet": TEST_WALLET,
+        "test_balance": balances.get(TEST_WALLET, {}).balance if TEST_WALLET in balances else 0
+    }

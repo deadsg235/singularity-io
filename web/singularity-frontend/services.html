@@ -136,9 +136,14 @@
         async function loadBalance() {
             if (!currentWallet) return;
             try {
+                console.log(`Loading balance for wallet: ${currentWallet}`);
                 const response = await fetch(`/api/sio/balance/${currentWallet}`);
-                if (!response.ok) throw new Error('Failed to fetch balance');
+                if (!response.ok) {
+                    console.error(`Balance API error: ${response.status}`);
+                    throw new Error('Failed to fetch balance');
+                }
                 const balance = await response.json();
+                console.log('Balance loaded:', balance);
                 document.getElementById('available-balance').textContent = balance.available.toLocaleString();
                 document.getElementById('locked-balance').textContent = balance.locked.toLocaleString();
                 document.getElementById('total-balance').textContent = balance.balance.toLocaleString();
