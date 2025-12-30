@@ -133,28 +133,63 @@ async def get_services():
                 "id": "neural_network_access",
                 "name": "Neural Network Access",
                 "description": "Access to AI neural network predictions",
-                "price": 10.0,
+                "price": 100000.0,
                 "currency": "S-IO"
             },
             {
                 "id": "premium_analytics",
                 "name": "Premium Analytics",
                 "description": "Advanced market analytics and insights",
-                "price": 25.0,
+                "price": 250000.0,
                 "currency": "S-IO"
             },
             {
                 "id": "ai_trading_signals",
                 "name": "AI Trading Signals",
                 "description": "Real-time AI-powered trading signals",
-                "price": 50.0,
+                "price": 500000.0,
                 "currency": "S-IO"
             },
             {
                 "id": "guardian_premium",
                 "name": "Guardian Premium",
                 "description": "Advanced security monitoring and alerts",
-                "price": 15.0,
+                "price": 150000.0,
+                "currency": "S-IO"
+            },
+            {
+                "id": "api_access_tier1",
+                "name": "API Access - Basic",
+                "description": "1,000 API calls per month",
+                "price": 100000.0,
+                "currency": "S-IO"
+            },
+            {
+                "id": "api_access_tier2",
+                "name": "API Access - Pro",
+                "description": "10,000 API calls per month",
+                "price": 750000.0,
+                "currency": "S-IO"
+            },
+            {
+                "id": "api_access_tier3",
+                "name": "API Access - Enterprise",
+                "description": "Unlimited API calls per month",
+                "price": 2500000.0,
+                "currency": "S-IO"
+            },
+            {
+                "id": "ai_model_training",
+                "name": "Custom AI Model Training",
+                "description": "Train custom AI models on your data",
+                "price": 1000000.0,
+                "currency": "S-IO"
+            },
+            {
+                "id": "enterprise_support",
+                "name": "Enterprise Support",
+                "description": "24/7 dedicated support and consulting",
+                "price": 5000000.0,
                 "currency": "S-IO"
             }
         ]

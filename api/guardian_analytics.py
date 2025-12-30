@@ -1,10 +1,20 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Header
 from datetime import datetime, timedelta
 import json
 import os
 import random
 from typing import Dict, List, Any
 import time
+
+# Import access control
+try:
+    from access_control import require_access
+except ImportError:
+    # Fallback if access control not available
+    def require_access(feature: str):
+        def dependency(wallet_address: str = Header(None, alias="X-Wallet-Address")):
+            return wallet_address
+        return dependency
 
 router = APIRouter(prefix="/api/guardian", tags=["guardian"])
 
@@ -99,7 +109,7 @@ class GuardianData:
 guardian_data = GuardianData()
 
 @router.get("/overview")
-async def get_overview():
+async def get_overview(wallet_address: str = Depends(require_access("guardian_premium"))):
     try:
         metrics = guardian_data.get_current_metrics()
         total = metrics["totalActions"]
