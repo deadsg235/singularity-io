@@ -1,158 +1,116 @@
-"""S-IO Protocol - Singularity.io payment protocol for SIO token transactions"""
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
+from typing import Dict, List, Optional
+import asyncio
 import json
-import time
-import secrets
-from typing import Dict, Any, Optional, List
-from pydantic import BaseModel, Field
-from solders.pubkey import Pubkey
-from solders.keypair import Keypair
-from solders.transaction import Transaction
-from solders.system_program import transfer, TransferParams
-from solders.message import Message
+from datetime import datetime, timedelta
 
+router = APIRouter(prefix="/api/sio", tags=["S-IO Protocol"])
 
-class SIOPaymentRequirements(BaseModel):
-    """Payment requirements for S-IO protocol"""
-    protocol: str = "s-io"
-    version: int = 1
-    network: str = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
-    amount: str  # Atomic units
-    token: str  # SIO token mint address
-    recipient: str  # Recipient wallet
-    resource: str  # Resource URL
-    description: str = ""
-    timeout: int = 60
-    nonce: str = Field(default_factory=lambda: secrets.token_hex(32))
+# S-IO Token Contract
+SIO_TOKEN_ADDRESS = "Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump"
 
+class SIOBalance(BaseModel):
+    wallet: str
+    balance: float
+    locked: float
+    available: float
 
-class SIOPaymentPayload(BaseModel):
-    """Payment payload for S-IO protocol"""
-    protocol: str = "s-io"
-    version: int = 1
-    signature: str  # Transaction signature
-    transaction: str  # Base64 encoded transaction
-    payer: str  # Payer public key
-    timestamp: int = Field(default_factory=lambda: int(time.time()))
+class SIOTransaction(BaseModel):
+    tx_hash: str
+    from_wallet: str
+    to_wallet: str
+    amount: float
+    service: str
+    timestamp: datetime
+    status: str
 
+class ServiceUnlock(BaseModel):
+    service_id: str
+    wallet: str
+    amount: float
+    duration_days: int
 
-class SIOSettlementResponse(BaseModel):
-    """Settlement response for S-IO protocol"""
-    success: bool
-    signature: Optional[str] = None
-    error: Optional[str] = None
-    payer: Optional[str] = None
-    amount: Optional[str] = None
+# Mock storage
+balances: Dict[str, SIOBalance] = {}
+transactions: List[SIOTransaction] = []
+unlocked_services: Dict[str, Dict] = {}
 
-
-class SIOProtocolHandler:
-    """Handler for S-IO protocol operations"""
-    
-    def __init__(self, sio_token_mint: str, treasury_wallet: str):
-        self.sio_token_mint = sio_token_mint
-        self.treasury_wallet = treasury_wallet
-    
-    def create_payment_requirements(
-        self,
-        amount: str,
-        resource: str,
-        description: str = "",
-        timeout: int = 60
-    ) -> SIOPaymentRequirements:
-        """Create payment requirements for a resource"""
-        return SIOPaymentRequirements(
-            amount=amount,
-            token=self.sio_token_mint,
-            recipient=self.treasury_wallet,
-            resource=resource,
-            description=description,
-            timeout=timeout
+@router.get("/balance/{wallet}")
+async def get_balance(wallet: str):
+    if wallet not in balances:
+        balances[wallet] = SIOBalance(
+            wallet=wallet,
+            balance=1000000.0,  # Mock balance
+            locked=0.0,
+            available=1000000.0
         )
+    return balances[wallet]
+
+@router.post("/transfer")
+async def transfer_sio(from_wallet: str, to_wallet: str, amount: float, service: str):
+    if from_wallet not in balances:
+        raise HTTPException(400, "Insufficient balance")
     
-    def verify_payment(
-        self,
-        payload: SIOPaymentPayload,
-        requirements: SIOPaymentRequirements
-    ) -> Dict[str, Any]:
-        """Verify payment payload matches requirements"""
-        # Basic validation
-        if payload.protocol != "s-io" or payload.version != 1:
-            return {"valid": False, "error": "Invalid protocol or version"}
-        
-        # Verify nonce hasn't been used (implement nonce tracking)
-        # Verify timestamp is within timeout window
-        current_time = int(time.time())
-        if current_time - payload.timestamp > requirements.timeout:
-            return {"valid": False, "error": "Payment expired"}
-        
-        # Verify transaction structure (simplified)
-        try:
-            # Decode and validate transaction
-            # Check amount, recipient, token match requirements
-            return {
-                "valid": True,
-                "payer": payload.payer,
-                "amount": requirements.amount
-            }
-        except Exception as e:
-            return {"valid": False, "error": str(e)}
+    balance = balances[from_wallet]
+    if balance.available < amount:
+        raise HTTPException(400, "Insufficient available balance")
     
-    def settle_payment(
-        self,
-        payload: SIOPaymentPayload,
-        requirements: SIOPaymentRequirements
-    ) -> SIOSettlementResponse:
-        """Settle payment on Solana blockchain"""
-        # Verify first
-        verification = self.verify_payment(payload, requirements)
-        if not verification.get("valid"):
-            return SIOSettlementResponse(
-                success=False,
-                error=verification.get("error", "Verification failed")
-            )
-        
-        try:
-            # Submit transaction to Solana
-            # In production, use actual RPC client
-            return SIOSettlementResponse(
-                success=True,
-                signature=payload.signature,
-                payer=payload.payer,
-                amount=requirements.amount
-            )
-        except Exception as e:
-            return SIOSettlementResponse(
-                success=False,
-                error=f"Settlement failed: {str(e)}"
-            )
+    # Process transfer
+    balance.available -= amount
+    balance.locked += amount
+    
+    tx = SIOTransaction(
+        tx_hash=f"sio_{len(transactions)}_{int(datetime.now().timestamp())}",
+        from_wallet=from_wallet,
+        to_wallet=to_wallet,
+        amount=amount,
+        service=service,
+        timestamp=datetime.now(),
+        status="confirmed"
+    )
+    transactions.append(tx)
+    
+    return {"tx_hash": tx.tx_hash, "status": "confirmed"}
 
+@router.post("/unlock-service")
+async def unlock_service(unlock: ServiceUnlock):
+    balance = await get_balance(unlock.wallet)
+    if balance.available < unlock.amount:
+        raise HTTPException(400, "Insufficient S-IO balance")
+    
+    # Process payment
+    tx_result = await transfer_sio(
+        unlock.wallet, 
+        "singularity_treasury", 
+        unlock.amount, 
+        unlock.service_id
+    )
+    
+    # Unlock service
+    expiry = datetime.now() + timedelta(days=unlock.duration_days)
+    unlocked_services[f"{unlock.wallet}_{unlock.service_id}"] = {
+        "wallet": unlock.wallet,
+        "service_id": unlock.service_id,
+        "unlocked_at": datetime.now(),
+        "expires_at": expiry,
+        "tx_hash": tx_result["tx_hash"]
+    }
+    
+    return {
+        "service_unlocked": True,
+        "expires_at": expiry,
+        "tx_hash": tx_result["tx_hash"]
+    }
 
-class SIODataTransmission(BaseModel):
-    """Advanced data transmission wrapper for S-IO protocol"""
-    protocol: str = "s-io-data"
-    version: int = 1
-    payment_proof: str  # Payment signature
-    data_type: str  # json, binary, stream
-    data: Any  # Actual data payload
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-    encryption: Optional[str] = None  # Encryption method if used
+@router.get("/services/{wallet}")
+async def get_unlocked_services(wallet: str):
+    user_services = {}
+    for key, service in unlocked_services.items():
+        if service["wallet"] == wallet and service["expires_at"] > datetime.now():
+            user_services[service["service_id"]] = service
+    return user_services
 
-
-def encode_sio_payment(payload: SIOPaymentPayload) -> str:
-    """Encode payment payload to base64"""
-    import base64
-    json_str = payload.model_dump_json()
-    return base64.b64encode(json_str.encode()).decode()
-
-
-def decode_sio_payment(encoded: str) -> SIOPaymentPayload:
-    """Decode base64 payment payload"""
-    import base64
-    json_str = base64.b64decode(encoded.encode()).decode()
-    return SIOPaymentPayload.model_validate_json(json_str)
-
-
-# S-IO Protocol Constants
-SIO_PROTOCOL_VERSION = 1
-SIO_TOKEN_MINT = "SioTkQxHyAs98ouRiyi1YDv3gLMSrX3eNBg61GH9xMd"  # Placeholder
-SIO_HEADER_NAME = "X-SIO-PAYMENT"
-SIO_RESPONSE_HEADER = "X-SIO-SETTLEMENT"
+@router.get("/transactions/{wallet}")
+async def get_transactions(wallet: str):
+    return [tx for tx in transactions if tx.from_wallet == wallet or tx.to_wallet == wallet]

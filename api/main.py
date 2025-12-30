@@ -33,6 +33,8 @@ try:
     from sio_payments import router as sio_payments_router
     from access_control import router as access_router
     from neural_protected import router as neural_router
+    from sio_protocol import router as sio_protocol_router
+    from services_catalog import router as services_catalog_router
 except ImportError as e:
     print(f"Some API modules not available: {e}")
 
@@ -64,6 +66,8 @@ try:
     app.include_router(sio_payments_router)
     app.include_router(access_router)
     app.include_router(neural_router)
+    app.include_router(sio_protocol_router)
+    app.include_router(services_catalog_router)
 except NameError:
     pass  # Routers not available
 
