@@ -56,7 +56,12 @@ async def get_balance(wallet: str):
     return balances[wallet]
 
 @router.post("/transfer")
-async def transfer_sio(from_wallet: str, to_wallet: str, amount: float, service: str):
+async def transfer_sio(transfer_data: dict):
+    from_wallet = transfer_data.get("from_wallet")
+    to_wallet = transfer_data.get("to_wallet")
+    amount = transfer_data.get("amount")
+    service = transfer_data.get("service")
+    
     if from_wallet not in balances:
         await get_balance(from_wallet)
     
@@ -88,12 +93,13 @@ async def unlock_service(unlock: ServiceUnlock):
         raise HTTPException(400, "Insufficient S-IO balance")
     
     # Process payment
-    tx_result = await transfer_sio(
-        unlock.wallet, 
-        "singularity_treasury", 
-        unlock.amount, 
-        unlock.service_id
-    )
+    transfer_data = {
+        "from_wallet": unlock.wallet,
+        "to_wallet": "singularity_treasury",
+        "amount": unlock.amount,
+        "service": unlock.service_id
+    }
+    tx_result = await transfer_sio(transfer_data)
     
     # Unlock service
     expiry = datetime.now() + timedelta(days=unlock.duration_days)
