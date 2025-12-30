@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S-IO Payment Gateway | Singularity.io</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .header { text-align: center; margin-bottom: 3rem; }
+        .header h1 { color: #00d4ff; font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .header p { color: #888; font-size: 1.1rem; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        .card h2 { color: #00d4ff; margin-bottom: 1.5rem; }
+        .service-item {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .service-item:hover { background: rgba(0,212,255,0.1); border-color: #00d4ff; }
+        .service-item.selected { background: rgba(0,212,255,0.2); border-color: #00d4ff; }
+        .service-name { font-weight: bold; color: #00d4ff; }
+        .service-price { color: #00ff88; font-weight: bold; margin-top: 0.5rem; }
+        .service-desc { color: #ccc; font-size: 0.9rem; margin-top: 0.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: #ccc; }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 1rem;
+        }
+        .btn {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        .btn:hover { background: #0099cc; transform: translateY(-2px); }
+        .btn:disabled { background: #666; cursor: not-allowed; transform: none; }
+        .transaction-item {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .transaction-header { display: flex; justify-content: space-between; align-items: center; }
+        .transaction-service { font-weight: bold; color: #00d4ff; }
+        .transaction-amount { color: #00ff88; font-weight: bold; }
+        .transaction-status {
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .status-confirmed { background: rgba(0,255,136,0.2); color: #00ff88; }
+        .status-pending { background: rgba(255,170,0,0.2); color: #ffaa00; }
+        .status-failed { background: rgba(255,68,68,0.2); color: #ff4444; }
+        .transaction-time { color: #888; font-size: 0.9rem; margin-top: 0.5rem; }
+        .balance-display {
+            background: rgba(0,212,255,0.1);
+            border: 1px solid #00d4ff;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .balance-amount { font-size: 1.5rem; font-weight: bold; color: #00ff88; }
+        .loading { opacity: 0.6; pointer-events: none; }
+        .message {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+        .message.success { background: rgba(0,255,136,0.2); color: #00ff88; }
+        .message.error { background: rgba(255,68,68,0.2); color: #ff4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💳 S-IO Payment Gateway</h1>
+            <p>Pay for premium services with S-IO tokens</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>🛒 Available Services</h2>
+                
+                <div class="balance-display">
+                    <div>S-IO Balance</div>
+                    <div class="balance-amount" id="sioBalance">Loading...</div>
+                </div>
+
+                <div id="messageContainer"></div>
+
+                <div id="servicesList">Loading services...</div>
+
+                <div class="form-group" style="margin-top: 2rem;">
+                    <label for="walletAddress">Wallet Address</label>
+                    <input type="text" id="walletAddress" placeholder="Your Solana wallet address">
+                </div>
+
+                <button class="btn" id="payButton" onclick="processPayment()" disabled>
+                    Connect Wallet First
+                </button>
+            </div>
+
+            <div class="card">
+                <h2>📋 Transaction History</h2>
+                <div id="transactionsList">Connect wallet to view transactions</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SIO_TOKEN_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
+        let selectedService = null;
+        let services = [];
+        let walletAddress = '';
+
+        // Check if wallet is connected
+        async function checkWallet() {
+            if (window.solana && window.solana.isPhantom) {
+                try {
+                    const response = await window.solana.connect({ onlyIfTrusted: true });
+                    walletAddress = response.publicKey.toString();
+                    document.getElementById('walletAddress').value = walletAddress;
+                    document.getElementById('payButton').textContent = 'Pay with S-IO';
+                    document.getElementById('payButton').disabled = false;
+                    
+                    loadBalance();
+                    loadTransactions();
+                } catch (error) {
+                    console.log('Wallet not connected');
+                }
+            }
+        }
+
+        async function connectWallet() {
+            if (window.solana && window.solana.isPhantom) {
+                try {
+                    const response = await window.solana.connect();
+                    walletAddress = response.publicKey.toString();
+                    document.getElementById('walletAddress').value = walletAddress;
+                    document.getElementById('payButton').textContent = 'Pay with S-IO';
+                    document.getElementById('payButton').disabled = false;
+                    
+                    loadBalance();
+                    loadTransactions();
+                } catch (error) {
+                    showMessage('Failed to connect wallet', 'error');
+                }
+            } else {
+                showMessage('Please install Phantom wallet', 'error');
+            }
+        }
+
+        async function loadServices() {
+            try {
+                const response = await fetch('/api/sio/services');
+                const data = await response.json();
+                services = data.services;
+                
+                const servicesList = document.getElementById('servicesList');
+                servicesList.innerHTML = services.map(service => `
+                    <div class="service-item" onclick="selectService('${service.id}')">
+                        <div class="service-name">${service.name}</div>
+                        <div class="service-price">${service.price} S-IO</div>
+                        <div class="service-desc">${service.description}</div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('servicesList').innerHTML = 'Failed to load services';
+            }
+        }
+
+        function selectService(serviceId) {
+            selectedService = services.find(s => s.id === serviceId);
+            
+            // Update UI
+            document.querySelectorAll('.service-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.target.closest('.service-item').classList.add('selected');
+            
+            if (walletAddress) {
+                document.getElementById('payButton').disabled = false;
+                document.getElementById('payButton').textContent = `Pay ${selectedService.price} S-IO`;
+            }
+        }
+
+        async function loadBalance() {
+            if (!walletAddress) return;
+            
+            try {
+                const response = await fetch(`/api/sio/balance/${walletAddress}`);
+                const data = await response.json();
+                document.getElementById('sioBalance').textContent = `${data.balance.toLocaleString()} S-IO`;
+            } catch (error) {
+                document.getElementById('sioBalance').textContent = 'Error loading balance';
+            }
+        }
+
+        async function loadTransactions() {
+            if (!walletAddress) return;
+            
+            try {
+                const response = await fetch(`/api/sio/transactions/${walletAddress}`);
+                const transactions = await response.json();
+                
+                const transactionsList = document.getElementById('transactionsList');
+                
+                if (transactions.length === 0) {
+                    transactionsList.innerHTML = '<p style="color: #888;">No transactions found</p>';
+                    return;
+                }
+                
+                transactionsList.innerHTML = transactions.map(tx => `
+                    <div class="transaction-item">
+                        <div class="transaction-header">
+                            <div class="transaction-service">${tx.service}</div>
+                            <div class="transaction-amount">-${tx.amount} S-IO</div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                            <span class="transaction-status status-${tx.status}">${tx.status.toUpperCase()}</span>
+                            <span class="transaction-time">${formatTime(tx.timestamp)}</span>
+                        </div>
+                        <div style="color: #888; font-size: 0.8rem; margin-top: 0.5rem;">${tx.description}</div>
+                        ${tx.signature ? `<div style="color: #666; font-size: 0.7rem; margin-top: 0.5rem;">Tx: ${tx.signature.substring(0, 20)}...</div>` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('transactionsList').innerHTML = 'Failed to load transactions';
+            }
+        }
+
+        async function processPayment() {
+            if (!selectedService || !walletAddress) {
+                showMessage('Please select a service and connect wallet', 'error');
+                return;
+            }
+
+            try {
+                document.getElementById('payButton').disabled = true;
+                document.getElementById('payButton').textContent = 'Processing...';
+                
+                // Create payment request
+                const paymentData = {
+                    wallet_address: walletAddress,
+                    amount: selectedService.price,
+                    service: selectedService.name,
+                    description: selectedService.description
+                };
+                
+                const response = await fetch('/api/sio/pay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(paymentData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage(`Payment initiated! Payment ID: ${result.payment_id}`, 'success');
+                    
+                    // Simulate transaction confirmation (in real implementation, this would be done via Solana transaction)
+                    setTimeout(async () => {
+                        const mockSignature = 'mock_signature_' + Date.now();
+                        await fetch(`/api/sio/confirm/${result.payment_id}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ signature: mockSignature })
+                        });
+                        
+                        showMessage('Payment confirmed!', 'success');
+                        loadTransactions();
+                        loadBalance();
+                    }, 2000);
+                } else {
+                    showMessage(result.detail || 'Payment failed', 'error');
+                }
+            } catch (error) {
+                showMessage('Payment failed: ' + error.message, 'error');
+            } finally {
+                document.getElementById('payButton').disabled = false;
+                document.getElementById('payButton').textContent = selectedService ? `Pay ${selectedService.price} S-IO` : 'Select Service';
+            }
+        }
+
+        function showMessage(text, type) {
+            const container = document.getElementById('messageContainer');
+            container.innerHTML = `<div class="message ${type}">${text}</div>`;
+            setTimeout(() => container.innerHTML = '', 5000);
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadServices();
+            checkWallet();
+            
+            // Add connect wallet button if not connected
+            if (!walletAddress) {
+                document.getElementById('payButton').textContent = 'Connect Wallet';
+                document.getElementById('payButton').onclick = connectWallet;
+            }
+        });
+    </script>
+</body>
+</html>

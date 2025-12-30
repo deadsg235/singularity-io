@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S-IO Transactions | Singularity.io</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .header {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .header h1 { color: #00d4ff; font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .balance-card {
+            background: rgba(0,212,255,0.1);
+            border: 1px solid #00d4ff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+        .balance-amount { font-size: 2rem; font-weight: bold; color: #00ff88; }
+        .balance-label { color: #ccc; margin-bottom: 0.5rem; }
+        .wallet-info {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .wallet-address { font-family: monospace; color: #00d4ff; word-break: break-all; }
+        .transactions-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 2rem;
+        }
+        .transactions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .transactions-header h2 { color: #00d4ff; }
+        .refresh-btn {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .transaction-item {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        .transaction-item:hover { background: rgba(255,255,255,0.05); }
+        .transaction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .transaction-type {
+            background: rgba(0,212,255,0.2);
+            color: #00d4ff;
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .transaction-amount {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        .transaction-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .detail-label { color: #888; }
+        .detail-value { color: #fff; font-family: monospace; }
+        .status-confirmed { color: #00ff88; }
+        .status-pending { color: #ffaa00; }
+        .status-failed { color: #ff4444; }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #888;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #888;
+        }
+        .connect-wallet-btn {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: #00d4ff; }
+        .stat-label { color: #888; font-size: 0.9rem; margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 S-IO Transaction History</h1>
+            <p>Track your S-IO token transactions and balance</p>
+            
+            <div id="walletSection">
+                <button class="connect-wallet-btn" onclick="connectWallet()">Connect Wallet</button>
+            </div>
+        </div>
+
+        <div id="dashboardContent" style="display: none;">
+            <div class="balance-card">
+                <div class="balance-label">Current S-IO Balance</div>
+                <div class="balance-amount" id="sioBalance">0.00</div>
+            </div>
+
+            <div class="wallet-info">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Wallet Address:</span>
+                    <span class="wallet-address" id="walletAddress"></span>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalTransactions">0</div>
+                    <div class="stat-label">Total Transactions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalSpent">0.00</div>
+                    <div class="stat-label">Total Spent (S-IO)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalReceived">0.00</div>
+                    <div class="stat-label">Total Received (S-IO)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="lastTransaction">Never</div>
+                    <div class="stat-label">Last Transaction</div>
+                </div>
+            </div>
+
+            <div class="transactions-card">
+                <div class="transactions-header">
+                    <h2>Recent Transactions</h2>
+                    <button class="refresh-btn" onclick="loadTransactions()">Refresh</button>
+                </div>
+                
+                <div id="transactionsList">
+                    <div class="loading">Loading transactions...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let walletAddress = '';
+        let transactions = [];
+
+        async function connectWallet() {
+            if (window.solana && window.solana.isPhantom) {
+                try {
+                    const response = await window.solana.connect();
+                    walletAddress = response.publicKey.toString();
+                    
+                    document.getElementById('walletAddress').textContent = walletAddress;
+                    document.getElementById('walletSection').innerHTML = `
+                        <div style="color: #00ff88; margin-top: 1rem;">
+                            ✅ Wallet Connected: ${formatAddress(walletAddress)}
+                        </div>
+                    `;
+                    
+                    document.getElementById('dashboardContent').style.display = 'block';
+                    
+                    await loadBalance();
+                    await loadTransactions();
+                } catch (error) {
+                    alert('Failed to connect wallet: ' + error.message);
+                }
+            } else {
+                alert('Please install Phantom wallet');
+            }
+        }
+
+        async function loadBalance() {
+            try {
+                const response = await fetch(`/api/sio/balance/${walletAddress}`);
+                const data = await response.json();
+                document.getElementById('sioBalance').textContent = data.balance.toLocaleString();
+            } catch (error) {
+                console.error('Error loading balance:', error);
+                document.getElementById('sioBalance').textContent = 'Error';
+            }
+        }
+
+        async function loadTransactions() {
+            try {
+                document.getElementById('transactionsList').innerHTML = '<div class="loading">Loading transactions...</div>';
+                
+                const response = await fetch(`/api/sio/transactions/${walletAddress}`);
+                transactions = await response.json();
+                
+                if (transactions.length === 0) {
+                    document.getElementById('transactionsList').innerHTML = `
+                        <div class="empty-state">
+                            <h3>No transactions found</h3>
+                            <p>Your S-IO transactions will appear here</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                updateStats();
+                renderTransactions();
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                document.getElementById('transactionsList').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error loading transactions</h3>
+                        <p>Please try again later</p>
+                    </div>
+                `;
+            }
+        }
+
+        function updateStats() {
+            const totalTx = transactions.length;
+            const totalSpent = transactions
+                .filter(tx => tx.amount > 0)
+                .reduce((sum, tx) => sum + tx.amount, 0);
+            const totalReceived = 0; // For now, assuming all transactions are payments
+            const lastTx = transactions.length > 0 ? formatTime(transactions[0].timestamp) : 'Never';
+            
+            document.getElementById('totalTransactions').textContent = totalTx;
+            document.getElementById('totalSpent').textContent = totalSpent.toFixed(2);
+            document.getElementById('totalReceived').textContent = totalReceived.toFixed(2);
+            document.getElementById('lastTransaction').textContent = lastTx;
+        }
+
+        function renderTransactions() {
+            const transactionsList = document.getElementById('transactionsList');
+            
+            transactionsList.innerHTML = transactions.map(tx => `
+                <div class="transaction-item">
+                    <div class="transaction-header">
+                        <div class="transaction-type">${tx.service || 'Transfer'}</div>
+                        <div class="transaction-amount">-${tx.amount} S-IO</div>
+                    </div>
+                    
+                    <div class="transaction-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Status:</span>
+                            <span class="detail-value status-${tx.status}">${tx.status.toUpperCase()}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Date:</span>
+                            <span class="detail-value">${formatTime(tx.timestamp)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Transaction ID:</span>
+                            <span class="detail-value">${tx.id}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Description:</span>
+                            <span class="detail-value">${tx.description}</span>
+                        </div>
+                    </div>
+                    
+                    ${tx.signature ? `
+                        <div class="detail-item" style="margin-top: 1rem;">
+                            <span class="detail-label">Signature:</span>
+                            <span class="detail-value">${formatAddress(tx.signature)}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function formatAddress(address) {
+            if (!address) return '';
+            return `${address.substring(0, 8)}...${address.substring(address.length - 8)}`;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+
+        // Check if wallet is already connected
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (window.solana && window.solana.isPhantom) {
+                try {
+                    const response = await window.solana.connect({ onlyIfTrusted: true });
+                    walletAddress = response.publicKey.toString();
+                    
+                    document.getElementById('walletAddress').textContent = walletAddress;
+                    document.getElementById('walletSection').innerHTML = `
+                        <div style="color: #00ff88; margin-top: 1rem;">
+                            ✅ Wallet Connected: ${formatAddress(walletAddress)}
+                        </div>
+                    `;
+                    
+                    document.getElementById('dashboardContent').style.display = 'block';
+                    
+                    await loadBalance();
+                    await loadTransactions();
+                } catch (error) {
+                    console.log('Wallet not auto-connected');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

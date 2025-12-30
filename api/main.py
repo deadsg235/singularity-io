@@ -30,6 +30,7 @@ try:
     from sio_staking import router as sio_staking_router
     from guardian_analytics import router as guardian_router
     from guardian_advanced import router as guardian_advanced_router
+    from sio_payments import router as sio_payments_router
 except ImportError as e:
     print(f"Some API modules not available: {e}")
 
@@ -58,6 +59,7 @@ try:
     app.include_router(sio_staking_router)
     app.include_router(guardian_router)
     app.include_router(guardian_advanced_router)
+    app.include_router(sio_payments_router)
 except NameError:
     pass  # Routers not available
 
