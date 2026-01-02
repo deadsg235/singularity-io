@@ -48,62 +48,35 @@ class WalletBalanceLoader {
     }
 
     async tryAnalyticsEndpoint(walletAddress) {
-        // Skip analytics, use direct RPC
-        return null;
+        // Use backend API for balance
+        try {
+            const response = await fetch(`/api/sio/balance/${walletAddress}`);
+            if (!response.ok) return null;
+            
+            const data = await response.json();
+            return {
+                sol: 0,
+                sio: data.balance || 0
+            };
+        } catch (error) {
+            return null;
+        }
     }
 
     async tryDirectRPC(walletAddress) {
-        const SIO_MINT = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
-        
-        for (let i = 0; i < this.endpoints.length; i++) {
-            const endpoint = this.endpoints[this.currentEndpoint];
+        // Use backend API instead of direct RPC
+        try {
+            const response = await fetch(`/api/sio/balance/${walletAddress}`);
+            if (!response.ok) throw new Error('API request failed');
             
-            try {
-                // Check RPC cache first
-                const rpcCacheKey = `${endpoint}:${walletAddress}`;
-                const rpcCached = this.rpcCache.get(rpcCacheKey);
-                
-                if (rpcCached && Date.now() - rpcCached.timestamp < this.rpcTimeout) {
-                    return rpcCached.data;
-                }
-                
-                const connection = new solanaWeb3.Connection(endpoint, {
-                    commitment: 'confirmed',
-                    timeout: 8000
-                });
-                
-                const owner = new solanaWeb3.PublicKey(walletAddress);
-                
-                // Batch RPC calls for efficiency (x402-style optimization)
-                const [solBalance, tokenAccounts] = await Promise.all([
-                    connection.getBalance(owner),
-                    connection.getParsedTokenAccountsByOwner(owner, {
-                        mint: new solanaWeb3.PublicKey(SIO_MINT)
-                    })
-                ]);
-                
-                const balances = {
-                    sol: solBalance / solanaWeb3.LAMPORTS_PER_SOL,
-                    sio: tokenAccounts.value.length > 0 ? 
-                        (tokenAccounts.value[0].account.data.parsed.info.tokenAmount.uiAmount || 0) : 0
-                };
-                
-                // Cache RPC result
-                this.rpcCache.set(rpcCacheKey, {
-                    data: balances,
-                    timestamp: Date.now()
-                });
-                
-                return balances;
-                
-            } catch (error) {
-                console.warn(`RPC endpoint ${endpoint} failed:`, error.message);
-                this.currentEndpoint = (this.currentEndpoint + 1) % this.endpoints.length;
-                
-                if (i === this.endpoints.length - 1) {
-                    throw new Error('All RPC endpoints failed');
-                }
-            }
+            const data = await response.json();
+            return {
+                sol: 0, // SOL balance not needed for S-IO services
+                sio: data.balance || 0
+            };
+        } catch (error) {
+            console.warn('Backend API failed:', error.message);
+            throw new Error('Backend API failed');
         }
     }
 
