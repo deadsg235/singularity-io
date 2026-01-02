@@ -22,6 +22,11 @@ except ImportError as e:
 # Import working API routers
 try:
     from sio_token import router as sio_router
+except ImportError as e:
+    print(f"sio_token not available: {e}")
+    sio_router = None
+
+try:
     from wallet_analytics import router as wallet_analytics_router
     from revenue import router as revenue_router
     from social import router as social_router
@@ -54,7 +59,12 @@ app.add_middleware(
 
 # Include working API routers
 try:
-    app.include_router(sio_router)
+    if sio_router:
+        app.include_router(sio_router)
+except Exception as e:
+    print(f"Failed to include sio_router: {e}")
+
+try:
     app.include_router(wallet_analytics_router)
     app.include_router(revenue_router)
     app.include_router(social_router)

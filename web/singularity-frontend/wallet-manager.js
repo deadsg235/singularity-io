@@ -38,8 +38,14 @@ class WalletManager {
 
         try {
             const response = await fetch(`/api/sio/balance/${this.publicKey}`);
-            const data = await response.json();
             
+            if (!response.ok) {
+                console.error('Balance API error:', response.status);
+                this.updateBalanceDisplay(0);
+                return;
+            }
+            
+            const data = await response.json();
             this.updateBalanceDisplay(data.balance || 0);
         } catch (error) {
             console.error('Balance load failed:', error);
