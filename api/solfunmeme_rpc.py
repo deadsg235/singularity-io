@@ -7,7 +7,7 @@ import json
 router = APIRouter(prefix="/api/solfunmeme", tags=["SolFunMeme RPC"])
 
 # SolFunMeme Introspector RPC endpoint
-SOLFUNMEME_RPC = "https://api.solfunmeme.com/rpc"
+SOLFUNMEME_RPC = "https://api.mainnet-beta.solana.com"
 SIO_TOKEN_ADDRESS = "Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump"
 
 class SolFunMemeRPC:
@@ -15,7 +15,7 @@ class SolFunMemeRPC:
         self.client = httpx.AsyncClient(timeout=30.0)
     
     async def get_token_balance(self, wallet: str, token_mint: str) -> float:
-        """Get token balance from SolFunMeme RPC"""
+        """Get token balance from Solana RPC"""
         try:
             response = await self.client.post(SOLFUNMEME_RPC, json={
                 "jsonrpc": "2.0",
@@ -67,6 +67,13 @@ class SolFunMemeRPC:
                 "available": 0.0,
                 "locked": 0.0
             }
+    
+    async def unlock_feature(self, data: dict) -> Dict:
+        """Mock feature unlock - in production would create Solana transaction"""
+        return {
+            "success": True,
+            "tx_signature": f"mock_tx_{data['wallet'][:8]}_{data['feature_id']}"
+        }
 
 rpc_client = SolFunMemeRPC()
 

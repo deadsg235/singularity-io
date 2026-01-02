@@ -54,17 +54,12 @@ async def transfer_sio(transfer_data: dict):
     amount = transfer_data.get("amount")
     service = transfer_data.get("service")
     
-    if from_wallet not in balances:
-        await get_balance(from_wallet)
-    
-    balance = balances[from_wallet]
-    if balance.available < amount:
+    # Verify balance via SolFunMeme RPC
+    wallet_info = await rpc_client.get_wallet_info(from_wallet)
+    if wallet_info["sio_balance"] < amount:
         raise HTTPException(400, "Insufficient available balance")
     
-    # Process transfer
-    balance.available -= amount
-    balance.locked += amount
-    
+    # Create transaction record
     tx = SIOTransaction(
         tx_hash=f"sio_{len(transactions)}_{int(datetime.now().timestamp())}",
         from_wallet=from_wallet,
