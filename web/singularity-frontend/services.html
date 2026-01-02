@@ -120,16 +120,13 @@
         let unlockedServices = {};
 
         async function connectWallet() {
-            if (window.solana && window.solana.isPhantom) {
-                try {
-                    const response = await window.solana.connect();
-                    currentWallet = response.publicKey.toString();
-                    await loadBalance();
-                    await loadUnlockedServices();
-                    await loadServices();
-                } catch (err) {
-                    console.error('Wallet connection failed:', err);
-                }
+            try {
+                currentWallet = await window.walletManager.connect();
+                await loadBalance();
+                await loadUnlockedServices();
+                await loadServices();
+            } catch (error) {
+                alert('Failed to connect wallet: ' + error.message);
             }
         }
 
@@ -257,7 +254,8 @@
 
         // Initialize
         window.addEventListener('load', async () => {
-            await connectWallet();
+            // No auto-connect, user must manually connect wallet
+            await loadServices();
         });
     </script>
 </body>
