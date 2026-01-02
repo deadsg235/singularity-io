@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 import asyncio
 import json
 from datetime import datetime, timedelta
+from solfunmeme_rpc import rpc_client
 
 router = APIRouter(prefix="/api/sio", tags=["S-IO Protocol"])
 
@@ -31,31 +32,20 @@ class ServiceUnlock(BaseModel):
     amount: float
     duration_days: int
 
-# Mock storage with test data from test_sio.py
-TEST_WALLET = "HxpisaTe3e2fgZcfvpTAwRo2QGDxzHpSZDr6j15Jt5Qp"
-
-balances: Dict[str, SIOBalance] = {
-    TEST_WALLET: SIOBalance(
-        wallet=TEST_WALLET,
-        balance=5000000.0,
-        locked=0.0,
-        available=5000000.0
-    )
-}
+# Storage for transactions and unlocked services
 transactions: List[SIOTransaction] = []
 unlocked_services: Dict[str, Dict] = {}
 
 @router.get("/balance/{wallet}")
 async def get_balance(wallet: str):
-    if wallet not in balances:
-        # Initialize new wallet with default balance
-        balances[wallet] = SIOBalance(
-            wallet=wallet,
-            balance=1000000.0,  # 1M S-IO default
-            locked=0.0,
-            available=1000000.0
-        )
-    return balances[wallet]
+    """Get real S-IO balance via SolFunMeme RPC"""
+    wallet_info = await rpc_client.get_wallet_info(wallet)
+    return SIOBalance(
+        wallet=wallet,
+        balance=wallet_info["sio_balance"],
+        locked=wallet_info["locked"],
+        available=wallet_info["available"]
+    )
 
 @router.post("/transfer")
 async def transfer_sio(transfer_data: dict):
@@ -90,33 +80,35 @@ async def transfer_sio(transfer_data: dict):
 
 @router.post("/unlock-service")
 async def unlock_service(unlock: ServiceUnlock):
-    balance = await get_balance(unlock.wallet)
-    if balance.available < unlock.amount:
+    # Verify balance via SolFunMeme RPC
+    wallet_info = await rpc_client.get_wallet_info(unlock.wallet)
+    if wallet_info["sio_balance"] < unlock.amount:
         raise HTTPException(400, "Insufficient S-IO balance")
     
-    # Process payment
-    transfer_data = {
-        "from_wallet": unlock.wallet,
-        "to_wallet": "singularity_treasury",
-        "amount": unlock.amount,
-        "service": unlock.service_id
-    }
-    tx_result = await transfer_sio(transfer_data)
+    # Use SolFunMeme RPC to unlock feature
+    unlock_result = await rpc_client.unlock_feature({
+        "wallet": unlock.wallet,
+        "feature_id": unlock.service_id,
+        "amount": unlock.amount
+    })
     
-    # Unlock service
+    if not unlock_result["success"]:
+        raise HTTPException(400, "Feature unlock failed")
+    
+    # Store unlocked service
     expiry = datetime.now() + timedelta(days=unlock.duration_days)
     unlocked_services[f"{unlock.wallet}_{unlock.service_id}"] = {
         "wallet": unlock.wallet,
         "service_id": unlock.service_id,
         "unlocked_at": datetime.now(),
         "expires_at": expiry,
-        "tx_hash": tx_result["tx_hash"]
+        "tx_hash": unlock_result["tx_signature"]
     }
     
     return {
         "service_unlocked": True,
         "expires_at": expiry,
-        "tx_hash": tx_result["tx_hash"]
+        "tx_hash": unlock_result["tx_signature"]
     }
 
 @router.get("/services/{wallet}")
@@ -134,17 +126,9 @@ async def get_transactions(wallet: str):
 @router.get("/stats")
 async def get_sio_stats():
     """Get S-IO system statistics"""
-    total_wallets = len(balances)
-    total_balance = sum(b.balance for b in balances.values())
-    total_locked = sum(b.locked for b in balances.values())
-    total_transactions = len(transactions)
-    
     return {
         "token_address": SIO_TOKEN_ADDRESS,
-        "total_wallets": total_wallets,
-        "total_balance": total_balance,
-        "total_locked": total_locked,
-        "total_transactions": total_transactions,
-        "test_wallet": TEST_WALLET,
-        "test_balance": balances.get(TEST_WALLET, {}).balance if TEST_WALLET in balances else 0
+        "total_transactions": len(transactions),
+        "total_unlocked_services": len(unlocked_services),
+        "rpc_endpoint": "SolFunMeme Introspector"
     }
