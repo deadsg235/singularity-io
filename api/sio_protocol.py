@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 import asyncio
 import json
 from datetime import datetime, timedelta
-from solfunmeme_rpc import rpc_client
+from sio_token import get_sio_balance, get_sio_stats
 
 router = APIRouter(prefix="/api/sio", tags=["S-IO Protocol"])
 
@@ -38,34 +38,32 @@ unlocked_services: Dict[str, Dict] = {}
 
 @router.get("/balance/{wallet}")
 async def get_balance(wallet: str):
-    """Get real S-IO balance via SolFunMeme RPC"""
-    wallet_info = await rpc_client.get_wallet_info(wallet)
+    """Get real S-IO balance via cached RPC"""
+    balance_data = await get_sio_balance(wallet)
     return SIOBalance(
         wallet=wallet,
-        balance=wallet_info["sio_balance"],
-        locked=wallet_info["locked"],
-        available=wallet_info["available"]
+        balance=balance_data["balance"],
+        locked=0.0,
+        available=balance_data["balance"]
     )
 
 @router.post("/transfer")
 async def transfer_sio(transfer_data: dict):
     from_wallet = transfer_data.get("from_wallet")
-    to_wallet = transfer_data.get("to_wallet")
     amount = transfer_data.get("amount")
-    service = transfer_data.get("service")
     
-    # Verify balance via SolFunMeme RPC
-    wallet_info = await rpc_client.get_wallet_info(from_wallet)
-    if wallet_info["sio_balance"] < amount:
+    # Verify balance via cached RPC
+    balance_data = await get_sio_balance(from_wallet)
+    if balance_data["balance"] < amount:
         raise HTTPException(400, "Insufficient available balance")
     
     # Create transaction record
     tx = SIOTransaction(
         tx_hash=f"sio_{len(transactions)}_{int(datetime.now().timestamp())}",
         from_wallet=from_wallet,
-        to_wallet=to_wallet,
+        to_wallet=transfer_data.get("to_wallet"),
         amount=amount,
-        service=service,
+        service=transfer_data.get("service"),
         timestamp=datetime.now(),
         status="confirmed"
     )
@@ -75,35 +73,27 @@ async def transfer_sio(transfer_data: dict):
 
 @router.post("/unlock-service")
 async def unlock_service(unlock: ServiceUnlock):
-    # Verify balance via SolFunMeme RPC
-    wallet_info = await rpc_client.get_wallet_info(unlock.wallet)
-    if wallet_info["sio_balance"] < unlock.amount:
+    # Verify balance via cached RPC
+    balance_data = await get_sio_balance(unlock.wallet)
+    if balance_data["balance"] < unlock.amount:
         raise HTTPException(400, "Insufficient S-IO balance")
-    
-    # Use SolFunMeme RPC to unlock feature
-    unlock_result = await rpc_client.unlock_feature({
-        "wallet": unlock.wallet,
-        "feature_id": unlock.service_id,
-        "amount": unlock.amount
-    })
-    
-    if not unlock_result["success"]:
-        raise HTTPException(400, "Feature unlock failed")
     
     # Store unlocked service
     expiry = datetime.now() + timedelta(days=unlock.duration_days)
+    tx_hash = f"unlock_{unlock.wallet[:8]}_{unlock.service_id}_{int(datetime.now().timestamp())}"
+    
     unlocked_services[f"{unlock.wallet}_{unlock.service_id}"] = {
         "wallet": unlock.wallet,
         "service_id": unlock.service_id,
         "unlocked_at": datetime.now(),
         "expires_at": expiry,
-        "tx_hash": unlock_result["tx_signature"]
+        "tx_hash": tx_hash
     }
     
     return {
         "service_unlocked": True,
         "expires_at": expiry,
-        "tx_hash": unlock_result["tx_signature"]
+        "tx_hash": tx_hash
     }
 
 @router.get("/services/{wallet}")
@@ -121,9 +111,11 @@ async def get_transactions(wallet: str):
 @router.get("/stats")
 async def get_sio_stats():
     """Get S-IO system statistics"""
+    stats_data = await get_sio_stats()
     return {
         "token_address": SIO_TOKEN_ADDRESS,
         "total_transactions": len(transactions),
         "total_unlocked_services": len(unlocked_services),
-        "rpc_endpoint": "SolFunMeme Introspector"
+        "total_supply": stats_data.get("total_supply", 0),
+        "price_usd": stats_data.get("price_usd", 0)
     }

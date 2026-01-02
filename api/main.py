@@ -35,7 +35,6 @@ try:
     from neural_protected import router as neural_router
     from sio_protocol import router as sio_protocol_router
     from services_catalog import router as services_catalog_router
-    from solfunmeme_rpc import router as solfunmeme_rpc_router
 except ImportError as e:
     print(f"Some API modules not available: {e}")
 
@@ -69,7 +68,6 @@ try:
     app.include_router(neural_router)
     app.include_router(sio_protocol_router)
     app.include_router(services_catalog_router)
-    app.include_router(solfunmeme_rpc_router)
 except NameError:
     pass  # Routers not available
 
