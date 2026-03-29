@@ -165,30 +165,39 @@ async function sendMessage() {
   addMsg('user', msg);
   input.value = '';
 
+  const system = `You are the Singularity.io AI assistant — an expert in Solana DeFi, token creation, and the S-IO ecosystem. 
+The user's wallet: ${window.walletManager?.publicKey || 'not connected'}.
+S-IO token mint: ${SIO_MINT}.
+Be concise, helpful, and knowledgeable about blockchain/DeFi topics.`;
+
+  const messages = [
+    ...chatHistory.map(h => ([
+      { role: 'user', content: h.user },
+      { role: 'assistant', content: h.assistant }
+    ])).flat(),
+    { role: 'user', content: msg }
+  ];
+
+  // Create streaming message element
+  const out = document.getElementById('chat-output');
+  const div = document.createElement('div');
+  div.className = 'msg-ai';
+  div.style.marginTop = '0.4rem';
+  out.appendChild(div);
+
   try {
-    const res  = await fetch(`${API_BASE}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: msg, wallet: window.walletManager?.publicKey, history: chatHistory })
-    });
-    const data = await res.json();
-    const reply = data.response || 'No response.';
-
-    // Handle structured agent actions
-    try {
-      const parsed = JSON.parse(reply);
-      if (parsed.action === 'create_token') {
-        addMsg('ai', parsed.message);
-        createToken(parsed.params);
-        return;
+    const reply = await window.groqChat(messages, {
+      system,
+      onChunk: (text) => {
+        div.textContent += text;
+        out.scrollTop = out.scrollHeight;
       }
-    } catch { /* plain text */ }
+    });
 
-    addMsg('ai', reply);
     chatHistory.push({ user: msg, assistant: reply });
     if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
   } catch (err) {
-    addMsg('ai', `Connection error: ${err.message}`);
+    div.textContent = `Error: ${err.message}`;
   }
 }
 

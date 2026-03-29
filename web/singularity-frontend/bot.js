@@ -392,29 +392,37 @@ async function sendChatMessage() {
     
     addChatMessage('user', message);
     input.value = '';
-    
+
+    const system = `You are an AI trading bot assistant for Singularity.io on Solana.
+Bot status: ${botActive ? 'ACTIVE' : 'STOPPED'}.
+Stats: ${stats.total} trades, ${stats.success} successful, PnL: ${stats.pnl.toFixed(4)} SOL.
+Wallet: ${wallet?.toString() || 'not connected'}.
+Help the user control the bot, analyze trades, and make trading decisions.
+If the user wants to execute a trade, start/stop the bot, or check balance, respond helpfully with clear instructions.`;
+
+    const messages = [{ role: 'user', content: message }];
+
+    // Create streaming element
+    const container = document.getElementById('chat-messages');
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'margin-bottom:0.5rem;text-align:left;';
+    wrapper.innerHTML = `<div style="display:inline-block;padding:0.5rem 1rem;background:rgba(0,255,136,0.1);border-radius:4px;max-width:80%;">
+        <strong style="color:#00ff88;">AI:</strong>
+        <p style="color:#fff;margin:0.25rem 0 0 0;font-size:0.9rem;"></p>
+    </div>`;
+    container.appendChild(wrapper);
+    const textEl = wrapper.querySelector('p');
+
     try {
-        const response = await fetch('/api/bot_chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message,
-                wallet: wallet?.toString(),
-                bot_active: botActive,
-                stats
-            })
+        await window.groqChat(messages, {
+            system,
+            onChunk: (text) => {
+                textEl.textContent += text;
+                container.scrollTop = container.scrollHeight;
+            }
         });
-        
-        const data = await response.json();
-        
-        if (data.action) {
-            await executeToolCall(data.action, data.params);
-            addChatMessage('assistant', data.message || 'Action executed');
-        } else {
-            addChatMessage('assistant', data.response);
-        }
     } catch (error) {
-        addChatMessage('assistant', 'Error: ' + error.message);
+        textEl.textContent = `Error: ${error.message}`;
     }
 }
 

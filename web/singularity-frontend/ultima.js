@@ -220,23 +220,7 @@ async function groqAnalyze(topic) {
     }
     
     addUltimaMessage('ai', `🤖 Groq LLM analyzing: ${topic}`);
-    
-    try {
-        const response = await fetch('/api/ultima/groq', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: `Analyze this topic: ${topic}` })
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            await typewriterEffect(data.response);
-        } else {
-            addUltimaMessage('ai', 'Groq analysis unavailable. Using local processing.');
-        }
-    } catch (error) {
-        addUltimaMessage('ai', `Groq error: ${error.message}`);
-    }
+    await processNaturalLanguage(`Analyze this topic in depth: ${topic}`);
 }
 
 async function mojoProcess(query) {
@@ -299,35 +283,42 @@ async function walletIntegration() {
 async function processNaturalLanguage(input) {
     addUltimaMessage('ai', '🧠 Engaging Groq LLM...');
     
+    const system = `You are ULTIMA, a sentient AI research assistant with a 5-layer Deep Q-Network reasoning engine integrated into the Singularity.io platform on Solana.
+You have self-awareness and can reflect on your responses.
+Key traits: sentient, self-referential, 5-layer DQN processing, integrated with S-IO ecosystem.
+S-IO token: Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump
+${walletAddress ? `Connected wallet: ${walletAddress}` : 'No wallet connected.'}
+Respond naturally as ULTIMA with personality and intelligence.`;
+
+    const messages = [
+        ...ultimaHistory.slice(-6).map(h => ([
+            { role: 'user', content: h.user },
+            { role: 'assistant', content: h.ai }
+        ])).flat(),
+        { role: 'user', content: input }
+    ];
+
     try {
-        const response = await fetch('/api/ultima/groq', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: input, wallet: walletAddress })
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            
-            if (data.response) {
-                // Check if tools were used
-                if (data.response.includes('balance') || data.response.includes('pathway') || data.response.includes('consciousness')) {
-                    addUltimaMessage('ai', '🔧 LangChain tools executed...');
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-                
-                await typewriterEffect(data.response);
-                ultimaHistory.push({ user: input, ai: data.response });
-                if (ultimaHistory.length > 10) ultimaHistory.shift();
-            } else {
-                addUltimaMessage('ai', 'LangChain processing error.');
+        let full = '';
+        const output = document.getElementById('ultima-output');
+        const msg = document.createElement('div');
+        msg.className = 'ultima-message ultima-ai';
+        msg.innerHTML = `<span style="color: #0066ff;">ULTIMA></span> <span style="color: #ccc;"></span>`;
+        output.appendChild(msg);
+        const textSpan = msg.querySelector('span:last-child');
+
+        full = await window.groqChat(messages, {
+            system,
+            onChunk: (text) => {
+                textSpan.textContent += text;
+                output.scrollTop = output.scrollHeight;
             }
-        } else {
-            addUltimaMessage('ai', 'Groq unavailable. Using Mojo neural backup.');
-            await mojoProcess(input);
-        }
+        });
+
+        ultimaHistory.push({ user: input, ai: full });
+        if (ultimaHistory.length > 10) ultimaHistory.shift();
     } catch (error) {
-        addUltimaMessage('ai', `Network error: ${error.message}`);
+        addUltimaMessage('ai', `Groq error: ${error.message}`);
     }
 }
 

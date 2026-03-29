@@ -75,12 +75,11 @@ class UltimaTerminal {
         this.addMessage('user', command);
         this.input.value = '';
 
-        // Process through 5-layer DQN
-        const response = await this.dqnProcess(command);
-        this.addMessage('assistant', response);
+        // Process through 5-layer DQN (response is streamed directly by groqReasoning)
+        await this.dqnProcess(command);
         
         // Self-reflection
-        this.selfReflect(command, response);
+        this.selfReflect(command, '');
     }
 
     async dqnProcess(input) {
@@ -137,29 +136,39 @@ class UltimaTerminal {
 
     async groqReasoning(analysis) {
         try {
+            const system = this.getSystemPrompt(analysis);
             const prompt = this.buildGroqPrompt(analysis);
-            const response = await fetch('https://singularity-iov1.vercel.app/api/groq/chat', {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: prompt,
-                    system: this.getSystemPrompt(analysis)
-                })
+
+            const messages = [
+                ...this.memory
+                    .filter(m => m.type === 'user' || m.type === 'assistant')
+                    .slice(-10)
+                    .map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content })),
+                { role: 'user', content: prompt }
+            ];
+
+            // Stream into the output
+            let full = '';
+            const msgEl = document.createElement('div');
+            msgEl.className = 'ultima-message assistant';
+            msgEl.innerHTML = `<strong>[ULTIMA]</strong> `;
+            const textNode = document.createTextNode('');
+            msgEl.appendChild(textNode);
+            this.output.appendChild(msgEl);
+
+            full = await window.groqChat(messages, {
+                system,
+                onChunk: (text) => {
+                    textNode.textContent += text;
+                    this.output.scrollTop = this.output.scrollHeight;
+                }
             });
-            
-            // no-cors mode doesn't allow reading response
-            return {
-                ...analysis,
-                groqResponse: 'ULTIMA neural pathways processing your request...',
-                source: 'groq'
-            };
+
+            return { ...analysis, groqResponse: full, source: 'groq' };
         } catch (error) {
             return {
                 ...analysis,
-                groqResponse: 'ULTIMA processing offline. Local neural pathways active.',
+                groqResponse: `ULTIMA processing error: ${error.message}`,
                 source: 'local'
             };
         }

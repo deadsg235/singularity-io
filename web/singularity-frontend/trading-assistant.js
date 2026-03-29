@@ -65,29 +65,38 @@ class TradingAssistant {
         this.addMessage('user', message);
         input.value = '';
 
+        const system = `You are an AI trading assistant for the Singularity.io platform on Solana. 
+Help users with trading decisions, market analysis, and DeFi strategies.
+User wallet: ${this.walletAddress || 'not connected'}.
+Be concise and actionable. Focus on Solana/DeFi trading.`;
+
+        const messages = [
+            ...this.chatHistory.map(h => ([
+                { role: 'user', content: h.user },
+                { role: 'assistant', content: h.assistant }
+            ])).flat(),
+            { role: 'user', content: `Trading Assistant: ${message}` }
+        ];
+
+        // Create streaming element
+        const chat = document.getElementById('trading-chat');
+        const msg = document.createElement('div');
+        msg.className = 'chat-message assistant';
+        msg.innerHTML = `<span style="color: #dc2626;">AI:</span> <span style="color: #ccc;"></span>`;
+        chat.appendChild(msg);
+        const textSpan = msg.querySelector('span:last-child');
+
         try {
-            const response = await fetch(`${API_BASE}/api/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    message: `Trading Assistant: ${message}`, 
-                    wallet: this.walletAddress,
-                    history: this.chatHistory 
-                })
+            const resp = await window.groqChat(messages, {
+                system,
+                onChunk: (text) => {
+                    textSpan.textContent += text;
+                    chat.scrollTop = chat.scrollHeight;
+                }
             });
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                this.addMessage('assistant', data.response || `Error ${response.status}`);
-            } else {
-                const resp = data.response;
-                this.addMessage('assistant', resp);
-                this.chatHistory.push({ user: message, assistant: resp });
-            }
+            this.chatHistory.push({ user: message, assistant: resp });
         } catch (error) {
-            console.error('Trading chat error:', error);
-            this.addMessage('assistant', `Connection error: ${error.message}`);
+            textSpan.textContent = `Error: ${error.message}`;
         }
     }
 
