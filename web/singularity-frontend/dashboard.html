@@ -33,7 +33,7 @@
         .tier-pro { background: rgba(255,170,0,0.2); color: #ffaa00; }
         .tier-enterprise { background: rgba(255,0,102,0.2); color: #ff0066; }
         .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; margin-bottom: 2rem; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
         .subscription-card {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
@@ -188,7 +188,7 @@
 
                 <div class="subscription-card">
                     <h2>📊 Account Overview</h2>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;">
                         <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 8px;">
                             <div style="font-size: 1.5rem; font-weight: bold; color: #00ff88;" id="sioBalance">0</div>
                             <div style="color: #888;">S-IO Balance</div>

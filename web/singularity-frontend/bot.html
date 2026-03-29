@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0a0a">
     <title>Trading Bot - Singularity.io</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,7 +38,7 @@
         </header>
 
         <div style="max-width: 1200px; margin: 2rem auto;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
                 <div style="background: #000; border: 1px solid #dc2626; border-radius: 4px; padding: 2rem;">
                     <h2 style="color: #dc2626; margin-bottom: 1rem;">Bot Configuration</h2>
                     
@@ -96,7 +97,7 @@
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
                 <div style="background: #000; border: 1px solid #dc2626; border-radius: 4px; padding: 2rem;">
                     <h2 style="color: #dc2626; margin-bottom: 1rem;">Trade History</h2>
                     <div id="trade-history" style="max-height: 400px; overflow-y: auto;"></div>

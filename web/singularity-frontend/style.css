@@ -539,3 +539,248 @@ footer a{color:var(--red)}
   .stats-bar{grid-template-columns:repeat(2,1fr)}
   main{padding:1.5rem 1rem}
 }
+
+/* ══════════════════════════════════════════
+   SHARED PAGE HEADER (used by non-index pages)
+══════════════════════════════════════════ */
+.page-header {
+  background: rgba(8,8,8,0.92);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(14px);
+  padding: .75rem 1.5rem;
+  position: sticky; top: 0; z-index: 200;
+}
+.page-header-inner {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  max-width: 1440px; margin: 0 auto;
+  flex-wrap: wrap;
+}
+.page-header-left {
+  display: flex; align-items: center; gap: .75rem;
+  flex-shrink: 0;
+}
+.page-header-right {
+  display: flex; align-items: center; gap: .5rem;
+  flex-wrap: wrap;
+}
+
+/* Legacy header classes used by sub-pages */
+.header { padding: .75rem 1.5rem; }
+.header-content {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  gap: .75rem; flex-wrap: wrap;
+  max-width: 1440px; margin: 0 auto;
+}
+.logo {
+  font-family: var(--font-hud); font-weight: 900;
+  font-size: 1.2rem; color: var(--text);
+  letter-spacing: .08em;
+}
+.logo span { color: var(--red); }
+.tagline { font-size: .72rem; color: var(--text-3); letter-spacing: .1em; }
+.wallet-btn {
+  background: var(--red); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  padding: .45rem .9rem; font-size: .8rem;
+  font-family: var(--font-hud); font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  transition: all var(--transition);
+}
+.wallet-btn:hover { background: var(--red-2); transform: translateY(-1px); }
+.wallet-btn.connected { background: rgba(220,38,38,.2); border: 1px solid var(--red); }
+.header-link {
+  font-size: .78rem; font-family: var(--font-hud);
+  padding: .3rem .6rem; border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+.header-link:hover { background: var(--red-dim); }
+.balance-display {
+  display: flex; align-items: center; gap: .5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: .3rem .75rem;
+  font-family: var(--font-hud); font-size: .72rem;
+}
+.balance-display.hidden { display: none !important; }
+.balance-item { display: flex; flex-direction: column; align-items: center; gap: .05rem; }
+.balance-label { color: var(--text-3); font-size: .6rem; letter-spacing: .05em; }
+.close-btn {
+  background: none; border: none; color: var(--text-2);
+  font-size: 1.2rem; cursor: pointer; padding: .25rem;
+}
+.menu-btn {
+  background: none; border: 1px solid var(--border);
+  color: var(--text-2); padding: .35rem .5rem;
+  border-radius: var(--radius-sm); font-size: 1rem;
+  cursor: pointer;
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE — TABLET (≤900px)
+══════════════════════════════════════════ */
+@media (max-width: 900px) {
+  /* Balance pill in topnav — hide on tablet */
+  .balance-pill { display: none; }
+
+  /* Sub-page headers */
+  .header-content { gap: .5rem; }
+
+  /* 2-col grids → 1-col */
+  .portfolio-grid,
+  .governance-grid,
+  .social-grid,
+  .staking-grid,
+  .chart-grid { grid-template-columns: 1fr !important; }
+
+  /* Bot page 2-col panels */
+  .bot-grid { grid-template-columns: 1fr !important; }
+
+  /* Analytics token section */
+  .token-analytics { grid-template-columns: 1fr !important; }
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE — MOBILE (≤600px)
+══════════════════════════════════════════ */
+@media (max-width: 600px) {
+  /* Global padding */
+  .container { padding: 0 .75rem; }
+  main { padding: 1rem .75rem; }
+
+  /* Hero */
+  .hero { padding: 2rem .5rem 1.5rem; }
+  .hero-title { font-size: 1.6rem; }
+  .hero-sub { font-size: .9rem; }
+  .hero-actions { flex-direction: column; align-items: stretch; }
+  .hero-actions .btn { width: 100%; justify-content: center; }
+
+  /* Stats bar — 2 cols on mobile */
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .stat-value { font-size: 1rem; }
+
+  /* Feature grid — 1 col */
+  .feature-grid { grid-template-columns: 1fr; }
+
+  /* Sub-page headers — stack vertically */
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .75rem;
+  }
+  .header-content > div:last-child {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  /* Wallet button full-width on mobile */
+  .wallet-btn { font-size: .75rem; padding: .4rem .75rem; }
+
+  /* Balance display — compact */
+  .balance-display { font-size: .65rem; padding: .25rem .5rem; gap: .35rem; }
+
+  /* Swap page */
+  .swap-container { margin: 1rem .5rem; padding: 1.25rem; }
+  .amount-input { font-size: 1.2rem; }
+  .token-select { padding: .4rem .6rem; font-size: .8rem; }
+  .slippage-row { flex-wrap: wrap; gap: .35rem; }
+
+  /* Staking page */
+  .staking-grid { grid-template-columns: 1fr !important; gap: 1rem; }
+  .apy-display { font-size: 2.2rem; }
+  .pool-grid { grid-template-columns: 1fr !important; }
+
+  /* Portfolio */
+  .portfolio-grid { grid-template-columns: 1fr !important; }
+
+  /* Governance */
+  .governance-grid { grid-template-columns: 1fr !important; }
+
+  /* Bot page */
+  [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+
+  /* Analytics charts */
+  .chart-grid { grid-template-columns: 1fr !important; }
+  .token-analytics { grid-template-columns: 1fr !important; }
+
+  /* Social */
+  .social-grid { grid-template-columns: 1fr !important; }
+
+  /* Leaderboard table — horizontal scroll */
+  .leaderboard-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Modal — full screen on mobile */
+  .modal { max-width: 100%; max-height: 100vh; border-radius: 0; margin: 0; }
+  .modal-backdrop { padding: 0; align-items: flex-end; }
+
+  /* Terminal — shorter on mobile */
+  .terminal-output { height: 180px; font-size: .75rem; }
+
+  /* Cards */
+  .card-body { padding: .85rem; }
+  .card-header { padding: .65rem .85rem; }
+
+  /* Status grid — 2 cols */
+  .status-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Toast — full width */
+  #toast-container { left: .75rem; right: .75rem; bottom: .75rem; }
+  .toast { min-width: unset; max-width: 100%; }
+
+  /* Matrix toggle — smaller, avoid overlap with toast */
+  .matrix-toggle { width: 36px; height: 36px; font-size: .7rem; bottom: 4.5rem; right: .75rem; }
+
+  /* Sidebar — full width on mobile */
+  .sidebar { width: 100%; left: -100%; }
+
+  /* Network3d canvas */
+  #network-3d { height: 350px; }
+
+  /* DQN panel */
+  #dqn-panel { margin-top: .75rem; }
+
+  /* Investors page */
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .roadmap { grid-template-columns: 1fr !important; }
+  .team-grid { grid-template-columns: 1fr !important; }
+
+  /* Services / payments */
+  .services-grid { grid-template-columns: 1fr !important; }
+  .grid { grid-template-columns: 1fr !important; }
+
+  /* Bot launchpad template cards */
+  [style*="grid-template-columns: repeat(auto-fit"] { grid-template-columns: 1fr !important; }
+
+  /* Deployed bots grid */
+  #deployed-bots { grid-template-columns: 1fr !important; }
+
+  /* Filter tabs — wrap */
+  .filter-tabs { flex-wrap: wrap; gap: .5rem; }
+  .filter-tab { padding: .5rem .85rem; font-size: .75rem; }
+
+  /* Governance proposal cards */
+  .proposal-card > div:first-child { flex-direction: column; gap: .5rem; }
+
+  /* Social signal cards */
+  .signal-card { padding: .75rem; }
+
+  /* Upload / metadata forms */
+  .metadata-container { padding: 0 .5rem; }
+}
+
+/* ══════════════════════════════════════════
+   TOUCH IMPROVEMENTS
+══════════════════════════════════════════ */
+@media (hover: none) {
+  /* Larger tap targets */
+  .btn, .wallet-btn, .action-btn, .swap-button { min-height: 44px; }
+  .nav-links a { padding: .6rem .7rem; }
+  .nav-section a, .nav-section button { padding: .6rem .5rem; }
+  /* Remove hover transforms on touch */
+  .feature-card:hover { transform: none; }
+  .btn-primary:hover { transform: none; }
+}
