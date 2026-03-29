@@ -1,226 +1,185 @@
-let stakingData = {
-    balance: 0,
-    staked: 0,
-    rewards: 0,
-    apy: 24.5
-};
-
+/**
+ * staking.js — S-IO Token Staking (fully client-side, no backend)
+ */
+const BASE_APY = 24.5;
+let stakingData = { balance: 0, staked: 0, rewards: 0, apy: BASE_APY };
+let walletPubkey = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('wallet-btn').addEventListener('click', handleWalletClick);
-    loadStakingData();
-    setInterval(updateRewards, 5000);
-    
-    // Listen for balance updates
-    window.addEventListener('balanceUpdated', (event) => {
-        const { balances } = event.detail;
-        stakingData.balance = balances.sio;
-        document.getElementById('stake-sio-balance').textContent = `${balances.sio.toFixed(2)} S-IO`;
-        loadUserStaking();
+    document.getElementById('wallet-btn')?.addEventListener('click', handleWalletClick);
+    document.getElementById('refresh-balance-btn')?.addEventListener('click', () => {
+        if (walletPubkey) window.loadWalletBalances?.(walletPubkey);
     });
+    document.getElementById('max-stake-btn')?.addEventListener('click', () => {
+        const el = document.getElementById('stake-amount');
+        if (el) el.value = stakingData.balance.toFixed(2);
+    });
+
+    stakingData.apy = BASE_APY + (Math.random() - 0.5) * 2;
+    const apyEl = document.getElementById('current-apy');
+    if (apyEl) apyEl.textContent = `${stakingData.apy.toFixed(1)}%`;
+
+    window.addEventListener('balanceUpdated', (e) => {
+        const { sol, sio } = e.detail;
+        stakingData.balance = sio;
+        const el = document.getElementById('stake-sio-balance');
+        if (el) el.textContent = `${sio.toLocaleString(undefined, { maximumFractionDigits: 2 })} S-IO`;
+        const solEl = document.getElementById('sol-balance');
+        if (solEl) solEl.textContent = sol.toFixed(4);
+        const sioEl = document.getElementById('sio-balance');
+        if (sioEl) sioEl.textContent = sio.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    });
+
+    setInterval(tickRewards, 5000);
+    setTimeout(syncWallet, 700);
 });
 
+window.addEventListener('walletConnected', syncWallet);
+window.addEventListener('walletDisconnected', onDisconnect);
+
 async function handleWalletClick() {
-    if (window.walletAdapter?.isConnected()) {
-        await window.walletAdapter.disconnect();
+    if (walletPubkey) {
+        await window.solana?.disconnect();
+        onDisconnect();
     } else {
+        if (!window.solana?.isPhantom) { alert('Install Phantom Wallet'); return; }
         try {
-            await window.walletAdapter.connect('phantom');
-        } catch (error) {
-            console.error('Wallet connection failed:', error);
-            alert('Failed to connect wallet: ' + error.message);
-        }
+            const resp = await window.solana.connect();
+            walletPubkey = resp.publicKey.toString();
+            onConnect(walletPubkey);
+        } catch (e) { alert('Connection failed: ' + e.message); }
     }
 }
 
-function loadStakingData() {
-    // Update APY with slight variation
-    stakingData.apy = 24.5 + (Math.random() - 0.5) * 2;
-    document.getElementById('current-apy').textContent = `${stakingData.apy.toFixed(1)}%`;
-    
-    loadUserStaking();
+function syncWallet() {
+    const pub = window.walletManager?.publicKey
+        || window.walletAdapter?.getPublicKey?.()?.toString()
+        || window.solana?.publicKey?.toString();
+    if (pub && !walletPubkey) { walletPubkey = pub; onConnect(pub); }
 }
 
-function loadUserStaking() {
-    if (window.walletAdapter?.isConnected()) {
-        const walletAddress = window.walletAdapter.getPublicKey()?.toString();
-        if (walletAddress) {
-            // Load staked amount from localStorage
-            const savedStaking = localStorage.getItem(`sio-staking-${walletAddress}`);
-            if (savedStaking) {
-                const stakingInfo = JSON.parse(savedStaking);
-                stakingData.staked = stakingInfo.staked || 0;
-                stakingData.rewards = stakingInfo.rewards || 0;
-            }
-        }
+function onConnect(pub) {
+    walletPubkey = pub;
+    const btn = document.getElementById('wallet-btn');
+    if (btn) { btn.textContent = `${pub.slice(0,4)}…${pub.slice(-4)}`; btn.classList.add('connected'); }
+    document.getElementById('balance-display')?.classList.remove('hidden');
+    loadPosition();
+    window.loadWalletBalances?.(pub);
+}
+
+function onDisconnect() {
+    walletPubkey = null;
+    const btn = document.getElementById('wallet-btn');
+    if (btn) { btn.textContent = 'Connect Wallet'; btn.classList.remove('connected'); }
+    document.getElementById('balance-display')?.classList.add('hidden');
+    stakingData = { balance: 0, staked: 0, rewards: 0, apy: stakingData.apy };
+    renderPosition();
+}
+
+function posKey() { return `sio-stake-${walletPubkey}`; }
+
+function loadPosition() {
+    if (!walletPubkey) return;
+    const saved = localStorage.getItem(posKey());
+    if (saved) {
+        const p = JSON.parse(saved);
+        stakingData.staked = p.staked || 0;
+        stakingData.rewards = p.rewards || 0;
+        const elapsed = (Date.now() - (p.savedAt || Date.now())) / 1000;
+        const ratePerSec = (stakingData.apy / 100) / (365 * 24 * 3600);
+        stakingData.rewards += stakingData.staked * ratePerSec * elapsed;
     }
-    
-    document.getElementById('stake-sio-balance').textContent = `${stakingData.balance.toFixed(2)} S-IO`;
-    document.getElementById('staked-amount').textContent = `${stakingData.staked.toLocaleString()} S-IO`;
-    document.getElementById('pending-rewards').textContent = `${stakingData.rewards.toFixed(4)} S-IO`;
-    
-    const dailyRewards = (stakingData.staked * stakingData.apy / 100) / 365;
-    document.getElementById('daily-rewards').textContent = `${dailyRewards.toFixed(4)} S-IO`;
+    renderPosition();
+}
+
+function savePosition() {
+    if (!walletPubkey) return;
+    localStorage.setItem(posKey(), JSON.stringify({
+        staked: stakingData.staked,
+        rewards: stakingData.rewards,
+        savedAt: Date.now()
+    }));
+}
+
+function renderPosition() {
+    const fmt = (n, d=2) => n.toLocaleString(undefined, { maximumFractionDigits: d });
+    const el = (id) => document.getElementById(id);
+    if (el('stake-sio-balance')) el('stake-sio-balance').textContent = `${fmt(stakingData.balance)} S-IO`;
+    if (el('staked-amount')) el('staked-amount').textContent = `${fmt(stakingData.staked)} S-IO`;
+    if (el('pending-rewards')) el('pending-rewards').textContent = `${fmt(stakingData.rewards, 6)} S-IO`;
+    const daily = (stakingData.staked * stakingData.apy / 100) / 365;
+    if (el('daily-rewards')) el('daily-rewards').textContent = `${fmt(daily, 4)} S-IO`;
+}
+
+function tickRewards() {
+    if (!walletPubkey || stakingData.staked <= 0) return;
+    const ratePerTick = (stakingData.apy / 100) / (365 * 24 * 720);
+    stakingData.rewards += stakingData.staked * ratePerTick;
+    const el = document.getElementById('pending-rewards');
+    if (el) el.textContent = `${stakingData.rewards.toFixed(6)} S-IO`;
 }
 
 async function stakeTokens() {
-    if (!window.walletAdapter?.isConnected()) {
-        alert('Please connect your wallet to stake');
-        return;
-    }
-    
-    const amount = parseFloat(document.getElementById('stake-amount').value);
-    
-    if (!amount || amount <= 0) {
-        alert('Please enter a valid amount');
-        return;
-    }
-    
-    if (amount > stakingData.balance) {
-        alert('Insufficient balance');
-        return;
-    }
-    
+    if (!walletPubkey) { alert('Connect your wallet first'); return; }
+    const amount = parseFloat(document.getElementById('stake-amount')?.value);
+    if (!amount || amount <= 0) { alert('Enter a valid amount'); return; }
+    if (amount > stakingData.balance) { alert('Insufficient S-IO balance'); return; }
+
+    const btn = document.querySelector('button[onclick="stakeTokens()"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Staking…'; }
     try {
-        const walletAddress = window.walletAdapter.getPublicKey().toString();
-        
-        const response = await fetch('/api/sio/stake', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                wallet: walletAddress,
-                amount: amount,
-                pool_type: 'standard'
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            stakingData.balance -= amount;
-            stakingData.staked += amount;
-            
-            localStorage.setItem(`sio-staking-${walletAddress}`, JSON.stringify({
-                staked: stakingData.staked,
-                rewards: stakingData.rewards,
-                lastUpdate: Date.now()
-            }));
-            
-            document.getElementById('stake-amount').value = '';
-            loadUserStaking();
-            
-            alert(`✅ S-IO Protocol Stake\n${amount.toLocaleString()} S-IO staked\nTx: ${result.signature}`);
-        } else {
-            throw new Error(result.message || 'Staking failed');
-        }
-    } catch (error) {
-        console.error('Staking error:', error);
-        alert('Staking failed: ' + error.message);
+        stakingData.balance -= amount;
+        stakingData.staked += amount;
+        savePosition();
+        renderPosition();
+        const el = document.getElementById('stake-amount');
+        if (el) el.value = '';
+        showTxSuccess('Staked', amount, 'S-IO', 'sim_' + Math.random().toString(36).slice(2,14));
+        window.Toast?.success?.(`Staked ${amount.toLocaleString()} S-IO`);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Stake S-IO'; }
     }
 }
 
 async function unstakeTokens() {
-    if (!window.walletAdapter?.isConnected()) {
-        alert('Please connect your wallet to unstake');
-        return;
-    }
-    
-    if (stakingData.staked <= 0) {
-        alert('No tokens staked');
-        return;
-    }
-    
-    const amount = prompt(`Enter amount to unstake (Max: ${stakingData.staked.toLocaleString()} S-IO):`);
-    const unstakeAmount = parseFloat(amount);
-    
-    if (!unstakeAmount || unstakeAmount <= 0) {
-        return;
-    }
-    
-    if (unstakeAmount > stakingData.staked) {
-        alert('Cannot unstake more than staked amount');
-        return;
-    }
-    
-    try {
-        const walletAddress = window.walletAdapter.getPublicKey().toString();
-        
-        const response = await fetch('/api/sio/unstake', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                wallet: walletAddress,
-                amount: unstakeAmount,
-                pool_type: 'standard'
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            stakingData.staked -= unstakeAmount;
-            stakingData.balance += unstakeAmount;
-            
-            loadUserStaking();
-            
-            alert(`✅ S-IO Protocol Unstake\n${unstakeAmount.toLocaleString()} S-IO unstaked\nTx: ${result.signature}`);
-        } else {
-            throw new Error(result.message || 'Unstaking failed');
-        }
-    } catch (error) {
-        console.error('Unstaking error:', error);
-        alert('Unstaking failed: ' + error.message);
-    }
+    if (!walletPubkey) { alert('Connect your wallet first'); return; }
+    if (stakingData.staked <= 0) { alert('Nothing staked'); return; }
+    const input = prompt(`Unstake amount (max ${stakingData.staked.toLocaleString(undefined,{maximumFractionDigits:2})} S-IO):`);
+    const amount = parseFloat(input);
+    if (!amount || amount <= 0) return;
+    if (amount > stakingData.staked) { alert('Exceeds staked amount'); return; }
+    stakingData.staked -= amount;
+    stakingData.balance += amount;
+    savePosition();
+    renderPosition();
+    showTxSuccess('Unstaked', amount, 'S-IO', 'sim_' + Math.random().toString(36).slice(2,14));
+    window.Toast?.success?.(`Unstaked ${amount.toLocaleString()} S-IO`);
 }
 
 async function claimRewards() {
-    if (!window.walletAdapter?.isConnected()) {
-        alert('Please connect your wallet to claim rewards');
-        return;
-    }
-    
-    if (stakingData.rewards <= 0) {
-        alert('No rewards to claim');
-        return;
-    }
-    
-    try {
-        const walletAddress = window.walletAdapter.getPublicKey().toString();
-        
-        const response = await fetch('/api/sio/claim-rewards', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                wallet: walletAddress,
-                pool_type: 'standard'
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            const claimedAmount = result.rewards;
-            
-            stakingData.balance += claimedAmount;
-            stakingData.rewards = 0;
-            
-            loadUserStaking();
-            
-            alert(`✅ S-IO Protocol Rewards\n${claimedAmount.toFixed(6)} S-IO claimed\nTx: ${result.signature}`);
-        } else {
-            throw new Error(result.message || 'Claim failed');
-        }
-    } catch (error) {
-        console.error('Claim error:', error);
-        alert('Claim failed: ' + error.message);
-    }
+    if (!walletPubkey) { alert('Connect your wallet first'); return; }
+    if (stakingData.rewards < 0.000001) { alert('No rewards to claim yet'); return; }
+    const claimed = stakingData.rewards;
+    stakingData.balance += claimed;
+    stakingData.rewards = 0;
+    savePosition();
+    renderPosition();
+    showTxSuccess('Claimed', claimed, 'S-IO', 'sim_' + Math.random().toString(36).slice(2,14));
+    window.Toast?.success?.(`Claimed ${claimed.toFixed(6)} S-IO`);
 }
 
-function updateRewards() {
-    if (window.walletAdapter?.isConnected() && stakingData.staked > 0) {
-        const rewardRate = (stakingData.apy / 100) / (365 * 24 * 60 * 12);
-        stakingData.rewards += stakingData.staked * rewardRate;
-        
-        document.getElementById('pending-rewards').textContent = `${stakingData.rewards.toFixed(4)} S-IO`;
-    }
+function showTxSuccess(action, amount, symbol, sig) {
+    const isSim = sig.startsWith('sim_');
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999';
+    d.innerHTML = `<div style="background:#141414;border:1px solid #dc2626;border-radius:12px;padding:2rem;max-width:360px;text-align:center;color:#f0f0f0">
+        <div style="font-size:2.5rem;margin-bottom:.75rem">✅</div>
+        <h3 style="color:#dc2626;margin-bottom:.75rem">${action} Successful</h3>
+        <p style="font-size:1.1rem;margin-bottom:.5rem">${amount.toLocaleString(undefined,{maximumFractionDigits:6})} ${symbol}</p>
+        ${isSim ? '<p style="color:#888;font-size:.8rem;margin:.5rem 0">Simulated — staking contract coming soon</p>'
+                : `<a href="https://solscan.io/tx/${sig}" target="_blank" style="color:#60a5fa;font-size:.85rem;display:block;margin:.75rem 0">View on Solscan ↗</a>`}
+        <button onclick="this.closest('div[style]').remove()" style="background:#dc2626;color:#fff;border:none;padding:.6rem 1.5rem;border-radius:6px;cursor:pointer;margin-top:.5rem">Close</button>
+    </div>`;
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 12000);
 }

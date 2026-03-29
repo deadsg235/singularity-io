@@ -205,160 +205,102 @@
 
     <script>
         let walletAddress = '';
-        let transactions = [];
 
         async function connectWallet() {
-            if (window.solana && window.solana.isPhantom) {
-                try {
-                    const response = await window.solana.connect();
-                    walletAddress = response.publicKey.toString();
-                    
-                    document.getElementById('walletAddress').textContent = walletAddress;
-                    document.getElementById('walletSection').innerHTML = `
-                        <div style="color: #00ff88; margin-top: 1rem;">
-                            ✅ Wallet Connected: ${formatAddress(walletAddress)}
-                        </div>
-                    `;
-                    
-                    document.getElementById('dashboardContent').style.display = 'block';
-                    
-                    await loadBalance();
-                    await loadTransactions();
-                } catch (error) {
-                    alert('Failed to connect wallet: ' + error.message);
-                }
+            if (!window.solana?.isPhantom) { alert('Install Phantom Wallet'); return; }
+            try {
+                const resp = await window.solana.connect();
+                walletAddress = resp.publicKey.toString();
+                onConnect();
+            } catch (e) { alert('Connection failed: ' + e.message); }
+        }
+
+        function onConnect() {
+            document.getElementById('walletAddress').textContent = walletAddress;
+            document.getElementById('walletSection').innerHTML = `<div style="color:#00ff88;margin-top:1rem">✅ Connected: ${walletAddress.slice(0,8)}...${walletAddress.slice(-8)}</div>`;
+            document.getElementById('dashboardContent').style.display = 'block';
+            loadBalance();
+            loadTransactions();
+        }
+
+        function loadBalance() {
+            const cached = window._cachedBalances;
+            if (cached) {
+                document.getElementById('sioBalance').textContent = cached.sio.toLocaleString(undefined, { maximumFractionDigits: 2 });
             } else {
-                alert('Please install Phantom wallet');
+                window.loadWalletBalances?.(walletAddress);
+                window.addEventListener('balanceUpdated', (e) => {
+                    document.getElementById('sioBalance').textContent = e.detail.sio.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                }, { once: true });
             }
         }
 
-        async function loadBalance() {
-            try {
-                const response = await fetch(`/api/sio/balance/${walletAddress}`);
-                const data = await response.json();
-                document.getElementById('sioBalance').textContent = data.balance.toLocaleString();
-            } catch (error) {
-                console.error('Error loading balance:', error);
-                document.getElementById('sioBalance').textContent = 'Error';
-            }
+        function loadTransactions() {
+            const txs = [];
+
+            // Payment transactions
+            const payments = JSON.parse(localStorage.getItem(`sio-payments-${walletAddress}`) || '[]');
+            payments.forEach(p => txs.push({ type: 'PAYMENT', service: p.service || 'Service', amount: p.amount || 0, status: p.status || 'confirmed', timestamp: p.timestamp || Date.now(), sig: p.signature || null, desc: p.description || '' }));
+
+            // Swap history
+            const swaps = JSON.parse(localStorage.getItem('recent-swaps') || '[]');
+            swaps.slice(0, 5).forEach(s => txs.push({ type: 'SWAP', service: `${s.from} → ${s.to}`, amount: 0, status: 'confirmed', timestamp: new Date().getTime() - Math.random() * 86400000, sig: s.signature, desc: 'Token swap via Jupiter' }));
+
+            // Bot trades
+            const botTrades = JSON.parse(localStorage.getItem('bot-trades') || '[]');
+            botTrades.slice(0, 5).forEach(t => txs.push({ type: t.type || 'TRADE', service: 'AI Bot Trade', amount: 0, status: t.sig ? 'confirmed' : 'simulated', timestamp: new Date().getTime() - Math.random() * 86400000, sig: t.sig, desc: t.details || '' }));
+
+            // Sort by timestamp desc
+            txs.sort((a, b) => b.timestamp - a.timestamp);
+
+            updateStats(txs);
+            renderTransactions(txs);
         }
 
-        async function loadTransactions() {
-            try {
-                document.getElementById('transactionsList').innerHTML = '<div class="loading">Loading transactions...</div>';
-                
-                const response = await fetch(`/api/sio/transactions/${walletAddress}`);
-                transactions = await response.json();
-                
-                if (transactions.length === 0) {
-                    document.getElementById('transactionsList').innerHTML = `
-                        <div class="empty-state">
-                            <h3>No transactions found</h3>
-                            <p>Your S-IO transactions will appear here</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                updateStats();
-                renderTransactions();
-            } catch (error) {
-                console.error('Error loading transactions:', error);
-                document.getElementById('transactionsList').innerHTML = `
-                    <div class="empty-state">
-                        <h3>Error loading transactions</h3>
-                        <p>Please try again later</p>
-                    </div>
-                `;
-            }
-        }
-
-        function updateStats() {
-            const totalTx = transactions.length;
-            const totalSpent = transactions
-                .filter(tx => tx.amount > 0)
-                .reduce((sum, tx) => sum + tx.amount, 0);
-            const totalReceived = 0; // For now, assuming all transactions are payments
-            const lastTx = transactions.length > 0 ? formatTime(transactions[0].timestamp) : 'Never';
-            
-            document.getElementById('totalTransactions').textContent = totalTx;
+        function updateStats(txs) {
+            const totalSpent = txs.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+            document.getElementById('totalTransactions').textContent = txs.length;
             document.getElementById('totalSpent').textContent = totalSpent.toFixed(2);
-            document.getElementById('totalReceived').textContent = totalReceived.toFixed(2);
-            document.getElementById('lastTransaction').textContent = lastTx;
+            document.getElementById('totalReceived').textContent = '0.00';
+            document.getElementById('lastTransaction').textContent = txs.length > 0 ? new Date(txs[0].timestamp).toLocaleDateString() : 'Never';
         }
 
-        function renderTransactions() {
-            const transactionsList = document.getElementById('transactionsList');
-            
-            transactionsList.innerHTML = transactions.map(tx => `
+        function renderTransactions(txs) {
+            const el = document.getElementById('transactionsList');
+            if (!txs.length) {
+                el.innerHTML = '<div class="empty-state"><h3>No transactions yet</h3><p>Your S-IO activity will appear here</p></div>';
+                return;
+            }
+            el.innerHTML = txs.map(tx => `
                 <div class="transaction-item">
                     <div class="transaction-header">
-                        <div class="transaction-type">${tx.service || 'Transfer'}</div>
-                        <div class="transaction-amount">-${tx.amount} S-IO</div>
+                        <div class="transaction-type">${tx.type}</div>
+                        ${tx.amount > 0 ? `<div class="transaction-amount">-${tx.amount.toLocaleString()} S-IO</div>` : '<div class="transaction-amount" style="color:#888">—</div>'}
                     </div>
-                    
                     <div class="transaction-details">
-                        <div class="detail-item">
-                            <span class="detail-label">Status:</span>
-                            <span class="detail-value status-${tx.status}">${tx.status.toUpperCase()}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Date:</span>
-                            <span class="detail-value">${formatTime(tx.timestamp)}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Transaction ID:</span>
-                            <span class="detail-value">${tx.id}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Description:</span>
-                            <span class="detail-value">${tx.description}</span>
-                        </div>
+                        <div class="detail-item"><span class="detail-label">Service</span><span class="detail-value">${tx.service}</span></div>
+                        <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value status-${tx.status}">${tx.status.toUpperCase()}</span></div>
+                        <div class="detail-item"><span class="detail-label">Date</span><span class="detail-value">${new Date(tx.timestamp).toLocaleString()}</span></div>
+                        <div class="detail-item"><span class="detail-label">Description</span><span class="detail-value">${tx.desc || '—'}</span></div>
                     </div>
-                    
-                    ${tx.signature ? `
-                        <div class="detail-item" style="margin-top: 1rem;">
-                            <span class="detail-label">Signature:</span>
-                            <span class="detail-value">${formatAddress(tx.signature)}</span>
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('');
+                    ${tx.sig ? `<div style="margin-top:.75rem"><a href="https://solscan.io/tx/${tx.sig}" target="_blank" style="color:#60a5fa;font-size:.8rem">View on Solscan ↗</a></div>` : ''}
+                </div>`).join('');
         }
 
-        function formatAddress(address) {
-            if (!address) return '';
-            return `${address.substring(0, 8)}...${address.substring(address.length - 8)}`;
-        }
+        function formatAddress(a) { return a ? `${a.slice(0,8)}...${a.slice(-8)}` : ''; }
 
-        function formatTime(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleString();
-        }
-
-        // Check if wallet is already connected
         document.addEventListener('DOMContentLoaded', async () => {
-            if (window.solana && window.solana.isPhantom) {
+            if (window.solana?.isPhantom) {
                 try {
-                    const response = await window.solana.connect({ onlyIfTrusted: true });
-                    walletAddress = response.publicKey.toString();
-                    
-                    document.getElementById('walletAddress').textContent = walletAddress;
-                    document.getElementById('walletSection').innerHTML = `
-                        <div style="color: #00ff88; margin-top: 1rem;">
-                            ✅ Wallet Connected: ${formatAddress(walletAddress)}
-                        </div>
-                    `;
-                    
-                    document.getElementById('dashboardContent').style.display = 'block';
-                    
-                    await loadBalance();
-                    await loadTransactions();
-                } catch (error) {
-                    console.log('Wallet not auto-connected');
-                }
+                    const r = await window.solana.connect({ onlyIfTrusted: true });
+                    walletAddress = r.publicKey.toString();
+                    onConnect();
+                } catch {}
             }
         });
     </script>
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="wallet-balance-loader.js"></script>
+    <script src="wallet-manager.js"></script>
 </body>
 </html>

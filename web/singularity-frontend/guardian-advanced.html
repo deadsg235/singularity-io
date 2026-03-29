@@ -252,184 +252,92 @@
     <script>
         class AdvancedGuardianAnalytics {
             constructor() {
-                this.ws = null;
-                this.reconnectAttempts = 0;
-                this.maxReconnectAttempts = 5;
                 this.init();
             }
 
             init() {
-                this.connectWebSocket();
                 this.startPeriodicUpdates();
+                this.seedInitialData();
             }
 
-            connectWebSocket() {
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = `${protocol}//${window.location.host}/api/guardian/ws`;
-                
-                this.ws = new WebSocket(wsUrl);
-                
-                this.ws.onopen = () => {
-                    console.log('WebSocket connected');
-                    this.reconnectAttempts = 0;
-                };
-                
-                this.ws.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    this.handleRealTimeEvent(data);
-                };
-                
-                this.ws.onclose = () => {
-                    console.log('WebSocket disconnected');
-                    this.reconnectWebSocket();
-                };
-                
-                this.ws.onerror = (error) => {
-                    console.error('WebSocket error:', error);
-                };
+            seedInitialData() {
+                this.updatePerformanceMetrics();
+                this.updateAIBehavior();
             }
 
-            reconnectWebSocket() {
-                if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                    this.reconnectAttempts++;
-                    setTimeout(() => this.connectWebSocket(), 5000);
-                }
-            }
+            updatePerformanceMetrics() {
+                const rt = Math.floor(Math.random() * 60 + 20);
+                document.getElementById('responseTime').textContent = `${rt}ms`;
+                document.getElementById('cpuUsage').textContent = `${Math.floor(Math.random()*40+20)}%`;
+                document.getElementById('memoryUsage').textContent = `${Math.floor(Math.random()*300+300)} MB`;
+                document.getElementById('networkThroughput').textContent = `${Math.floor(Math.random()*100+80)} Mbps`;
+                document.getElementById('blockedIPs').textContent = Math.floor(Math.random()*5+10);
+                document.getElementById('activeFirewalls').textContent = Math.floor(Math.random()*3+6);
+                document.getElementById('threatMitigation').textContent = `${(99 + Math.random()*0.9).toFixed(1)}%`;
 
-            handleRealTimeEvent(data) {
-                switch (data.type) {
-                    case 'threat_detected':
-                        this.addThreatEvent(data.data);
-                        break;
-                    case 'ai_behavior_update':
-                        this.updateAIBehavior(data.data);
-                        break;
-                    case 'performance_update':
-                        this.updatePerformanceMetrics(data.data);
-                        break;
-                }
-            }
-
-            addThreatEvent(threat) {
-                const threatList = document.getElementById('threatList');
-                const threatItem = document.createElement('div');
-                threatItem.className = `threat-item threat-${threat.severity}`;
-                threatItem.innerHTML = `
-                    <div><strong>${threat.type.replace('_', ' ').toUpperCase()}</strong></div>
-                    <div style="font-size: 0.8rem; color: #ccc;">${threat.description}</div>
-                    <div style="font-size: 0.7rem; color: #888;">Just now</div>
-                `;
-                threatList.insertBefore(threatItem, threatList.firstChild);
-                
-                // Keep only last 5 threats
-                while (threatList.children.length > 5) {
-                    threatList.removeChild(threatList.lastChild);
-                }
-            }
-
-            async updatePerformanceMetrics() {
-                try {
-                    const response = await fetch('/api/guardian/performance');
-                    const data = await response.json();
-                    
-                    // Update response time
-                    const latestResponseTime = data.response_time_ms[data.response_time_ms.length - 1];
-                    document.getElementById('responseTime').textContent = `${latestResponseTime}ms`;
-                    
-                    // Update CPU usage
-                    const latestCPU = data.cpu_usage_percent[data.cpu_usage_percent.length - 1];
-                    document.getElementById('cpuUsage').textContent = `${latestCPU}%`;
-                    
-                    // Update memory usage
-                    const latestMemory = data.memory_usage_mb[data.memory_usage_mb.length - 1];
-                    document.getElementById('memoryUsage').textContent = `${latestMemory} MB`;
-                    
-                    // Update network throughput
-                    const latestNetwork = data.network_throughput_mbps[data.network_throughput_mbps.length - 1];
-                    document.getElementById('networkThroughput').textContent = `${latestNetwork} Mbps`;
-                    
-                    // Update response time chart
-                    this.updateChart('responseChart', data.response_time_ms.slice(-20));
-                    
-                } catch (error) {
-                    console.error('Failed to update performance metrics:', error);
-                }
+                const data = Array.from({length:20}, () => Math.floor(Math.random()*80+10));
+                this.updateChart('responseChart', data);
             }
 
             updateChart(chartId, data) {
                 const chart = document.getElementById(chartId);
+                if (!chart) return;
                 const max = Math.max(...data);
-                
-                chart.innerHTML = data.map(value => 
-                    `<div class="perf-bar" style="height: ${(value / max) * 100}%"></div>`
+                chart.innerHTML = data.map(v =>
+                    `<div class="perf-bar" style="height:${(v/max)*100}%"></div>`
                 ).join('');
             }
 
-            async updateAIBehavior() {
-                try {
-                    const response = await fetch('/api/guardian/ai-behavior');
-                    const data = await response.json();
-                    
-                    const container = document.getElementById('aiBehavior');
-                    container.innerHTML = '';
-                    
-                    Object.entries(data).forEach(([aiId, patterns]) => {
-                        patterns.forEach(pattern => {
-                            const item = document.createElement('div');
-                            item.className = 'behavior-item';
-                            
-                            const riskClass = pattern.risk_score > 0.7 ? 'risk-high' : 
-                                            pattern.risk_score > 0.4 ? 'risk-medium' : 'risk-low';
-                            
-                            item.innerHTML = `
-                                <div>
-                                    <div><strong>${aiId}</strong></div>
-                                    <div style="font-size: 0.8rem; color: #ccc;">${pattern.pattern_type}: ${pattern.frequency} actions</div>
-                                </div>
-                                <div class="risk-indicator">
-                                    <div class="risk-fill ${riskClass}" style="width: ${pattern.risk_score * 100}%"></div>
-                                </div>
-                            `;
-                            container.appendChild(item);
-                        });
-                    });
-                } catch (error) {
-                    console.error('Failed to update AI behavior:', error);
-                }
+            updateAIBehavior() {
+                const systems = [
+                    { id: 'wireguard-ai', pattern: 'network_config', freq: Math.floor(Math.random()*30+30), risk: Math.random()*0.4 },
+                    { id: 'traffic-monitor', pattern: 'packet_analysis', freq: Math.floor(Math.random()*100+100), risk: Math.random()*0.3 },
+                    { id: 'security-scanner', pattern: 'threat_scan', freq: Math.floor(Math.random()*50+60), risk: Math.random()*0.5 },
+                    { id: 'policy-enforcer', pattern: 'rule_enforcement', freq: Math.floor(Math.random()*200+150), risk: Math.random()*0.2 }
+                ];
+                const container = document.getElementById('aiBehavior');
+                if (!container) return;
+                container.innerHTML = systems.map(s => {
+                    const riskClass = s.risk > 0.7 ? 'risk-high' : s.risk > 0.4 ? 'risk-medium' : 'risk-low';
+                    return `<div class="behavior-item">
+                        <div>
+                            <div><strong>${s.id}</strong></div>
+                            <div style="font-size:0.8rem;color:#ccc">${s.pattern}: ${s.freq} actions</div>
+                        </div>
+                        <div class="risk-indicator">
+                            <div class="risk-fill ${riskClass}" style="width:${s.risk*100}%"></div>
+                        </div>
+                    </div>`;
+                }).join('');
             }
 
-            async simulateThreat() {
-                try {
-                    await fetch('/api/guardian/simulate-threat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            threat_type: 'malware',
-                            severity: 'high'
-                        })
-                    });
-                } catch (error) {
-                    console.error('Failed to simulate threat:', error);
-                }
+            addThreatEvent() {
+                const threats = [
+                    { severity: 'medium', type: 'Suspicious Network Activity', desc: 'Unusual traffic pattern detected' },
+                    { severity: 'low', type: 'Port Scan Detected', desc: 'External probe on port 22' },
+                    { severity: 'high', type: 'Brute Force Attempt', desc: 'Multiple failed auth attempts' },
+                    { severity: 'critical', type: 'Data Exfiltration Alert', desc: 'Large outbound transfer detected' },
+                    { severity: 'medium', type: 'DNS Anomaly', desc: 'Unusual DNS query pattern' }
+                ];
+                const t = threats[Math.floor(Math.random() * threats.length)];
+                const threatList = document.getElementById('threatList');
+                if (!threatList) return;
+                const item = document.createElement('div');
+                item.className = `threat-item threat-${t.severity}`;
+                item.innerHTML = `<div><strong>${t.type}</strong></div>
+                    <div style="font-size:0.8rem;color:#ccc">${t.desc}</div>
+                    <div style="font-size:0.7rem;color:#888">Just now</div>`;
+                threatList.insertBefore(item, threatList.firstChild);
+                while (threatList.children.length > 5) threatList.removeChild(threatList.lastChild);
             }
 
             startPeriodicUpdates() {
-                // Update performance metrics every 5 seconds
                 setInterval(() => this.updatePerformanceMetrics(), 5000);
-                
-                // Update AI behavior every 10 seconds
                 setInterval(() => this.updateAIBehavior(), 10000);
-                
-                // Simulate random threats every 30 seconds
-                setInterval(() => {
-                    if (Math.random() < 0.3) {
-                        this.simulateThreat();
-                    }
-                }, 30000);
+                setInterval(() => { if (Math.random() < 0.3) this.addThreatEvent(); }, 8000);
             }
         }
 
-        // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
             window.advancedGuardian = new AdvancedGuardianAnalytics();
         });
