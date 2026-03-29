@@ -207,207 +207,94 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="wallet-balance-loader.js"></script>
+    <script src="wallet-manager.js"></script>
     <script>
         let walletAddress = '';
-        let userSubscription = null;
 
         const FEATURES = {
-            'neural_network_access': {
-                title: '🧠 Neural Network Access',
-                description: 'Access to AI neural network predictions and analysis',
-                price: 100000
-            },
-            'premium_analytics': {
-                title: '📈 Premium Analytics',
-                description: 'Advanced market analytics and insights',
-                price: 250000
-            },
-            'ai_trading_signals': {
-                title: '🎯 AI Trading Signals',
-                description: 'Real-time AI-powered trading signals',
-                price: 500000
-            },
-            'guardian_premium': {
-                title: '🛡️ Guardian Premium',
-                description: 'Advanced security monitoring and alerts',
-                price: 150000
-            },
-            'ai_model_training': {
-                title: '🔬 Custom AI Training',
-                description: 'Train custom AI models on your data',
-                price: 1000000
-            }
+            'neural_network_access': { title: '🧠 Neural Network Access', description: 'Access to AI neural network predictions and analysis', price: 100000 },
+            'premium_analytics': { title: '📈 Premium Analytics', description: 'Advanced market analytics and insights', price: 250000 },
+            'ai_trading_signals': { title: '🎯 AI Trading Signals', description: 'Real-time AI-powered trading signals', price: 500000 },
+            'guardian_premium': { title: '🛡️ Guardian Premium', description: 'Advanced security monitoring and alerts', price: 150000 },
+            'ai_model_training': { title: '🔬 Custom AI Training', description: 'Train custom AI models on your data', price: 1000000 }
         };
 
+        function getUnlockedFeatures() {
+            if (!walletAddress) return [];
+            try { return JSON.parse(localStorage.getItem('unlocked-features-' + walletAddress) || '[]'); } catch { return []; }
+        }
+
+        function onWalletConnect(address) {
+            walletAddress = address;
+            document.getElementById('userInfo').innerHTML =
+                '<div class="tier-badge tier-free" id="tierBadge">Free</div>' +
+                '<span>' + address.substring(0,4) + '...' + address.substring(address.length-4) + '</span>';
+            document.getElementById('dashboardContent').style.display = 'block';
+            window.loadWalletBalances?.(address);
+            updateSIODisplay();
+            loadFeatures();
+        }
+
+        function updateSIODisplay() {
+            const sio = window._cachedBalances?.sio ?? 0;
+            document.getElementById('sioBalance').textContent = sio.toLocaleString();
+        }
+
+        window.addEventListener('balanceUpdated', updateSIODisplay);
+
         async function connectWallet() {
-            if (window.solana && window.solana.isPhantom) {
-                try {
-                    const response = await window.solana.connect();
-                    walletAddress = response.publicKey.toString();
-                    
-                    document.getElementById('userInfo').innerHTML = `
-                        <div class="tier-badge tier-free" id="tierBadge">Free</div>
-                        <span>${formatAddress(walletAddress)}</span>
-                    `;
-                    
-                    document.getElementById('dashboardContent').style.display = 'block';
-                    
-                    await loadUserData();
-                } catch (error) {
-                    alert('Failed to connect wallet: ' + error.message);
-                }
-            } else {
-                alert('Please install Phantom wallet');
-            }
-        }
-
-        async function loadUserData() {
+            if (!window.solana?.isPhantom) { alert('Please install Phantom wallet'); return; }
             try {
-                // Load subscription
-                const subResponse = await fetch(`/api/access/subscription/${walletAddress}`);
-                userSubscription = await subResponse.json();
-                
-                // Load S-IO balance
-                const balanceResponse = await fetch(`/api/sio/balance/${walletAddress}`);
-                const balanceData = await balanceResponse.json();
-                
-                updateUI();
-                loadFeatures();
-            } catch (error) {
-                console.error('Error loading user data:', error);
-            }
-        }
-
-        function updateUI() {
-            if (!userSubscription) return;
-
-            // Update tier badge
-            const tierBadge = document.getElementById('tierBadge');
-            tierBadge.textContent = userSubscription.tier.toUpperCase();
-            tierBadge.className = `tier-badge tier-${userSubscription.tier}`;
-
-            // Update current plan
-            document.getElementById('currentPlan').innerHTML = `
-                <div class="plan-name">${userSubscription.tier.toUpperCase()} Plan</div>
-                <div class="plan-details">Expires in ${userSubscription.days_remaining} days</div>
-            `;
-
-            // Update API usage
-            const totalCalls = userSubscription.tier === 'enterprise' ? 'Unlimited' : 
-                              userSubscription.tier === 'pro' ? 10000 :
-                              userSubscription.tier === 'basic' ? 1000 : 10;
-            
-            const remaining = userSubscription.api_calls_remaining;
-            const used = totalCalls === 'Unlimited' ? 0 : totalCalls - remaining;
-            
-            document.getElementById('apiUsage').textContent = 
-                totalCalls === 'Unlimited' ? 'Unlimited' : `${used} / ${totalCalls}`;
-            
-            if (totalCalls !== 'Unlimited') {
-                const percentage = (used / totalCalls) * 100;
-                document.getElementById('usageFill').style.width = `${percentage}%`;
-            }
-
-            // Update balance and days
-            document.getElementById('sioBalance').textContent = '1,000,000'; // Mock balance
-            document.getElementById('daysRemaining').textContent = userSubscription.days_remaining;
+                const response = await window.solana.connect();
+                onWalletConnect(response.publicKey.toString());
+            } catch (error) { alert('Failed to connect wallet: ' + error.message); }
         }
 
         function loadFeatures() {
             const featuresGrid = document.getElementById('featuresGrid');
             featuresGrid.innerHTML = '';
-
+            const unlocked = getUnlockedFeatures();
             Object.entries(FEATURES).forEach(([featureId, feature]) => {
-                const isUnlocked = userSubscription.features_unlocked.includes(featureId) || 
-                                 userSubscription.features_unlocked.includes('all');
-                
+                const isUnlocked = unlocked.includes(featureId);
                 const featureCard = document.createElement('div');
-                featureCard.className = `feature-card ${isUnlocked ? 'unlocked' : 'locked'}`;
-                
-                featureCard.innerHTML = `
-                    <div class="feature-header">
-                        <div class="feature-title">${feature.title}</div>
-                        <div class="feature-status ${isUnlocked ? 'status-unlocked' : 'status-locked'}">
-                            ${isUnlocked ? 'UNLOCKED' : 'LOCKED'}
-                        </div>
-                    </div>
-                    <div class="feature-content">
-                        <p>${feature.description}</p>
-                        ${isUnlocked ? 
-                            '<div style="margin-top: 1rem; color: #00ff88;">✅ Feature active and ready to use</div>' :
-                            `<div style="margin-top: 1rem; color: #ff4444;">🔒 Requires ${feature.price.toLocaleString()} S-IO</div>`
-                        }
-                    </div>
-                    ${!isUnlocked ? 
-                        `<button class="unlock-btn" onclick="unlockFeature('${featureId}')">
-                            Unlock for ${feature.price.toLocaleString()} S-IO
-                        </button>` : ''
-                    }
-                `;
-                
+                featureCard.className = 'feature-card ' + (isUnlocked ? 'unlocked' : 'locked');
+                featureCard.innerHTML =
+                    '<div class="feature-header">' +
+                    '<div class="feature-title">' + feature.title + '</div>' +
+                    '<div class="feature-status ' + (isUnlocked ? 'status-unlocked' : 'status-locked') + '">' + (isUnlocked ? 'UNLOCKED' : 'LOCKED') + '</div>' +
+                    '</div><div class="feature-content"><p>' + feature.description + '</p>' +
+                    (isUnlocked
+                        ? '<div style="margin-top:1rem;color:#00ff88">✅ Feature active and ready to use</div>'
+                        : '<div style="margin-top:1rem;color:#ff4444">🔒 Requires ' + feature.price.toLocaleString() + ' S-IO</div>') +
+                    '</div>' +
+                    (!isUnlocked ? '<button class="unlock-btn" onclick="unlockFeature(\'' + featureId + '\')">Unlock for ' + feature.price.toLocaleString() + ' S-IO</button>' : '');
                 featuresGrid.appendChild(featureCard);
             });
         }
 
-        async function upgradeTier(tier) {
-            try {
-                const response = await fetch('/api/access/upgrade', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ wallet_address: walletAddress, tier: tier })
-                });
-                
-                if (response.ok) {
-                    alert(`Successfully upgraded to ${tier.toUpperCase()} plan!`);
-                    await loadUserData();
-                } else {
-                    alert('Upgrade failed. Please try again.');
-                }
-            } catch (error) {
-                alert('Upgrade failed: ' + error.message);
-            }
+        function unlockFeature(featureId) {
+            const feature = FEATURES[featureId];
+            const sio = window._cachedBalances?.sio ?? 0;
+            if (sio < feature.price) { alert('Insufficient S-IO balance. Need ' + feature.price.toLocaleString() + ' S-IO.'); return; }
+            const unlocked = getUnlockedFeatures();
+            if (!unlocked.includes(featureId)) unlocked.push(featureId);
+            localStorage.setItem('unlocked-features-' + walletAddress, JSON.stringify(unlocked));
+            alert(feature.title + ' unlocked!');
+            loadFeatures();
         }
 
-        async function unlockFeature(featureId) {
-            try {
-                const response = await fetch('/api/access/pay-for-feature', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ wallet_address: walletAddress, feature: featureId })
-                });
-                
-                if (response.ok) {
-                    alert(`Successfully unlocked ${FEATURES[featureId].title}!`);
-                    await loadUserData();
-                } else {
-                    alert('Feature unlock failed. Please try again.');
-                }
-            } catch (error) {
-                alert('Feature unlock failed: ' + error.message);
-            }
+        function upgradeTier(tier) {
+            alert('Tier upgrades are handled via S-IO token payments. Visit the Services page to unlock features.');
         }
 
-        function formatAddress(address) {
-            return `${address.substring(0, 4)}...${address.substring(address.length - 4)}`;
-        }
-
-        // Auto-connect if wallet is available
         document.addEventListener('DOMContentLoaded', async () => {
-            if (window.solana && window.solana.isPhantom) {
+            if (window.solana?.isPhantom) {
                 try {
                     const response = await window.solana.connect({ onlyIfTrusted: true });
-                    walletAddress = response.publicKey.toString();
-                    
-                    document.getElementById('userInfo').innerHTML = `
-                        <div class="tier-badge tier-free" id="tierBadge">Free</div>
-                        <span>${formatAddress(walletAddress)}</span>
-                    `;
-                    
-                    document.getElementById('dashboardContent').style.display = 'block';
-                    await loadUserData();
-                } catch (error) {
-                    console.log('Wallet not auto-connected');
-                }
+                    onWalletConnect(response.publicKey.toString());
+                } catch {}
             }
         });
     </script>

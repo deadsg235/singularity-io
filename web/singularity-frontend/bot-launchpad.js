@@ -84,6 +84,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     loadDeployedBots();
     updatePreview();
+
+    // Auto-connect
+    setTimeout(async () => {
+        if (window.solana?.isPhantom) {
+            try {
+                const r = await window.solana.connect({ onlyIfTrusted: true });
+                wallet = r.publicKey;
+                const btn = document.getElementById('wallet-btn');
+                btn.textContent = `${wallet.toString().slice(0,4)}…${wallet.toString().slice(-4)}`;
+                btn.classList.add('connected');
+                document.getElementById('balance-display')?.classList.remove('hidden');
+                window.loadWalletBalances?.(wallet.toString());
+            } catch {}
+        }
+    }, 600);
 });
 
 async function connectWallet() {
@@ -116,7 +131,7 @@ async function connectWallet() {
         btn.classList.add('connected');
         
         document.getElementById('balance-display').classList.remove('hidden');
-        loadWalletBalances();
+        window.loadWalletBalances?.(wallet.toString());
         
         console.log('Wallet connected:', wallet.toString());
     } catch (error) {
@@ -124,29 +139,7 @@ async function connectWallet() {
     }
 }
 
-async function loadWalletBalances() {
-    if (!wallet) return;
-    
-    try {
-        const sioResponse = await fetch(`/api/sio/balance/${wallet}`);
-        if (sioResponse.ok) {
-            const sioData = await sioResponse.json();
-            document.getElementById('sio-balance').textContent = sioData.balance.toLocaleString(undefined, {
-                maximumFractionDigits: 6
-            });
-        }
-        
-        const solResponse = await fetch(`/api/wallet/analytics/${wallet}`);
-        if (solResponse.ok) {
-            const solData = await solResponse.json();
-            document.getElementById('sol-balance').textContent = solData.sol_balance.toFixed(4);
-        }
-    } catch (error) {
-        console.error('Balance loading error:', error);
-        document.getElementById('sol-balance').textContent = '—';
-        document.getElementById('sio-balance').textContent = '—';
-    }
-}
+
 
 function updatePreview() {
     const name = document.getElementById('bot-name').value || 'Unnamed Bot';
@@ -269,23 +262,7 @@ async function validateToken(mint) {
 }
 
 async function deployBot(config) {
-    try {
-        const response = await fetch('/api/deploy_bot', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(config)
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to deploy bot to backend');
-        }
-        
-        const result = await response.json();
-        console.log('Bot deployed:', result);
-        
-    } catch (error) {
-        console.warn('Backend deployment failed, bot saved locally:', error);
-    }
+    console.log('Bot saved locally', config);
 }
 
 function loadDeployedBots() {
@@ -376,39 +353,12 @@ async function toggleBot(botId) {
 }
 
 async function startBotExecution(bot) {
-    try {
-        const response = await fetch('/api/start_bot', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ botId: bot.id, config: bot })
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to start bot');
-        }
-        
-        console.log(`Bot ${bot.name} started`);
-        
-    } catch (error) {
-        console.warn('Backend start failed, running locally:', error);
-        // Fallback to local execution
-        startLocalBot(bot);
-    }
+    startLocalBot(bot);
 }
 
 async function stopBotExecution(botId) {
-    try {
-        await fetch('/api/stop_bot', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ botId })
-        });
-        
-        console.log(`Bot ${botId} stopped`);
-        
-    } catch (error) {
-        console.warn('Backend stop failed:', error);
-    }
+    // Clear local interval if any — bot loop checks status and self-terminates
+    console.log(`Bot ${botId} stopped locally`);
 }
 
 function startLocalBot(bot) {

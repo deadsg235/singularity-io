@@ -4,342 +4,323 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>S-IO Payment Gateway | Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 100%);
-            color: #ffffff;
-            min-height: 100vh;
-        }
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-        .header { text-align: center; margin-bottom: 3rem; }
-        .header h1 { color: #dc2626; font-size: 2.5rem; margin-bottom: 0.5rem; }
-        .header p { color: #888; font-size: 1.1rem; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-        .card {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
+        .payments-page { max-width: 1200px; margin: 2rem auto; }
+        .payments-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        @media (max-width: 768px) { .payments-grid { grid-template-columns: 1fr; } }
+        .panel {
+            background: rgba(15,15,15,0.92);
+            border: 1px solid rgba(220,38,38,0.4);
             border-radius: 12px;
-            padding: 2rem;
+            padding: 1.75rem;
             backdrop-filter: blur(10px);
         }
-        .card h2 { color: #dc2626; margin-bottom: 1.5rem; }
-        .service-item {
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.1);
+        .panel h2 { font-family: 'Orbitron', sans-serif; color: #dc2626; margin-bottom: 1.5rem; font-size: 1.1rem; }
+        .balance-box {
+            background: rgba(220,38,38,0.08);
+            border: 1px solid rgba(220,38,38,0.3);
             border-radius: 8px;
             padding: 1rem;
-            margin-bottom: 1rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .balance-box .label { color: #888; font-size: 0.85rem; margin-bottom: 0.25rem; }
+        .balance-box .amount { color: #00ff88; font-size: 1.4rem; font-weight: bold; font-family: 'Orbitron', sans-serif; }
+        .service-item {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(220,38,38,0.25);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
         }
-        .service-item:hover { background: rgba(220,38,38,0.1); border-color: #dc2626; }
-        .service-item.selected { background: rgba(220,38,38,0.2); border-color: #dc2626; }
-        .service-name { font-weight: bold; color: #dc2626; }
-        .service-price { color: #00ff88; font-weight: bold; margin-top: 0.5rem; }
-        .service-desc { color: #ccc; font-size: 0.9rem; margin-top: 0.5rem; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: 0.5rem; color: #ccc; }
-        .form-group input {
+        .service-item:hover { border-color: #dc2626; background: rgba(220,38,38,0.08); }
+        .service-item.selected { border-color: #dc2626; background: rgba(220,38,38,0.15); }
+        .service-item .svc-name { font-weight: bold; color: #dc2626; font-size: 0.9rem; }
+        .service-item .svc-price { color: #00ff88; font-weight: bold; font-size: 0.85rem; margin-top: 0.25rem; }
+        .service-item .svc-desc { color: #aaa; font-size: 0.8rem; margin-top: 0.25rem; }
+        .pay-btn {
             width: 100%;
-            padding: 0.75rem;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 6px;
-            color: #fff;
-            font-size: 1rem;
-        }
-        .btn {
+            padding: 1rem;
             background: #dc2626;
             color: #fff;
             border: none;
-            padding: 1rem 2rem;
-            border-radius: 6px;
+            border-radius: 8px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
             cursor: pointer;
-            font-weight: bold;
-            font-size: 1rem;
-            width: 100%;
-            transition: all 0.3s ease;
+            margin-top: 1rem;
+            transition: background 0.2s;
         }
-        .btn:hover { background: #b91c1c; transform: translateY(-2px); }
-        .btn:disabled { background: #666; cursor: not-allowed; transform: none; }
-        .transaction-item {
+        .pay-btn:hover { background: #b91c1c; }
+        .pay-btn:disabled { background: #444; cursor: not-allowed; }
+        .tx-item {
             background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(220,38,38,0.2);
             border-radius: 8px;
             padding: 1rem;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
-        .transaction-header { display: flex; justify-content: space-between; align-items: center; }
-        .transaction-service { font-weight: bold; color: #dc2626; }
-        .transaction-amount { color: #00ff88; font-weight: bold; }
-        .transaction-status {
-            padding: 0.2rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-        .status-confirmed { background: rgba(0,255,136,0.2); color: #00ff88; }
-        .status-pending { background: rgba(255,170,0,0.2); color: #ffaa00; }
-        .status-failed { background: rgba(255,68,68,0.2); color: #ff4444; }
-        .transaction-time { color: #888; font-size: 0.9rem; margin-top: 0.5rem; }
-        .balance-display {
-            background: rgba(220,38,38,0.1);
-            border: 1px solid #dc2626;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        .balance-amount { font-size: 1.5rem; font-weight: bold; color: #00ff88; }
-        .loading { opacity: 0.6; pointer-events: none; }
-        .message {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            font-weight: bold;
-        }
-        .message.success { background: rgba(0,255,136,0.2); color: #00ff88; }
-        .message.error { background: rgba(255,68,68,0.2); color: #ff4444; }
+        .tx-header { display: flex; justify-content: space-between; align-items: center; }
+        .tx-service { font-weight: bold; color: #dc2626; font-size: 0.9rem; }
+        .tx-amount { color: #00ff88; font-weight: bold; }
+        .tx-time { color: #666; font-size: 0.8rem; margin-top: 0.4rem; }
+        .tx-sig a { color: #60a5fa; font-size: 0.75rem; }
+        .msg { padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
+        .msg.success { background: rgba(0,255,136,0.1); color: #00ff88; border: 1px solid rgba(0,255,136,0.3); }
+        .msg.error { background: rgba(255,68,68,0.1); color: #ff4444; border: 1px solid rgba(255,68,68,0.3); }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <a href="index.html" style="text-decoration: none; color: inherit;">
-                <h1>💳 S-IO Payment Gateway</h1>
-            </a>
-            <p>Pay for premium services with S-IO tokens</p>
-        </div>
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">S-IO Payment Gateway</p>
+                </div>
+                <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                    <a href="index.html" class="header-link" style="color:#dc2626;">Home</a>
+                    <a href="services.html" class="header-link" style="color:#dc2626;">Services</a>
+                    <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+                    <div id="balance-display" class="balance-display hidden">
+                        <div class="balance-item">
+                            <span class="balance-label">SOL</span>
+                            <span id="sol-balance">0</span>
+                        </div>
+                        <div class="balance-item">
+                            <span class="balance-label">S-IO</span>
+                            <span id="sio-balance">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
 
-        <div class="grid">
-            <div class="card">
-                <h2>🛒 Available Services</h2>
-                
-                <div class="balance-display">
-                    <div>S-IO Balance</div>
-                    <div class="balance-amount" id="sioBalance">Loading...</div>
+        <div class="payments-page">
+            <div class="payments-grid">
+                <!-- Left: Services -->
+                <div class="panel">
+                    <h2>🛒 Available Services</h2>
+                    <div class="balance-box">
+                        <div class="label">S-IO Balance</div>
+                        <div class="amount" id="sio-balance-display">—</div>
+                    </div>
+                    <div id="msg-container"></div>
+                    <div id="services-list"></div>
+                    <button class="pay-btn" id="pay-btn" disabled>Connect Wallet First</button>
                 </div>
 
-                <div id="messageContainer"></div>
-
-                <div id="servicesList">Loading services...</div>
-
-                <div class="form-group" style="margin-top: 2rem;">
-                    <label for="walletAddress">Wallet Address</label>
-                    <input type="text" id="walletAddress" placeholder="Your Solana wallet address">
+                <!-- Right: Transaction History -->
+                <div class="panel">
+                    <h2>📋 Transaction History</h2>
+                    <div id="tx-list"><p style="color:#666">Connect wallet to view transactions</p></div>
                 </div>
-
-                <button class="btn" id="payButton" onclick="processPayment()" disabled>
-                    Connect Wallet First
-                </button>
-            </div>
-
-            <div class="card">
-                <h2>📋 Transaction History</h2>
-                <div id="transactionsList">Connect wallet to view transactions</div>
             </div>
         </div>
+
+        <footer>
+            <p>Singularity.io | S-IO Payment Gateway</p>
+        </footer>
     </div>
 
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="wallet-balance-loader.js"></script>
+    <script src="wallet-manager.js"></script>
     <script>
-        const SIO_TOKEN_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
+        const SIO_MINT_ADDR = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
+        const TREASURY = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump'; // placeholder treasury
+
+        const SERVICES = [
+            { id: 'neural_network', name: '🧠 Neural Network Access', price: 100_000, duration: 30, description: 'AI neural network predictions and DQN analysis' },
+            { id: 'premium_analytics', name: '📈 Premium Analytics', price: 250_000, duration: 30, description: 'Advanced market analytics and on-chain insights' },
+            { id: 'ai_trading_signals', name: '🎯 AI Trading Signals', price: 500_000, duration: 30, description: 'Real-time Groq-powered trading signals' },
+            { id: 'guardian_premium', name: '🛡️ Guardian Premium', price: 150_000, duration: 30, description: 'Advanced security monitoring and threat detection' },
+            { id: 'bot_pro', name: '🤖 Bot Pro', price: 750_000, duration: 30, description: 'Unlimited bot deployments with AI strategy' },
+            { id: 'enterprise', name: '🚀 Enterprise Suite', price: 2_500_000, duration: 30, description: 'Full platform access with dedicated support' }
+        ];
+
+        let walletPubkey = null;
         let selectedService = null;
-        let services = [];
-        let walletAddress = '';
 
-        // Check if wallet is connected
-        async function checkWallet() {
-            if (window.solana && window.solana.isPhantom) {
-                try {
-                    const response = await window.solana.connect({ onlyIfTrusted: true });
-                    walletAddress = response.publicKey.toString();
-                    document.getElementById('walletAddress').value = walletAddress;
-                    document.getElementById('payButton').textContent = 'Pay with S-IO';
-                    document.getElementById('payButton').disabled = false;
-                    
-                    loadBalance();
-                    loadTransactions();
-                } catch (error) {
-                    console.log('Wallet not connected');
-                }
+        function txKey() { return walletPubkey ? 'sio-payments-' + walletPubkey : null; }
+
+        function getTxHistory() {
+            const k = txKey();
+            if (!k) return [];
+            try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch { return []; }
+        }
+
+        function saveTx(tx) {
+            const k = txKey();
+            if (!k) return;
+            const history = getTxHistory();
+            history.unshift(tx);
+            localStorage.setItem(k, JSON.stringify(history.slice(0, 50)));
+        }
+
+        function renderServices() {
+            document.getElementById('services-list').innerHTML = SERVICES.map(s =>
+                '<div class="service-item' + (selectedService?.id === s.id ? ' selected' : '') + '" onclick="selectService(\'' + s.id + '\')">' +
+                '<div class="svc-name">' + s.name + '</div>' +
+                '<div class="svc-price">' + s.price.toLocaleString() + ' S-IO / ' + s.duration + ' days</div>' +
+                '<div class="svc-desc">' + s.description + '</div>' +
+                '</div>'
+            ).join('');
+        }
+
+        function selectService(id) {
+            selectedService = SERVICES.find(s => s.id === id);
+            renderServices();
+            const btn = document.getElementById('pay-btn');
+            if (walletPubkey && selectedService) {
+                btn.disabled = false;
+                btn.textContent = 'Pay ' + selectedService.price.toLocaleString() + ' S-IO';
             }
         }
 
-        async function connectWallet() {
-            if (window.solana && window.solana.isPhantom) {
-                try {
-                    const response = await window.solana.connect();
-                    walletAddress = response.publicKey.toString();
-                    document.getElementById('walletAddress').value = walletAddress;
-                    document.getElementById('payButton').textContent = 'Pay with S-IO';
-                    document.getElementById('payButton').disabled = false;
-                    
-                    loadBalance();
-                    loadTransactions();
-                } catch (error) {
-                    showMessage('Failed to connect wallet', 'error');
-                }
-            } else {
-                showMessage('Please install Phantom wallet', 'error');
-            }
+        function renderTxHistory() {
+            const history = getTxHistory();
+            const el = document.getElementById('tx-list');
+            if (!history.length) { el.innerHTML = '<p style="color:#666">No transactions yet</p>'; return; }
+            el.innerHTML = history.map(tx =>
+                '<div class="tx-item">' +
+                '<div class="tx-header"><span class="tx-service">' + tx.service + '</span><span class="tx-amount">-' + tx.amount.toLocaleString() + ' S-IO</span></div>' +
+                '<div class="tx-time">' + new Date(tx.ts).toLocaleString() + '</div>' +
+                (tx.sig ? '<div class="tx-sig"><a href="https://solscan.io/tx/' + tx.sig + '" target="_blank">View on Solscan ↗</a></div>' : '') +
+                '</div>'
+            ).join('');
         }
 
-        async function loadServices() {
-            try {
-                const response = await fetch('/api/sio/services');
-                const data = await response.json();
-                services = data.services;
-                
-                const servicesList = document.getElementById('servicesList');
-                servicesList.innerHTML = services.map(service => `
-                    <div class="service-item" onclick="selectService('${service.id}')">
-                        <div class="service-name">${service.name}</div>
-                        <div class="service-price">${service.price} S-IO</div>
-                        <div class="service-desc">${service.description}</div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                document.getElementById('servicesList').innerHTML = 'Failed to load services';
-            }
+        function showMsg(text, type) {
+            const c = document.getElementById('msg-container');
+            c.innerHTML = '<div class="msg ' + type + '">' + text + '</div>';
+            setTimeout(() => c.innerHTML = '', 6000);
         }
 
-        function selectService(serviceId) {
-            selectedService = services.find(s => s.id === serviceId);
-            
-            // Update UI
-            document.querySelectorAll('.service-item').forEach(item => {
-                item.classList.remove('selected');
+        function updateBalanceDisplay() {
+            const sio = window._cachedBalances?.sio ?? 0;
+            document.getElementById('sio-balance-display').textContent = sio.toLocaleString() + ' S-IO';
+        }
+
+        window.addEventListener('balanceUpdated', updateBalanceDisplay);
+
+        // SPL transfer helper (same pattern as staking.js)
+        async function sendSplTransfer(fromPubkey, toPubkey, amount) {
+            if (!window.solanaWeb3) throw new Error('Solana Web3 not loaded');
+            const connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+            const from = new solanaWeb3.PublicKey(fromPubkey);
+            const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDR);
+            const srcAccounts = await connection.getParsedTokenAccountsByOwner(from, { mint });
+            if (!srcAccounts.value.length) throw new Error('No S-IO token account found');
+            const srcAta = new solanaWeb3.PublicKey(srcAccounts.value[0].pubkey);
+            const dest = new solanaWeb3.PublicKey(toPubkey);
+            const [destAta] = await solanaWeb3.PublicKey.findProgramAddress(
+                [dest.toBuffer(), new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').toBuffer(), mint.toBuffer()],
+                new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bRS')
+            );
+            const decimals = 6;
+            const rawAmount = BigInt(Math.floor(amount * Math.pow(10, decimals)));
+            const buf = new Uint8Array(9);
+            buf[0] = 3;
+            new DataView(buf.buffer).setBigUint64(1, rawAmount, true);
+            const transferIx = new solanaWeb3.TransactionInstruction({
+                programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+                keys: [
+                    { pubkey: srcAta, isSigner: false, isWritable: true },
+                    { pubkey: destAta, isSigner: false, isWritable: true },
+                    { pubkey: from, isSigner: true, isWritable: false }
+                ],
+                data: buf
             });
-            event.target.closest('.service-item').classList.add('selected');
-            
-            if (walletAddress) {
-                document.getElementById('payButton').disabled = false;
-                document.getElementById('payButton').textContent = `Pay ${selectedService.price} S-IO`;
-            }
+            const { blockhash } = await connection.getLatestBlockhash();
+            const tx = new solanaWeb3.Transaction({ recentBlockhash: blockhash, feePayer: from });
+            tx.add(transferIx);
+            const signed = await window.solana.signTransaction(tx);
+            const sig = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
+            await connection.confirmTransaction(sig, 'confirmed');
+            return sig;
         }
 
-        async function loadBalance() {
-            if (!walletAddress) return;
-            
-            try {
-                const response = await fetch(`/api/sio/balance/${walletAddress}`);
-                const data = await response.json();
-                document.getElementById('sioBalance').textContent = `${data.balance.toLocaleString()} S-IO`;
-            } catch (error) {
-                document.getElementById('sioBalance').textContent = 'Error loading balance';
-            }
-        }
-
-        async function loadTransactions() {
-            if (!walletAddress) return;
-            
-            try {
-                const response = await fetch(`/api/sio/transactions/${walletAddress}`);
-                const transactions = await response.json();
-                
-                const transactionsList = document.getElementById('transactionsList');
-                
-                if (transactions.length === 0) {
-                    transactionsList.innerHTML = '<p style="color: #888;">No transactions found</p>';
-                    return;
-                }
-                
-                transactionsList.innerHTML = transactions.map(tx => `
-                    <div class="transaction-item">
-                        <div class="transaction-header">
-                            <div class="transaction-service">${tx.service}</div>
-                            <div class="transaction-amount">-${tx.amount} S-IO</div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
-                            <span class="transaction-status status-${tx.status}">${tx.status.toUpperCase()}</span>
-                            <span class="transaction-time">${formatTime(tx.timestamp)}</span>
-                        </div>
-                        <div style="color: #888; font-size: 0.8rem; margin-top: 0.5rem;">${tx.description}</div>
-                        ${tx.signature ? `<div style="color: #666; font-size: 0.7rem; margin-top: 0.5rem;">Tx: ${tx.signature.substring(0, 20)}...</div>` : ''}
-                    </div>
-                `).join('');
-            } catch (error) {
-                document.getElementById('transactionsList').innerHTML = 'Failed to load transactions';
-            }
-        }
-
-        async function processPayment() {
-            if (!selectedService || !walletAddress) {
-                showMessage('Please select a service and connect wallet', 'error');
+        document.getElementById('pay-btn').addEventListener('click', async () => {
+            if (!walletPubkey || !selectedService) { showMsg('Select a service and connect wallet', 'error'); return; }
+            const sio = window._cachedBalances?.sio ?? 0;
+            if (sio < selectedService.price) {
+                showMsg('Insufficient S-IO. You have ' + sio.toLocaleString() + ', need ' + selectedService.price.toLocaleString(), 'error');
                 return;
             }
-
+            const btn = document.getElementById('pay-btn');
+            btn.disabled = true; btn.textContent = 'Processing…';
             try {
-                document.getElementById('payButton').disabled = true;
-                document.getElementById('payButton').textContent = 'Processing...';
-                
-                // Create payment request
-                const paymentData = {
-                    wallet_address: walletAddress,
-                    amount: selectedService.price,
-                    service: selectedService.name,
-                    description: selectedService.description
-                };
-                
-                const response = await fetch('/api/sio/pay', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(paymentData)
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    showMessage(`Payment initiated! Payment ID: ${result.payment_id}`, 'success');
-                    
-                    // Simulate transaction confirmation (in real implementation, this would be done via Solana transaction)
-                    setTimeout(async () => {
-                        const mockSignature = 'mock_signature_' + Date.now();
-                        await fetch(`/api/sio/confirm/${result.payment_id}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ signature: mockSignature })
-                        });
-                        
-                        showMessage('Payment confirmed!', 'success');
-                        loadTransactions();
-                        loadBalance();
-                    }, 2000);
-                } else {
-                    showMessage(result.detail || 'Payment failed', 'error');
-                }
-            } catch (error) {
-                showMessage('Payment failed: ' + error.message, 'error');
+                const sig = await sendSplTransfer(walletPubkey, TREASURY, selectedService.price);
+                saveTx({ service: selectedService.name, amount: selectedService.price, ts: Date.now(), sig });
+                showMsg('Payment confirmed! <a href="https://solscan.io/tx/' + sig + '" target="_blank" style="color:#60a5fa">View on Solscan ↗</a>', 'success');
+                renderTxHistory();
+                setTimeout(() => window.loadWalletBalances?.(walletPubkey), 3000);
+            } catch (e) {
+                showMsg('Payment failed: ' + e.message, 'error');
             } finally {
-                document.getElementById('payButton').disabled = false;
-                document.getElementById('payButton').textContent = selectedService ? `Pay ${selectedService.price} S-IO` : 'Select Service';
-            }
-        }
-
-        function showMessage(text, type) {
-            const container = document.getElementById('messageContainer');
-            container.innerHTML = `<div class="message ${type}">${text}</div>`;
-            setTimeout(() => container.innerHTML = '', 5000);
-        }
-
-        function formatTime(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleString();
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            loadServices();
-            checkWallet();
-            
-            // Add connect wallet button if not connected
-            if (!walletAddress) {
-                document.getElementById('payButton').textContent = 'Connect Wallet';
-                document.getElementById('payButton').onclick = connectWallet;
+                btn.disabled = false;
+                btn.textContent = selectedService ? 'Pay ' + selectedService.price.toLocaleString() + ' S-IO' : 'Select Service';
             }
         });
+
+        // Wallet connect
+        document.getElementById('wallet-btn').addEventListener('click', async () => {
+            if (walletPubkey) {
+                await window.solana?.disconnect();
+                walletPubkey = null;
+                const btn = document.getElementById('wallet-btn');
+                btn.textContent = 'Connect Wallet'; btn.classList.remove('connected');
+                document.getElementById('balance-display')?.classList.add('hidden');
+                document.getElementById('sio-balance-display').textContent = '—';
+                document.getElementById('pay-btn').disabled = true;
+                document.getElementById('pay-btn').textContent = 'Connect Wallet First';
+                document.getElementById('tx-list').innerHTML = '<p style="color:#666">Connect wallet to view transactions</p>';
+            } else {
+                if (!window.solana?.isPhantom) { alert('Install Phantom Wallet'); return; }
+                const resp = await window.solana.connect();
+                walletPubkey = resp.publicKey.toString();
+                const btn = document.getElementById('wallet-btn');
+                btn.textContent = walletPubkey.slice(0,4) + '…' + walletPubkey.slice(-4);
+                btn.classList.add('connected');
+                document.getElementById('balance-display')?.classList.remove('hidden');
+                window.loadWalletBalances?.(walletPubkey);
+                if (selectedService) {
+                    document.getElementById('pay-btn').disabled = false;
+                    document.getElementById('pay-btn').textContent = 'Pay ' + selectedService.price.toLocaleString() + ' S-IO';
+                } else {
+                    document.getElementById('pay-btn').textContent = 'Select a Service';
+                }
+                renderTxHistory();
+            }
+        });
+
+        // Auto-connect
+        setTimeout(async () => {
+            if (window.solana?.isPhantom) {
+                try {
+                    const r = await window.solana.connect({ onlyIfTrusted: true });
+                    walletPubkey = r.publicKey.toString();
+                    const btn = document.getElementById('wallet-btn');
+                    btn.textContent = walletPubkey.slice(0,4) + '…' + walletPubkey.slice(-4);
+                    btn.classList.add('connected');
+                    document.getElementById('balance-display')?.classList.remove('hidden');
+                    window.loadWalletBalances?.(walletPubkey);
+                    document.getElementById('pay-btn').textContent = 'Select a Service';
+                    renderTxHistory();
+                } catch {}
+            }
+        }, 600);
+
+        // Init
+        renderServices();
     </script>
 </body>
 </html>

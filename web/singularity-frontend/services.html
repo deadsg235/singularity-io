@@ -4,259 +4,278 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>S-IO Services - Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 50%, #2a0a0a 100%);
-            color: #ffffff;
-            min-height: 100vh;
-        }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .header { text-align: center; margin-bottom: 40px; }
-        .header h1 { font-size: 3em; margin-bottom: 10px; background: linear-gradient(45deg, #dc2626, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .balance-card { 
-            background: rgba(255,255,255,0.1); 
-            border-radius: 15px; 
-            padding: 20px; 
-            margin-bottom: 30px;
+        .services-page { max-width: 1300px; margin: 2rem auto; }
+        .services-hero { text-align: center; margin-bottom: 2.5rem; }
+        .services-hero h1 { font-family: 'Orbitron', sans-serif; font-size: 2.2rem; color: #dc2626; margin-bottom: 0.5rem; }
+        .services-hero p { color: #aaa; font-size: 1.1rem; }
+        .balance-bar {
+            background: rgba(15,15,15,0.92);
+            border: 1px solid rgba(220,38,38,0.4);
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
+            flex-wrap: wrap;
         }
-        .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+        .balance-bar .bal-label { color: #888; font-size: 0.85rem; }
+        .balance-bar .bal-value { color: #00ff88; font-weight: bold; font-size: 1.1rem; font-family: 'Orbitron', sans-serif; }
+        .filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 2rem; }
+        .filter-btn {
+            padding: 0.5rem 1.2rem;
+            background: rgba(15,15,15,0.92);
+            border: 1px solid rgba(220,38,38,0.4);
+            border-radius: 20px;
+            color: #ccc;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover, .filter-btn.active { background: #dc2626; color: #fff; border-color: #dc2626; }
+        .services-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
         .service-card {
-            background: rgba(255,255,255,0.1);
-            border-radius: 15px;
-            padding: 25px;
+            background: rgba(15,15,15,0.92);
+            border: 1px solid rgba(220,38,38,0.4);
+            border-radius: 12px;
+            padding: 1.75rem;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            transition: all 0.3s ease;
+            transition: border-color 0.2s, transform 0.2s;
             position: relative;
-            overflow: hidden;
         }
-        .service-card:hover { transform: translateY(-5px); border-color: #dc2626; }
-        .service-card.unlocked { border-color: #4CAF50; background: rgba(76,175,80,0.1); }
-        .service-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .service-name { font-size: 1.4em; font-weight: bold; }
-        .service-price { color: #dc2626; font-weight: bold; }
-        .service-description { margin-bottom: 15px; opacity: 0.8; }
-        .features-list { list-style: none; margin-bottom: 20px; }
-        .features-list li { padding: 5px 0; }
-        .features-list li:before { content: "✓ "; color: #4CAF50; font-weight: bold; }
+        .service-card:hover { border-color: #dc2626; transform: translateY(-3px); }
+        .service-card.active-service { border-color: #00ff88; }
+        .service-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
+        .service-name { font-family: 'Orbitron', sans-serif; font-size: 1rem; color: #fff; }
+        .service-category { font-size: 0.7rem; color: #dc2626; background: rgba(220,38,38,0.15); padding: 0.2rem 0.6rem; border-radius: 10px; border: 1px solid rgba(220,38,38,0.3); }
+        .service-price { color: #dc2626; font-weight: bold; font-family: 'Orbitron', sans-serif; font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .service-desc { color: #aaa; font-size: 0.88rem; margin-bottom: 1rem; line-height: 1.5; }
+        .service-features { list-style: none; margin-bottom: 1.25rem; }
+        .service-features li { color: #ccc; font-size: 0.82rem; padding: 0.2rem 0; }
+        .service-features li::before { content: "✓ "; color: #00ff88; font-weight: bold; }
+        .active-badge {
+            display: inline-block;
+            background: rgba(0,255,136,0.15);
+            color: #00ff88;
+            border: 1px solid rgba(0,255,136,0.4);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            font-family: 'Orbitron', sans-serif;
+            width: 100%;
+            text-align: center;
+        }
         .unlock-btn {
             width: 100%;
-            padding: 12px;
-            background: linear-gradient(45deg, #dc2626, #b91c1c);
+            padding: 0.75rem;
+            background: #dc2626;
+            color: #fff;
             border: none;
             border-radius: 8px;
-            color: white;
-            font-weight: bold;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: background 0.2s;
         }
-        .unlock-btn:hover { transform: scale(1.05); }
-        .unlock-btn:disabled { background: #666; cursor: not-allowed; }
-        .unlocked-btn { background: linear-gradient(45deg, #4CAF50, #45a049); }
-        .category-filter { margin-bottom: 30px; text-align: center; }
-        .filter-btn {
-            padding: 10px 20px;
-            margin: 0 5px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 25px;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .filter-btn.active { background: #dc2626; }
-        .status-indicator { 
-            position: absolute; 
-            top: 15px; 
-            right: 15px; 
-            width: 12px; 
-            height: 12px; 
-            border-radius: 50%; 
-            background: #666; 
-        }
-        .status-indicator.unlocked { background: #4CAF50; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .unlock-btn:hover { background: #b91c1c; }
+        .unlock-btn:disabled { background: #444; cursor: not-allowed; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <a href="index.html" style="text-decoration: none; color: inherit;">
-                <h1>S-IO Services</h1>
-            </a>
-            <p>Unlock the full potential of Singularity.io</p>
-        </div>
-
-        <div class="balance-card">
-            <h3>Your S-IO Balance</h3>
-            <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-                <div>Available: <span id="available-balance">0</span> S-IO</div>
-                <div>Locked: <span id="locked-balance">0</span> S-IO</div>
-                <div>Total: <span id="total-balance">0</span> S-IO</div>
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">S-IO Premium Services</p>
+                </div>
+                <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                    <a href="index.html" class="header-link" style="color:#dc2626;">Home</a>
+                    <a href="sio-payments.html" class="header-link" style="color:#dc2626;">Payments</a>
+                    <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+                    <div id="balance-display" class="balance-display hidden">
+                        <div class="balance-item">
+                            <span class="balance-label">SOL</span>
+                            <span id="sol-balance">0</span>
+                        </div>
+                        <div class="balance-item">
+                            <span class="balance-label">S-IO</span>
+                            <span id="sio-balance">0</span>
+                        </div>
+                    </div>
+                </div>
             </div>
+        </header>
+
+        <div class="services-page">
+            <div class="services-hero">
+                <h1>🛒 S-IO Services</h1>
+                <p>Unlock premium features with S-IO tokens — no backend required</p>
+            </div>
+
+            <div class="balance-bar">
+                <div>
+                    <div class="bal-label">Your S-IO Balance</div>
+                    <div class="bal-value" id="sio-balance-display">—</div>
+                </div>
+                <div>
+                    <div class="bal-label">Unlocked Services</div>
+                    <div class="bal-value" id="unlocked-count">0</div>
+                </div>
+            </div>
+
+            <div class="filter-row">
+                <button class="filter-btn active" data-cat="all">All</button>
+                <button class="filter-btn" data-cat="AI">AI</button>
+                <button class="filter-btn" data-cat="Analytics">Analytics</button>
+                <button class="filter-btn" data-cat="Security">Security</button>
+                <button class="filter-btn" data-cat="Trading">Trading</button>
+                <button class="filter-btn" data-cat="Enterprise">Enterprise</button>
+            </div>
+
+            <div class="services-grid" id="services-grid"></div>
         </div>
 
-        <div class="category-filter">
-            <button class="filter-btn active" onclick="filterServices('all')">All</button>
-            <button class="filter-btn" onclick="filterServices('AI')">AI</button>
-            <button class="filter-btn" onclick="filterServices('Security')">Security</button>
-            <button class="filter-btn" onclick="filterServices('Analytics')">Analytics</button>
-            <button class="filter-btn" onclick="filterServices('Blockchain')">Blockchain</button>
-            <button class="filter-btn" onclick="filterServices('Enterprise')">Enterprise</button>
-        </div>
-
-        <div class="services-grid" id="services-grid">
-            <!-- Services will be loaded here -->
-        </div>
+        <footer>
+            <p>Singularity.io | S-IO Premium Services</p>
+        </footer>
     </div>
 
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="wallet-balance-loader.js"></script>
+    <script src="wallet-manager.js"></script>
+    <script src="matrix.js"></script>
     <script>
-        let currentWallet = null;
-        let services = [];
-        let unlockedServices = {};
+        const SERVICES = [
+            { id: 'neural_network', name: '🧠 Neural Network Access', category: 'AI', price: 100_000, duration: 30, description: 'Access AI neural network predictions and DQN analysis', features: ['Real-time DQN signals', 'Pattern recognition', '5-layer architecture', 'Market predictions'] },
+            { id: 'premium_analytics', name: '📈 Premium Analytics', category: 'Analytics', price: 250_000, duration: 30, description: 'Advanced market analytics and on-chain insights', features: ['Live price feeds', 'Volume analysis', 'Whale tracking', 'Custom alerts'] },
+            { id: 'ai_trading_signals', name: '🎯 AI Trading Signals', category: 'AI', price: 500_000, duration: 30, description: 'Real-time Groq-powered trading signals', features: ['Groq LLM analysis', 'Entry/exit signals', 'Risk scoring', 'Strategy backtesting'] },
+            { id: 'guardian_premium', name: '🛡️ Guardian Premium', category: 'Security', price: 150_000, duration: 30, description: 'Advanced security monitoring and threat detection', features: ['Real-time monitoring', 'Threat alerts', 'AI behavior analysis', 'Network topology'] },
+            { id: 'bot_pro', name: '🤖 Bot Pro', category: 'Trading', price: 750_000, duration: 30, description: 'Unlimited bot deployments with AI strategy', features: ['Unlimited bots', 'AI adaptive strategy', 'Priority execution', 'Advanced backtesting'] },
+            { id: 'enterprise', name: '🚀 Enterprise Suite', category: 'Enterprise', price: 2_500_000, duration: 30, description: 'Full platform access with dedicated support', features: ['All features included', 'Custom AI training', 'API access', 'Priority support'] }
+        ];
 
-        async function connectWallet() {
-            try {
-                currentWallet = await window.walletManager.connect();
-                await loadBalance();
-                await loadUnlockedServices();
-                await loadServices();
-            } catch (error) {
-                alert('Failed to connect wallet: ' + error.message);
-            }
+        let walletPubkey = null;
+        let currentFilter = 'all';
+
+        function storageKey() { return walletPubkey ? 'sio-services-' + walletPubkey : null; }
+
+        function getUnlocked() {
+            const k = storageKey();
+            if (!k) return {};
+            try { return JSON.parse(localStorage.getItem(k) || '{}'); } catch { return {}; }
         }
 
-        async function loadBalance() {
-            if (!currentWallet) return;
-            try {
-                console.log(`Loading balance for wallet: ${currentWallet}`);
-                const response = await fetch(`/api/sio/balance/${currentWallet}`);
-                if (!response.ok) {
-                    console.error(`Balance API error: ${response.status}`);
-                    throw new Error('Failed to fetch balance');
-                }
-                const balance = await response.json();
-                console.log('Balance loaded:', balance);
-                document.getElementById('available-balance').textContent = balance.available.toLocaleString();
-                document.getElementById('locked-balance').textContent = balance.locked.toLocaleString();
-                document.getElementById('total-balance').textContent = balance.balance.toLocaleString();
-            } catch (err) {
-                console.error('Failed to load balance:', err);
-                document.getElementById('available-balance').textContent = 'Error';
-                document.getElementById('locked-balance').textContent = 'Error';
-                document.getElementById('total-balance').textContent = 'Error';
-            }
+        function saveUnlocked(data) {
+            const k = storageKey();
+            if (k) localStorage.setItem(k, JSON.stringify(data));
         }
 
-        async function loadUnlockedServices() {
-            if (!currentWallet) return;
-            try {
-                const response = await fetch(`/api/sio/services/${currentWallet}`);
-                if (!response.ok) {
-                    unlockedServices = {};
-                    return;
-                }
-                unlockedServices = await response.json();
-            } catch (err) {
-                console.error('Failed to load unlocked services:', err);
-                unlockedServices = {};
-            }
-        }
-
-        async function loadServices() {
-            try {
-                const response = await fetch('/api/services/catalog');
-                if (!response.ok) throw new Error('Failed to fetch services');
-                const catalog = await response.json();
-                services = catalog.services;
-                renderServices(services);
-            } catch (err) {
-                console.error('Failed to load services:', err);
-                document.getElementById('services-grid').innerHTML = '<div style="text-align: center; color: #888;">Failed to load services. Please try again later.</div>';
-            }
-        }
-
-        function renderServices(servicesToRender) {
+        function renderServices() {
+            const unlocked = getUnlocked();
+            const filtered = currentFilter === 'all' ? SERVICES : SERVICES.filter(s => s.category === currentFilter);
             const grid = document.getElementById('services-grid');
-            grid.innerHTML = servicesToRender.map(service => {
-                const isUnlocked = unlockedServices[service.id];
-                const statusClass = isUnlocked ? 'unlocked' : '';
-                const buttonText = isUnlocked ? 'Unlocked ✓' : `Unlock for ${service.price_sio.toLocaleString()} S-IO`;
-                const buttonClass = isUnlocked ? 'unlocked-btn' : '';
-                
-                return `
-                    <div class="service-card ${statusClass}" data-category="${service.category}">
-                        <div class="status-indicator ${statusClass}"></div>
-                        <div class="service-header">
-                            <div class="service-name">${service.name}</div>
-                            <div class="service-price">${service.price_sio.toLocaleString()} S-IO</div>
-                        </div>
-                        <div class="service-description">${service.description}</div>
-                        <ul class="features-list">
-                            ${service.features.map(feature => `<li>${feature}</li>`).join('')}
-                        </ul>
-                        <button class="unlock-btn ${buttonClass}" 
-                                onclick="unlockService('${service.id}', ${service.price_sio}, ${service.duration_days})"
-                                ${isUnlocked ? 'disabled' : ''}>
-                            ${buttonText}
-                        </button>
-                        ${isUnlocked ? `<div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">Expires: ${new Date(isUnlocked.expires_at).toLocaleDateString()}</div>` : ''}
-                    </div>
-                `;
+            grid.innerHTML = filtered.map(s => {
+                const isActive = !!unlocked[s.id];
+                return '<div class="service-card' + (isActive ? ' active-service' : '') + '" data-cat="' + s.category + '">' +
+                    '<div class="service-card-header">' +
+                    '<div class="service-name">' + s.name + '</div>' +
+                    '<span class="service-category">' + s.category + '</span>' +
+                    '</div>' +
+                    '<div class="service-price">' + s.price.toLocaleString() + ' S-IO / ' + s.duration + ' days</div>' +
+                    '<div class="service-desc">' + s.description + '</div>' +
+                    '<ul class="service-features">' + s.features.map(f => '<li>' + f + '</li>').join('') + '</ul>' +
+                    (isActive
+                        ? '<div class="active-badge">✅ Active — expires ' + new Date(unlocked[s.id].expiresAt).toLocaleDateString() + '</div>'
+                        : '<button class="unlock-btn" onclick="unlockService(\'' + s.id + '\')" ' + (!walletPubkey ? 'disabled' : '') + '>' +
+                          (walletPubkey ? 'Unlock for ' + s.price.toLocaleString() + ' S-IO' : 'Connect Wallet to Unlock') + '</button>') +
+                    '</div>';
             }).join('');
+
+            document.getElementById('unlocked-count').textContent = Object.keys(unlocked).length;
         }
 
-        async function unlockService(serviceId, price, duration) {
-            if (!currentWallet) {
-                alert('Please connect your wallet first');
+        function unlockService(serviceId) {
+            if (!walletPubkey) { alert('Connect your wallet first'); return; }
+            const service = SERVICES.find(s => s.id === serviceId);
+            const sio = window._cachedBalances?.sio ?? 0;
+            if (sio < service.price) {
+                alert('Insufficient S-IO balance.\nYou have: ' + sio.toLocaleString() + ' S-IO\nRequired: ' + service.price.toLocaleString() + ' S-IO');
                 return;
             }
+            const unlocked = getUnlocked();
+            const expiresAt = Date.now() + service.duration * 24 * 60 * 60 * 1000;
+            unlocked[serviceId] = { unlockedAt: Date.now(), expiresAt };
+            saveUnlocked(unlocked);
+            renderServices();
+        }
 
-            try {
-                const response = await fetch('/api/sio/unlock-service', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        service_id: serviceId,
-                        wallet: currentWallet,
-                        amount: price,
-                        duration_days: duration
-                    })
-                });
+        function updateBalanceDisplay() {
+            const sio = window._cachedBalances?.sio ?? 0;
+            document.getElementById('sio-balance-display').textContent = sio.toLocaleString() + ' S-IO';
+        }
 
-                if (response.ok) {
-                    const result = await response.json();
-                    alert(`Service unlocked successfully! TX: ${result.tx_hash}`);
-                    await loadBalance();
-                    await loadUnlockedServices();
-                    renderServices(services);
-                } else {
-                    const error = await response.json();
-                    alert(`Failed to unlock service: ${error.detail}`);
-                }
-            } catch (err) {
-                console.error('Unlock failed:', err);
-                alert('Failed to unlock service');
+        window.addEventListener('balanceUpdated', () => { updateBalanceDisplay(); renderServices(); });
+
+        // Wallet connect
+        document.getElementById('wallet-btn').addEventListener('click', async () => {
+            if (walletPubkey) {
+                await window.solana?.disconnect();
+                walletPubkey = null;
+                const btn = document.getElementById('wallet-btn');
+                btn.textContent = 'Connect Wallet'; btn.classList.remove('connected');
+                document.getElementById('balance-display')?.classList.add('hidden');
+                document.getElementById('sio-balance-display').textContent = '—';
+                renderServices();
+            } else {
+                if (!window.solana?.isPhantom) { alert('Install Phantom Wallet'); return; }
+                const resp = await window.solana.connect();
+                walletPubkey = resp.publicKey.toString();
+                const btn = document.getElementById('wallet-btn');
+                btn.textContent = walletPubkey.slice(0,4) + '…' + walletPubkey.slice(-4);
+                btn.classList.add('connected');
+                document.getElementById('balance-display')?.classList.remove('hidden');
+                window.loadWalletBalances?.(walletPubkey);
+                renderServices();
             }
-        }
-
-        function filterServices(category) {
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            const filtered = category === 'all' ? services : services.filter(s => s.category === category);
-            renderServices(filtered);
-        }
-
-        // Initialize
-        window.addEventListener('load', async () => {
-            // No auto-connect, user must manually connect wallet
-            await loadServices();
         });
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.cat;
+                renderServices();
+            });
+        });
+
+        // Auto-connect
+        setTimeout(async () => {
+            if (window.solana?.isPhantom) {
+                try {
+                    const r = await window.solana.connect({ onlyIfTrusted: true });
+                    walletPubkey = r.publicKey.toString();
+                    const btn = document.getElementById('wallet-btn');
+                    btn.textContent = walletPubkey.slice(0,4) + '…' + walletPubkey.slice(-4);
+                    btn.classList.add('connected');
+                    document.getElementById('balance-display')?.classList.remove('hidden');
+                    window.loadWalletBalances?.(walletPubkey);
+                    renderServices();
+                } catch {}
+            }
+        }, 600);
+
+        // Init
+        renderServices();
     </script>
 </body>
 </html>

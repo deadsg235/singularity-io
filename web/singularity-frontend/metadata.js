@@ -4,12 +4,6 @@ let tokens = [];
 let selectedToken = null;
 let uploadedImage = null;
 
-let solanaConnection = null; // Add solanaConnection for this page
-const SOLANA_RPC = 'https://api.mainnet-beta.solana.com'; // Add RPC
-const SIO_MINT_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump'; // Add SIO Mint
-
-
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     document.getElementById('image-upload').addEventListener('click', () => {
@@ -17,34 +11,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('image-input').addEventListener('change', handleImageUpload);
     document.getElementById('update-btn').addEventListener('click', updateMetadata);
-    
-    // Auto-update preview
+
     ['meta-name', 'meta-symbol', 'meta-description', 'meta-url', 'meta-attributes'].forEach(id => {
         document.getElementById(id).addEventListener('input', updatePreview);
     });
-    
+
     loadTokens();
+
+    // Auto-connect
+    setTimeout(async () => {
+        if (window.solana?.isPhantom) {
+            try {
+                const r = await window.solana.connect({ onlyIfTrusted: true });
+                wallet = r.publicKey;
+                const btn = document.getElementById('wallet-btn');
+                btn.textContent = wallet.toString().slice(0,4) + '...' + wallet.toString().slice(-4);
+                btn.classList.add('connected');
+                document.getElementById('balance-display')?.classList.remove('hidden');
+                window.loadWalletBalances?.(wallet.toString());
+            } catch {}
+        }
+    }, 600);
 });
 
-// Connect Wallet
 async function connectWallet() {
     try {
         if (wallet) {
-            // If already connected, disconnect
-            if (window.solana && window.solana.isPhantom) {
-                await window.solana.disconnect();
-            }
+            if (window.solana?.isPhantom) await window.solana.disconnect();
             wallet = null;
-            solanaConnection = null;
-
             const btn = document.getElementById('wallet-btn');
             btn.textContent = 'Connect Wallet';
             btn.classList.remove('connected');
-
             document.getElementById('balance-display').classList.add('hidden');
-            if (window.setWalletConnected) window.setWalletConnected(false);
-
-            console.log('Wallet disconnected');
             return;
         }
 
@@ -53,164 +51,68 @@ async function connectWallet() {
             window.open('https://phantom.app/', '_blank');
             return;
         }
-        
+
         const resp = await window.solana.connect();
         wallet = resp.publicKey;
-        
         const btn = document.getElementById('wallet-btn');
-        btn.textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
+        btn.textContent = wallet.toString().slice(0,4) + '...' + wallet.toString().slice(-4);
         btn.classList.add('connected');
-        
-        if (window.setWalletConnected) window.setWalletConnected(true);
-        
-        // Show balance display and load balances
         document.getElementById('balance-display').classList.remove('hidden');
-        loadWalletBalances(); // Call loadWalletBalances
-        
+        window.loadWalletBalances?.(wallet.toString());
         console.log('Wallet connected:', wallet.toString());
     } catch (error) {
         console.error('Wallet connection error:', error);
         alert('Failed to connect wallet');
-        if (window.setWalletConnected) window.setWalletConnected(false);
     }
 }
 
-// loadWalletBalances function for this page
-async function loadWalletBalances() {
-    if (!wallet) return;
-
-    try {
-        if (!solanaConnection) {
-            solanaConnection = new solanaWeb3.Connection(
-                SOLANA_RPC,
-                { commitment: 'confirmed' }
-            );
-        }
-
-        const owner = new solanaWeb3.PublicKey(wallet);
-
-        // ---------- SOL BALANCE ----------
-        const lamports = await solanaConnection.getBalance(owner);
-        const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
-
-        document.getElementById('sol-balance').textContent =
-            solBalance.toFixed(4);
-
-        // ---------- SIO TOKEN BALANCE ----------
-        const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDRESS);
-
-        const tokenAccounts =
-            await solanaConnection.getParsedTokenAccountsByOwner(
-                owner,
-                { mint }
-            );
-
-        let sioBalance = 0;
-
-        if (tokenAccounts.value.length > 0) {
-            const tokenInfo =
-                tokenAccounts.value[0].account.data.parsed.info;
-
-            sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
-        }
-
-        document.getElementById('sio-balance').textContent =
-            sioBalance.toLocaleString(undefined, {
-                maximumFractionDigits: 6
-            });
-
-        console.log('Balances loaded', {
-            sol: solBalance,
-            sio: sioBalance
-        });
-
-    } catch (err) {
-        console.error('Balance fetch failed:', err);
-
-        document.getElementById('sol-balance').textContent = '—';
-        document.getElementById('sio-balance').textContent = '—';
-
-        // This page doesn't have addChatMessage, so just log to console
-        console.warn('⚠️ Unable to load balances (RPC busy). Try again shortly.');
-    }
-}
-
-// Load tokens
 function loadTokens() {
     try {
         const stored = localStorage.getItem('tokens');
-        if (stored) {
-            tokens = JSON.parse(stored);
-        }
-    } catch (e) {
-        console.error('Error loading tokens:', e);
-        tokens = [];
-    }
+        if (stored) tokens = JSON.parse(stored);
+    } catch (e) { tokens = []; }
     displayTokens();
 }
 
-// Display tokens
 function displayTokens() {
     const list = document.getElementById('token-list');
-    
     if (tokens.length === 0) {
-        list.innerHTML = '<p style="color: #666;">No tokens found. Create one on the <a href="launchpad.html" style="color: #0066ff;">Launchpad</a></p>';
+        list.innerHTML = '<p style="color:#666">No tokens found. Create one on the <a href="launchpad.html" style="color:#0066ff">Launchpad</a></p>';
         return;
     }
-    
-    list.innerHTML = tokens.map((token, index) => `
-        <div class="token-option" onclick="selectToken(${index})">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <strong style="color: #fff;">${token.name || 'Unknown'} (${token.symbol || 'N/A'})</strong>
-                    <p style="color: #666; font-size: 0.85rem; margin: 0.25rem 0 0 0;">Mint: ${token.mint ? token.mint.slice(0, 8) + '...' + token.mint.slice(-8) : 'N/A'}</p>
-                </div>
-                <span style="color: #0066ff;">→</span>
-            </div>
-        </div>
-    `).join('');
+    list.innerHTML = tokens.map((token, index) =>
+        '<div class="token-option" onclick="selectToken(' + index + ')">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center">' +
+        '<div><strong style="color:#fff">' + (token.name || 'Unknown') + ' (' + (token.symbol || 'N/A') + ')</strong>' +
+        '<p style="color:#666;font-size:0.85rem;margin:0.25rem 0 0 0">Mint: ' + (token.mint ? token.mint.slice(0,8) + '...' + token.mint.slice(-8) : 'N/A') + '</p></div>' +
+        '<span style="color:#0066ff">→</span></div></div>'
+    ).join('');
 }
 
-// Select token
 function selectToken(index) {
     selectedToken = tokens[index];
-    
-    // Update UI
     document.querySelectorAll('.token-option').forEach((el, i) => {
         el.classList.toggle('selected', i === index);
     });
-    
-    // Show editor
     document.getElementById('metadata-editor').classList.add('active');
-    
-    // Load existing metadata
     document.getElementById('meta-name').value = selectedToken.name || '';
     document.getElementById('meta-symbol').value = selectedToken.symbol || '';
     document.getElementById('meta-description').value = selectedToken.description || '';
     document.getElementById('meta-url').value = selectedToken.external_url || '';
     document.getElementById('meta-attributes').value = selectedToken.attributes ? JSON.stringify(selectedToken.attributes, null, 2) : '';
-    
-    // Load image if exists
     if (selectedToken.image) {
         document.getElementById('image-preview').src = selectedToken.image;
         document.getElementById('image-preview').style.display = 'block';
     } else {
         document.getElementById('image-preview').style.display = 'none';
     }
-    
     updatePreview();
 }
 
-// Handle image upload
 function handleImageUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
-    
-    if (file.size > 5 * 1024 * 1024) {
-        alert('Image must be less than 5MB');
-        return;
-    }
-    
+    if (file.size > 5 * 1024 * 1024) { alert('Image must be less than 5MB'); return; }
     const reader = new FileReader();
     reader.onload = (event) => {
         uploadedImage = event.target.result;
@@ -221,10 +123,8 @@ function handleImageUpload(e) {
     reader.readAsDataURL(file);
 }
 
-// Update preview
 function updatePreview() {
     if (!selectedToken) return;
-    
     const metadata = {
         name: document.getElementById('meta-name').value || selectedToken.name,
         symbol: document.getElementById('meta-symbol').value || selectedToken.symbol,
@@ -233,37 +133,19 @@ function updatePreview() {
         external_url: document.getElementById('meta-url').value || '',
         attributes: []
     };
-    
     try {
         const attrs = document.getElementById('meta-attributes').value;
-        if (attrs) {
-            metadata.attributes = JSON.parse(attrs);
-        }
-    } catch (e) {
-        metadata.attributes = [];
-    }
-    
+        if (attrs) metadata.attributes = JSON.parse(attrs);
+    } catch (e) { metadata.attributes = []; }
     document.getElementById('metadata-json').textContent = JSON.stringify(metadata, null, 2);
 }
 
-// Update metadata
 async function updateMetadata() {
-    if (!selectedToken) {
-        alert('Please select a token first');
-        return;
-    }
-    
-    if (!wallet) {
-        alert('Please connect your wallet');
-        return;
-    }
-    
+    if (!selectedToken) { alert('Please select a token first'); return; }
+    if (!wallet) { alert('Please connect your wallet'); return; }
     const btn = document.getElementById('update-btn');
-    btn.disabled = true;
-    btn.textContent = 'Updating...';
-    
+    btn.disabled = true; btn.textContent = 'Updating...';
     try {
-        // Get metadata
         const metadata = {
             name: document.getElementById('meta-name').value,
             symbol: document.getElementById('meta-symbol').value,
@@ -272,39 +154,24 @@ async function updateMetadata() {
             external_url: document.getElementById('meta-url').value,
             attributes: []
         };
-        
         try {
             const attrs = document.getElementById('meta-attributes').value;
-            if (attrs) {
-                metadata.attributes = JSON.parse(attrs);
-            }
-        } catch (e) {
-            alert('Invalid JSON in attributes field');
-            throw e;
-        }
-        
-        // Update token in storage
+            if (attrs) metadata.attributes = JSON.parse(attrs);
+        } catch (e) { alert('Invalid JSON in attributes field'); throw e; }
+
         const tokenIndex = tokens.findIndex(t => t.mint === selectedToken.mint);
         if (tokenIndex !== -1) {
-            tokens[tokenIndex] = {
-                ...tokens[tokenIndex],
-                ...metadata,
-                metadata_updated: Date.now()
-            };
+            tokens[tokenIndex] = { ...tokens[tokenIndex], ...metadata, metadata_updated: Date.now() };
             localStorage.setItem('tokens', JSON.stringify(tokens));
         }
-        
-        alert('Metadata updated successfully!\\n\\nNote: To publish on-chain, you need to upload to IPFS/Arweave and update the token metadata account.');
-        
+        alert('Metadata updated successfully!\n\nNote: To publish on-chain, upload to IPFS/Arweave and update the token metadata account.');
         loadTokens();
         selectToken(tokenIndex);
-        
     } catch (error) {
         console.error('Metadata update error:', error);
         alert('Failed to update metadata: ' + error.message);
     } finally {
-        btn.disabled = false;
-        btn.textContent = 'Update Metadata';
+        btn.disabled = false; btn.textContent = 'Update Metadata';
     }
 }
 
