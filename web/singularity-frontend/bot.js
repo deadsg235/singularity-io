@@ -1,15 +1,6 @@
 const { Connection, PublicKey, VersionedTransaction, clusterApiUrl } = solanaWeb3;
 
 let connection;
-const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
-const FALLBACK_RPC_ENDPOINTS = [
-    'https://solana-mainnet.rpc.extrnode.com',
-    'https://rpc.ankr.com/solana',
-    'https://solana-mainnet.api.syndica.io',
-    'https://api.metaplex.solana.com',
-    'https://solana-mainnet.phantom.tech',
-    'https://solana-mainnet-public.allthatnode.com'
-];
 let wallet = null;
 let botActive = false;
 let botInterval = null;
@@ -67,7 +58,7 @@ async function connectWallet() {
         
         // Show balance display and load balances
         document.getElementById('balance-display').classList.remove('hidden');
-        loadWalletBalances();
+        window.loadWalletBalances(wallet.toString());
         
         console.log('Wallet connected:', wallet.toString());
     } catch (error) {
@@ -76,100 +67,20 @@ async function connectWallet() {
     }
 }
 
-// loadWalletBalances function for this page
-async function loadWalletBalances() {
-    if (!wallet) return;
-
-    let lastError = null;
-    const allEndpoints = [SOLANA_RPC, ...FALLBACK_RPC_ENDPOINTS];
-    
-    for (let attempt = 0; attempt < allEndpoints.length; attempt++) {
-        const endpoint = allEndpoints[attempt];
-        
+// Auto-connect on load if Phantom already trusted
+setTimeout(async () => {
+    if (window.solana?.isPhantom) {
         try {
-            console.log(`loadWalletBalances: Trying RPC endpoint ${attempt + 1}/${allEndpoints.length}: ${endpoint}`);
-            
-            const tempConnection = new solanaWeb3.Connection(
-                endpoint,
-                { commitment: 'confirmed', timeout: 10000 } // 10 second timeout
-            );
-
-            const owner = new solanaWeb3.PublicKey(wallet);
-
-            // ---------- SOL BALANCE ----------
-            console.log('loadWalletBalances: Fetching SOL balance...');
-            const lamportsPromise = tempConnection.getBalance(owner);
-            const lamports = await Promise.race([
-                lamportsPromise,
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('SOL balance fetch timeout')), 10000)
-                )
-            ]);
-            const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
-
-            document.getElementById('sol-balance').textContent =
-                solBalance.toFixed(4);
-
-            // ---------- SIO TOKEN BALANCE ----------
-            console.log('loadWalletBalances: Fetching SIO token balance...');
-            const mint = new solanaWeb3.PublicKey('Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump');
-
-            const tokenAccountsPromise = tempConnection.getParsedTokenAccountsByOwner(
-                owner,
-                { mint }
-            );
-            const tokenAccounts = await Promise.race([
-                tokenAccountsPromise,
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('SIO token balance fetch timeout')), 10000)
-                )
-            ]);
-
-            let sioBalance = 0;
-
-            if (tokenAccounts.value.length > 0) {
-                const tokenInfo =
-                    tokenAccounts.value[0].account.data.parsed.info;
-
-                sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
-            }
-
-            document.getElementById('sio-balance').textContent =
-                sioBalance.toLocaleString(undefined, {
-                    maximumFractionDigits: 6
-                });
-
-            console.log('Balances loaded', {
-                sol: solBalance,
-                sio: sioBalance,
-                endpoint: endpoint
-            });
-
-            // Success - update the global connection
-            connection = tempConnection;
-            return;
-
-        } catch (err) {
-            lastError = err;
-            console.warn(`loadWalletBalances: RPC endpoint ${endpoint} failed:`, err.message);
-            
-            // If this is not the last endpoint, wait before trying the next one
-            if (attempt < allEndpoints.length - 1) {
-                const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Exponential backoff, max 5s
-                console.log(`loadWalletBalances: Waiting ${delay}ms before trying next endpoint...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-            }
-        }
+            const r = await window.solana.connect({ onlyIfTrusted: true });
+            wallet = r.publicKey;
+            const btn = document.getElementById('wallet-btn');
+            btn.textContent = `${wallet.toString().slice(0,4)}...${wallet.toString().slice(-4)}`;
+            btn.classList.add('connected');
+            document.getElementById('balance-display').classList.remove('hidden');
+            window.loadWalletBalances(wallet.toString());
+        } catch {}
     }
-
-    // All endpoints failed
-    console.error('loadWalletBalances: All RPC endpoints failed. Last error:', lastError);
-
-    document.getElementById('sol-balance').textContent = '—';
-    document.getElementById('sio-balance').textContent = '—';
-
-    console.warn('⚠️ Unable to load balances (all RPC endpoints busy). Try again in a few minutes.');
-}
+}, 600);
 
 async function startBot() {
     if (!wallet) {
@@ -272,28 +183,20 @@ async function executeTrade(strategy, baseToken, quoteToken, amount) {
 
 async function analyzeStrategy(strategy, baseToken, quoteToken) {
     try {
-        const aiDecision = await fetch('/api/bot_agent', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                strategy,
-                base_token: baseToken,
-                quote_token: quoteToken,
-                amount: parseFloat(document.getElementById('trade-amount').value)
-            })
-        });
-        
-        const result = await aiDecision.json();
-        
-        if (result.action === 'HOLD') {
-            return { shouldTrade: false, reason: result.reason };
-        }
-        
-        return {
-            shouldTrade: result.confidence > 50,
-            direction: result.action,
-            reason: `AI: ${result.reason} (${result.confidence}%)`
-        };
+        const system = `You are a Solana DeFi trading bot strategy analyzer. 
+Respond ONLY with valid JSON in this exact format: {"action":"BUY"|"SELL"|"HOLD","confidence":0-100,"reason":"brief reason"}
+No other text. Just the JSON object.`;
+
+        const msg = `Strategy: ${strategy}. Base: ${baseToken.slice(0,8)}. Quote: ${quoteToken.slice(0,8)}. Current time: ${new Date().toISOString()}. Should I trade?`;
+
+        const response = await window.groqChat(
+            [{ role: 'user', content: msg }],
+            { system, onChunk: null }
+        );
+
+        const parsed = JSON.parse(response.trim());
+        if (parsed.action === 'HOLD') return { shouldTrade: false, reason: parsed.reason };
+        return { shouldTrade: parsed.confidence > 50, direction: parsed.action, reason: `AI: ${parsed.reason} (${parsed.confidence}%)` };
     } catch {
         return fallbackStrategy(strategy, baseToken, quoteToken);
     }

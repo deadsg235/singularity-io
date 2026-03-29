@@ -41,7 +41,7 @@
         </header>
 
         <div style="max-width: 1400px; margin: 2rem auto;">
-            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
+            <div style="background: rgba(15,15,15,0.92); border: 1px solid rgba(220,38,38,0.4); border-radius: 8px; padding: 2rem; margin-bottom: 2rem; backdrop-filter: blur(10px);">
                 <h3 style="color: #dc2626; margin-bottom: 1rem;">Portfolio Overview</h3>
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem;">
                     <div style="text-align: center;">
@@ -64,18 +64,18 @@
             </div>
 
             <div class="portfolio-grid">
-                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                <div style="background: rgba(15,15,15,0.92); border: 1px solid rgba(220,38,38,0.4); border-radius: 8px; padding: 2rem; backdrop-filter: blur(10px);">
                     <h3 style="color: #dc2626; margin-bottom: 1rem;">Holdings</h3>
                     <div id="holdings-list"></div>
                 </div>
 
-                <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+                <div style="background: rgba(15,15,15,0.92); border: 1px solid rgba(220,38,38,0.4); border-radius: 8px; padding: 2rem; backdrop-filter: blur(10px);">
                     <h3 style="color: #dc2626; margin-bottom: 1rem;">Performance Chart</h3>
                     <canvas id="performance-chart" width="400" height="250"></canvas>
                 </div>
             </div>
 
-            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
+            <div style="background: rgba(15,15,15,0.92); border: 1px solid rgba(220,38,38,0.4); border-radius: 8px; padding: 2rem; backdrop-filter: blur(10px);">
                 <h3 style="color: #dc2626; margin-bottom: 1rem;">Recent Transactions</h3>
                 <div id="transactions-list"></div>
             </div>
@@ -87,8 +87,8 @@
     </div>
 
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
-    <script src="wallet-balance-unified.js"></script>
-    <script src="wallet-adapter.js"></script>
+    <script src="wallet-balance-loader.js"></script>
+    <script src="wallet-manager.js"></script>
     <script src="matrix.js"></script>
     <script src="portfolio.js"></script>
 </body>

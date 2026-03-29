@@ -1,249 +1,137 @@
-const { Connection, PublicKey, Transaction, SystemProgram, clusterApiUrl } = solanaWeb3;
+/**
+ * mint.js — Mint & Transfer tokens, no inline loadWalletBalances
+ */
+
+const { Connection, PublicKey, Transaction, SystemProgram } = solanaWeb3;
 
 let connection;
-let wallet = null;
+let walletPubkey = null;
 let tokens = [];
-let solanaConnection = null; // Add solanaConnection for this page
-const SOLANA_RPC = 'https://api.mainnet-beta.solana.com'; // Add RPC
-const SIO_MINT_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump'; // Add SIO Mint
-
-const FALLBACK_RPC_ENDPOINTS = [
-    'https://solana-mainnet.rpc.extrnode.com',
-    'https://rpc.ankr.com/solana',
-    'https://solana-mainnet.api.syndica.io',
-    'https://api.metaplex.solana.com',
-    'https://solana-mainnet.phantom.tech',
-    'https://solana-mainnet-public.allthatnode.com'
-];
-
 
 document.addEventListener('DOMContentLoaded', () => {
     connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
-    document.getElementById('wallet-btn').addEventListener('click', connectWallet);
+    document.getElementById('wallet-btn').addEventListener('click', handleWalletClick);
     document.getElementById('mint-btn').addEventListener('click', mintTokens);
     document.getElementById('transfer-btn').addEventListener('click', transferTokens);
     loadTokens();
+
+    // Auto-connect
+    setTimeout(async () => {
+        if (window.solana?.isPhantom) {
+            try {
+                const r = await window.solana.connect({ onlyIfTrusted: true });
+                walletPubkey = r.publicKey.toString();
+                onConnect(walletPubkey);
+            } catch {}
+        }
+    }, 600);
 });
 
-async function connectWallet() {
-    try {
-        if (wallet) {
-            // If already connected, disconnect
-            if (window.solana && window.solana.isPhantom) {
-                await window.solana.disconnect();
-            }
-            wallet = null;
-            solanaConnection = null;
-
-            const btn = document.getElementById('wallet-btn');
-            btn.textContent = 'Connect Wallet';
-            btn.classList.remove('connected');
-
-            document.getElementById('balance-display').classList.add('hidden');
-            if (window.setWalletConnected) window.setWalletConnected(false);
-
-            console.log('Wallet disconnected');
-            return;
-        }
-
-        if (!window.solana?.isPhantom) {
-            alert('Install Phantom Wallet');
-            return;
-        }
-        
-        const resp = await window.solana.connect();
-        wallet = resp.publicKey;
-        
+async function handleWalletClick() {
+    if (walletPubkey) {
+        await window.solana?.disconnect();
+        walletPubkey = null;
         const btn = document.getElementById('wallet-btn');
-        btn.textContent = `${wallet.toString().slice(0, 4)}...${wallet.toString().slice(-4)}`;
-        btn.classList.add('connected');
-        
-        if (window.setWalletConnected) window.setWalletConnected(true);
-        
-        // Show balance display and load balances
-        document.getElementById('balance-display').classList.remove('hidden');
-        loadWalletBalances(); // Call loadWalletBalances
-        
-        console.log('Wallet connected:', wallet.toString());
-    } catch (error) {
-        console.error('Wallet connection error:', error);
-        if (window.setWalletConnected) window.setWalletConnected(false);
+        btn.textContent = 'Connect Wallet';
+        btn.classList.remove('connected');
+        document.getElementById('balance-display').classList.add('hidden');
+        return;
     }
+    if (!window.solana?.isPhantom) { alert('Install Phantom Wallet'); return; }
+    try {
+        const r = await window.solana.connect();
+        walletPubkey = r.publicKey.toString();
+        onConnect(walletPubkey);
+    } catch (e) { console.error(e); }
 }
 
-// loadWalletBalances function for this page
-async function loadWalletBalances() {
-    if (!wallet) return;
-
-    let lastError = null;
-    const allEndpoints = [SOLANA_RPC, ...FALLBACK_RPC_ENDPOINTS];
-    
-    for (let attempt = 0; attempt < allEndpoints.length; attempt++) {
-        const endpoint = allEndpoints[attempt];
-        
-        try {
-            console.log(`loadWalletBalances: Trying RPC endpoint ${attempt + 1}/${allEndpoints.length}: ${endpoint}`);
-            
-            const connection = new solanaWeb3.Connection(
-                endpoint,
-                { commitment: 'confirmed' }
-            );
-
-            const owner = new solanaWeb3.PublicKey(wallet);
-
-            // ---------- SOL BALANCE ----------
-            const lamports = await connection.getBalance(owner);
-            const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
-
-            document.getElementById('sol-balance').textContent =
-                solBalance.toFixed(4);
-
-            // ---------- SIO TOKEN BALANCE ----------
-            const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDRESS);
-
-            const tokenAccounts =
-                await connection.getParsedTokenAccountsByOwner(
-                    owner,
-                    { mint }
-                );
-
-            let sioBalance = 0;
-
-            if (tokenAccounts.value.length > 0) {
-                const tokenInfo =
-                    tokenAccounts.value[0].account.data.parsed.info;
-
-                sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
-            }
-
-            document.getElementById('sio-balance').textContent =
-                sioBalance.toLocaleString(undefined, {
-                    maximumFractionDigits: 6
-                });
-
-            console.log('Balances loaded', {
-                sol: solBalance,
-                sio: sioBalance,
-                endpoint: endpoint
-            });
-
-            // Success - update the global connection
-            solanaConnection = connection;
-            return;
-
-        } catch (err) {
-            lastError = err;
-            console.warn(`loadWalletBalances: RPC endpoint ${endpoint} failed:`, err.message);
-            
-            // If this is not the last endpoint, wait before trying the next one
-            if (attempt < allEndpoints.length - 1) {
-                const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Exponential backoff, max 5s
-                console.log(`loadWalletBalances: Waiting ${delay}ms before trying next endpoint...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-            }
-        }
-    }
-
-    // All endpoints failed
-    console.error('loadWalletBalances: All RPC endpoints failed. Last error:', lastError);
-
-    document.getElementById('sol-balance').textContent = '—';
-    document.getElementById('sio-balance').textContent = '—';
-
-    // This page doesn't have addChatMessage, so just log to console
-    console.warn('⚠️ Unable to load balances (all RPC endpoints busy). Try again in a few minutes.');
+function onConnect(pub) {
+    const btn = document.getElementById('wallet-btn');
+    btn.textContent = `${pub.slice(0,4)}...${pub.slice(-4)}`;
+    btn.classList.add('connected');
+    document.getElementById('balance-display').classList.remove('hidden');
+    window.loadWalletBalances(pub);
 }
 
 function loadTokens() {
-    const stored = localStorage.getItem('tokens');
+    const stored = localStorage.getItem('singularity-tokens');
     if (stored) tokens = JSON.parse(stored);
-    
-    const html = '<option value="">-- Select Token --</option>' + 
+
+    const opts = '<option value="">-- Select Token --</option>' +
         tokens.map((t, i) => `<option value="${i}">${t.name} (${t.symbol})</option>`).join('');
-    
-    document.getElementById('mint-token-select').innerHTML = html;
-    document.getElementById('transfer-token-select').innerHTML = html;
+
+    document.getElementById('mint-token-select').innerHTML = opts;
+    document.getElementById('transfer-token-select').innerHTML = opts;
 }
 
 async function mintTokens() {
-    if (!wallet) {
-        alert('Connect wallet first');
-        return;
-    }
-    
-    const idx = document.getElementById('mint-token-select').value;
+    if (!walletPubkey) { alert('Connect wallet first'); return; }
+
+    const idx    = document.getElementById('mint-token-select').value;
     const amount = document.getElementById('mint-amount').value;
-    
-    if (!idx || !amount) {
-        alert('Select token and enter amount');
-        return;
-    }
-    
+    if (idx === '' || !amount) { alert('Select token and enter amount'); return; }
+
     const btn = document.getElementById('mint-btn');
     btn.disabled = true;
     btn.textContent = 'Minting...';
-    
+
     try {
         const token = tokens[idx];
-        const mint = new PublicKey(token.mint);
-        const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
-        const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
-        
-        // Find ATA
+        const mint  = new PublicKey(token.mint);
+        const TOKEN_PROGRAM_ID         = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        const ASSOCIATED_TOKEN_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
+        const walletKey = new PublicKey(walletPubkey);
+
         const [ata] = await PublicKey.findProgramAddress(
-            [wallet.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
-            ASSOCIATED_TOKEN_PROGRAM_ID
+            [walletKey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+            ASSOCIATED_TOKEN_PROGRAM
         );
-        
-        // Check if ATA exists
+
+        const tx = new Transaction();
         const ataInfo = await connection.getAccountInfo(ata);
-        const transaction = new Transaction();
-        
+
         if (!ataInfo) {
-            // Create ATA
-            const createAtaIx = {
+            tx.add({
                 keys: [
-                    { pubkey: wallet, isSigner: true, isWritable: true },
-                    { pubkey: ata, isSigner: false, isWritable: true },
-                    { pubkey: wallet, isSigner: false, isWritable: false },
-                    { pubkey: mint, isSigner: false, isWritable: false },
+                    { pubkey: walletKey, isSigner: true,  isWritable: true  },
+                    { pubkey: ata,       isSigner: false, isWritable: true  },
+                    { pubkey: walletKey, isSigner: false, isWritable: false },
+                    { pubkey: mint,      isSigner: false, isWritable: false },
                     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-                    { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
+                    { pubkey: TOKEN_PROGRAM_ID,        isSigner: false, isWritable: false }
                 ],
-                programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+                programId: ASSOCIATED_TOKEN_PROGRAM,
                 data: Buffer.from([])
-            };
-            transaction.add(createAtaIx);
+            });
         }
-        
-        // Mint instruction
+
         const mintAmount = BigInt(amount) * BigInt(Math.pow(10, token.decimals || 9));
         const mintData = Buffer.alloc(9);
-        mintData.writeUInt8(7, 0); // MintTo instruction
+        mintData.writeUInt8(7, 0);
         mintData.writeBigUInt64LE(mintAmount, 1);
-        
-        const mintIx = {
+
+        tx.add({
             keys: [
-                { pubkey: mint, isSigner: false, isWritable: true },
-                { pubkey: ata, isSigner: false, isWritable: true },
-                { pubkey: wallet, isSigner: true, isWritable: false }
+                { pubkey: mint,      isSigner: false, isWritable: true  },
+                { pubkey: ata,       isSigner: false, isWritable: true  },
+                { pubkey: walletKey, isSigner: true,  isWritable: false }
             ],
             programId: TOKEN_PROGRAM_ID,
             data: mintData
-        };
-        
-        transaction.add(mintIx);
-        transaction.feePayer = wallet;
+        });
+
+        tx.feePayer = walletKey;
         const { blockhash } = await connection.getLatestBlockhash();
-        transaction.recentBlockhash = blockhash;
-        
-        const signed = await window.solana.signTransaction(transaction);
-        const signature = await connection.sendRawTransaction(signed.serialize());
-        await connection.confirmTransaction(signature, 'confirmed');
-        
-        alert(`Minted ${amount} tokens!\\n\\nSignature: ${signature}`);
-    } catch (error) {
-        alert('Mint failed: ' + error.message);
+        tx.recentBlockhash = blockhash;
+
+        const signed = await window.solana.signTransaction(tx);
+        const sig    = await connection.sendRawTransaction(signed.serialize());
+        await connection.confirmTransaction(sig, 'confirmed');
+
+        alert(`Minted ${amount} tokens!\n\nSignature: ${sig}`);
+        window.loadWalletBalances(walletPubkey);
+    } catch (err) {
+        alert('Mint failed: ' + err.message);
     } finally {
         btn.disabled = false;
         btn.textContent = 'Mint to Wallet';
@@ -251,93 +139,81 @@ async function mintTokens() {
 }
 
 async function transferTokens() {
-    if (!wallet) {
-        alert('Connect wallet first');
-        return;
-    }
-    
-    const idx = document.getElementById('transfer-token-select').value;
-    const recipient = document.getElementById('recipient').value;
-    const amount = document.getElementById('transfer-amount').value;
-    
-    if (!idx || !recipient || !amount) {
-        alert('Fill all fields');
-        return;
-    }
-    
+    if (!walletPubkey) { alert('Connect wallet first'); return; }
+
+    const idx       = document.getElementById('transfer-token-select').value;
+    const recipient = document.getElementById('recipient').value.trim();
+    const amount    = document.getElementById('transfer-amount').value;
+    if (idx === '' || !recipient || !amount) { alert('Fill all fields'); return; }
+
     const btn = document.getElementById('transfer-btn');
     btn.disabled = true;
     btn.textContent = 'Transferring...';
-    
+
     try {
-        const token = tokens[idx];
-        const mint = new PublicKey(token.mint);
-        const recipientPubkey = new PublicKey(recipient);
-        const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
-        const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
-        
-        // Find sender ATA
+        const token        = tokens[idx];
+        const mint         = new PublicKey(token.mint);
+        const recipientKey = new PublicKey(recipient);
+        const walletKey    = new PublicKey(walletPubkey);
+        const TOKEN_PROGRAM_ID         = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        const ASSOCIATED_TOKEN_PROGRAM = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
+
         const [senderAta] = await PublicKey.findProgramAddress(
-            [wallet.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
-            ASSOCIATED_TOKEN_PROGRAM_ID
+            [walletKey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+            ASSOCIATED_TOKEN_PROGRAM
         );
-        
-        // Find recipient ATA
         const [recipientAta] = await PublicKey.findProgramAddress(
-            [recipientPubkey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
-            ASSOCIATED_TOKEN_PROGRAM_ID
+            [recipientKey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+            ASSOCIATED_TOKEN_PROGRAM
         );
-        
-        const transaction = new Transaction();
-        
-        // Check if recipient ATA exists
+
+        const tx = new Transaction();
         const recipientAtaInfo = await connection.getAccountInfo(recipientAta);
+
         if (!recipientAtaInfo) {
-            const createAtaIx = {
+            tx.add({
                 keys: [
-                    { pubkey: wallet, isSigner: true, isWritable: true },
-                    { pubkey: recipientAta, isSigner: false, isWritable: true },
-                    { pubkey: recipientPubkey, isSigner: false, isWritable: false },
-                    { pubkey: mint, isSigner: false, isWritable: false },
+                    { pubkey: walletKey,    isSigner: true,  isWritable: true  },
+                    { pubkey: recipientAta, isSigner: false, isWritable: true  },
+                    { pubkey: recipientKey, isSigner: false, isWritable: false },
+                    { pubkey: mint,         isSigner: false, isWritable: false },
                     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-                    { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
+                    { pubkey: TOKEN_PROGRAM_ID,        isSigner: false, isWritable: false }
                 ],
-                programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+                programId: ASSOCIATED_TOKEN_PROGRAM,
                 data: Buffer.from([])
-            };
-            transaction.add(createAtaIx);
+            });
         }
-        
-        // Transfer instruction
+
         const transferAmount = BigInt(amount) * BigInt(Math.pow(10, token.decimals || 9));
         const transferData = Buffer.alloc(9);
-        transferData.writeUInt8(3, 0); // Transfer instruction
+        transferData.writeUInt8(3, 0);
         transferData.writeBigUInt64LE(transferAmount, 1);
-        
-        const transferIx = {
+
+        tx.add({
             keys: [
-                { pubkey: senderAta, isSigner: false, isWritable: true },
-                { pubkey: recipientAta, isSigner: false, isWritable: true },
-                { pubkey: wallet, isSigner: true, isWritable: false }
+                { pubkey: senderAta,    isSigner: false, isWritable: true  },
+                { pubkey: recipientAta, isSigner: false, isWritable: true  },
+                { pubkey: walletKey,    isSigner: true,  isWritable: false }
             ],
             programId: TOKEN_PROGRAM_ID,
             data: transferData
-        };
-        
-        transaction.add(transferIx);
-        transaction.feePayer = wallet;
+        });
+
+        tx.feePayer = walletKey;
         const { blockhash } = await connection.getLatestBlockhash();
-        transaction.recentBlockhash = blockhash;
-        
-        const signed = await window.solana.signTransaction(transaction);
-        const signature = await connection.sendRawTransaction(signed.serialize());
-        await connection.confirmTransaction(signature, 'confirmed');
-        
-        alert(`Transferred ${amount} tokens!\\n\\nSignature: ${signature}`);
+        tx.recentBlockhash = blockhash;
+
+        const signed = await window.solana.signTransaction(tx);
+        const sig    = await connection.sendRawTransaction(signed.serialize());
+        await connection.confirmTransaction(sig, 'confirmed');
+
+        alert(`Transferred ${amount} tokens!\n\nSignature: ${sig}`);
         document.getElementById('recipient').value = '';
         document.getElementById('transfer-amount').value = '';
-    } catch (error) {
-        alert('Transfer failed: ' + error.message);
+        window.loadWalletBalances(walletPubkey);
+    } catch (err) {
+        alert('Transfer failed: ' + err.message);
     } finally {
         btn.disabled = false;
         btn.textContent = 'Transfer';

@@ -1,274 +1,167 @@
-let currentTab = 'daily';
+/**
+ * leaderboard.js — fully client-side, no /api/* calls
+ */
 
-const leaderboardData = {
-    daily: [
-        { rank: 1, name: 'CryptoKing', pnl: 2847.32, roi: 24.3, trades: 15, winRate: 86.7, followers: 1247 },
-        { rank: 2, name: 'SolanaWhale', pnl: 1923.45, roi: 19.7, trades: 23, winRate: 78.3, followers: 892 },
-        { rank: 3, name: 'DeFiMaster', pnl: 1456.78, roi: 15.2, trades: 31, winRate: 74.2, followers: 634 },
-        { rank: 4, name: 'TokenHunter', pnl: 1234.56, roi: 12.8, trades: 18, winRate: 72.2, followers: 456 },
-        { rank: 5, name: 'MemeTrader', pnl: 987.65, roi: 11.4, trades: 27, winRate: 70.4, followers: 321 }
-    ],
-    weekly: [
-        { rank: 1, name: 'CryptoKing', pnl: 15847.32, roi: 124.3, trades: 89, winRate: 84.3, followers: 1247 },
-        { rank: 2, name: 'DeFiMaster', pnl: 12456.78, roi: 98.7, trades: 156, winRate: 76.9, followers: 634 },
-        { rank: 3, name: 'SolanaWhale', pnl: 9823.45, roi: 87.2, trades: 134, winRate: 73.1, followers: 892 }
-    ],
-    monthly: [
-        { rank: 1, name: 'CryptoKing', pnl: 67847.32, roi: 456.7, trades: 423, winRate: 82.7, followers: 1247 },
-        { rank: 2, name: 'DeFiMaster', pnl: 54321.09, roi: 387.4, trades: 567, winRate: 78.2, followers: 634 }
-    ],
-    'all-time': [
-        { rank: 1, name: 'CryptoKing', pnl: 234567.89, roi: 1234.5, trades: 2341, winRate: 81.4, followers: 1247 },
-        { rank: 2, name: 'DeFiMaster', pnl: 187654.32, roi: 987.6, trades: 1876, winRate: 77.8, followers: 634 }
-    ]
-};
+let walletPubkey = null;
+let currentTab   = 'daily';
 
-const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
-const FALLBACK_RPC_ENDPOINTS = [
-    'https://solana-mainnet.rpc.extrnode.com',
-    'https://rpc.ankr.com/solana',
-    'https://solana-mainnet.api.syndica.io',
-    'https://api.metaplex.solana.com',
-    'https://solana-mainnet.phantom.tech',
-    'https://solana-mainnet-public.allthatnode.com'
+// Static mock traders (10 entries)
+const BASE_TRADERS = [
+    { addr: 'CrypK...1247', pnl: 2847.32,  roi: 24.3,  trades: 15,  winRate: 86.7, followers: 1247 },
+    { addr: 'SolW...0892',  pnl: 1923.45,  roi: 19.7,  trades: 23,  winRate: 78.3, followers: 892  },
+    { addr: 'DeFi...0634',  pnl: 1456.78,  roi: 15.2,  trades: 31,  winRate: 74.2, followers: 634  },
+    { addr: 'TknH...0456',  pnl: 1234.56,  roi: 12.8,  trades: 18,  winRate: 72.2, followers: 456  },
+    { addr: 'Meme...0321',  pnl:  987.65,  roi: 11.4,  trades: 27,  winRate: 70.4, followers: 321  },
+    { addr: 'Arb7...0289',  pnl:  876.43,  roi:  9.8,  trades: 42,  winRate: 68.9, followers: 289  },
+    { addr: 'Grid...0201',  pnl:  754.21,  roi:  8.3,  trades: 56,  winRate: 66.1, followers: 201  },
+    { addr: 'Moon...0178',  pnl:  632.10,  roi:  7.1,  trades: 19,  winRate: 63.2, followers: 178  },
+    { addr: 'Diam...0134',  pnl:  521.87,  roi:  5.9,  trades: 33,  winRate: 60.6, followers: 134  },
+    { addr: 'Whal...0098',  pnl:  412.34,  roi:  4.7,  trades: 11,  winRate: 54.5, followers: 98   }
+];
+
+const PERIOD_MULTIPLIERS = { daily: 1, weekly: 7, monthly: 30, 'all-time': 365 };
+
+const TOP_STRATEGIES = [
+    { name: 'DCA Accumulation', users: 342, roi: 34.2 },
+    { name: 'Momentum Scalp',   users: 218, roi: 28.7 },
+    { name: 'Grid Trading',     users: 189, roi: 22.1 },
+    { name: 'Arbitrage Bot',    users: 97,  roi: 18.4 },
+    { name: 'Trend Following',  users: 156, roi: 15.9 }
+];
+
+const MARKET_LEADERS = [
+    { token: 'SOL',  leader: 'CrypK...1247', pnl: 12400 },
+    { token: 'JUP',  leader: 'DeFi...0634',  pnl: 8700  },
+    { token: 'BONK', leader: 'Meme...0321',  pnl: 6200  },
+    { token: 'RAY',  leader: 'Grid...0201',  pnl: 4800  },
+    { token: 'S-IO', leader: 'SolW...0892',  pnl: 3100  }
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('wallet-btn').addEventListener('click', connectWallet);
-    loadLeaderboard();
-    loadTopStrategies();
-    loadMarketLeaders();
+    document.getElementById('wallet-btn').addEventListener('click', handleWalletClick);
+    renderLeaderboard();
+    renderTopStrategies();
+    renderMarketLeaders();
+
+    // Auto-connect
+    setTimeout(async () => {
+        if (window.solana?.isPhantom) {
+            try {
+                const r = await window.solana.connect({ onlyIfTrusted: true });
+                walletPubkey = r.publicKey.toString();
+                onConnect(walletPubkey);
+            } catch {}
+        }
+    }, 600);
 });
 
-async function connectWallet() {
-    try {
-        if (window.globalWallet) {
-            // If already connected, disconnect
-            if (window.solana && window.solana.isPhantom) {
-                await window.solana.disconnect();
-            }
-            window.globalWallet = null;
-
-            const btn = document.getElementById('wallet-btn');
-            btn.textContent = 'Connect Wallet';
-            btn.classList.remove('connected');
-
-            document.getElementById('balance-display').classList.add('hidden');
-            if (window.setWalletConnected) window.setWalletConnected(false);
-
-            console.log('Wallet disconnected');
-            return;
-        }
-
-        if (!window.solana?.isPhantom) {
-            alert('Install Phantom Wallet');
-            return;
-        }
-        
-        const resp = await window.solana.connect();
-        window.globalWallet = resp.publicKey;
-        
+async function handleWalletClick() {
+    if (walletPubkey) {
+        await window.solana?.disconnect();
+        walletPubkey = null;
         const btn = document.getElementById('wallet-btn');
-        btn.textContent = `${window.globalWallet.toString().slice(0, 4)}...${window.globalWallet.toString().slice(-4)}`;
-        btn.classList.add('connected');
-        
-        if (window.setWalletConnected) window.setWalletConnected(true);
-        
-        // Show balance display and load balances
-        document.getElementById('balance-display').classList.remove('hidden');
-        loadWalletBalances();
-        
-        console.log('Wallet connected:', window.globalWallet.toString());
-    } catch (error) {
-        console.error('Wallet connection error:', error);
-        if (window.setWalletConnected) window.setWalletConnected(false);
+        btn.textContent = 'Connect Wallet';
+        btn.classList.remove('connected');
+        document.getElementById('balance-display').classList.add('hidden');
+        renderLeaderboard();
+        return;
     }
+    if (!window.solana?.isPhantom) { alert('Install Phantom Wallet'); return; }
+    try {
+        const r = await window.solana.connect();
+        walletPubkey = r.publicKey.toString();
+        onConnect(walletPubkey);
+    } catch (e) { console.error(e); }
 }
 
-// loadWalletBalances function for this page
-async function loadWalletBalances() {
-    if (!window.globalWallet) return;
-
-    let lastError = null;
-    const allEndpoints = [SOLANA_RPC, ...FALLBACK_RPC_ENDPOINTS];
-    
-    for (let attempt = 0; attempt < allEndpoints.length; attempt++) {
-        const endpoint = allEndpoints[attempt];
-        
-        try {
-            console.log(`loadWalletBalances: Trying RPC endpoint ${attempt + 1}/${allEndpoints.length}: ${endpoint}`);
-            
-            const connection = new solanaWeb3.Connection(
-                endpoint,
-                { commitment: 'confirmed', timeout: 10000 } // 10 second timeout
-            );
-
-            const owner = new solanaWeb3.PublicKey(window.globalWallet);
-
-            // ---------- SOL BALANCE ----------
-            console.log('loadWalletBalances: Fetching SOL balance...');
-            const lamportsPromise = connection.getBalance(owner);
-            const lamports = await Promise.race([
-                lamportsPromise,
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('SOL balance fetch timeout')), 10000)
-                )
-            ]);
-            const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
-
-            document.getElementById('sol-balance').textContent =
-                solBalance.toFixed(4);
-
-            // ---------- SIO TOKEN BALANCE ----------
-            console.log('loadWalletBalances: Fetching SIO token balance...');
-            const mint = new solanaWeb3.PublicKey('Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump');
-
-            const tokenAccountsPromise = connection.getParsedTokenAccountsByOwner(
-                owner,
-                { mint }
-            );
-            const tokenAccounts = await Promise.race([
-                tokenAccountsPromise,
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('SIO token balance fetch timeout')), 10000)
-                )
-            ]);
-
-            let sioBalance = 0;
-
-            if (tokenAccounts.value.length > 0) {
-                const tokenInfo =
-                    tokenAccounts.value[0].account.data.parsed.info;
-
-                sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
-            }
-
-            document.getElementById('sio-balance').textContent =
-                sioBalance.toLocaleString(undefined, {
-                    maximumFractionDigits: 6
-                });
-
-            console.log('Balances loaded', {
-                sol: solBalance,
-                sio: sioBalance,
-                endpoint: endpoint
-            });
-
-            return;
-
-        } catch (err) {
-            lastError = err;
-            console.warn(`loadWalletBalances: RPC endpoint ${endpoint} failed:`, err.message);
-            
-            // If this is not the last endpoint, wait before trying the next one
-            if (attempt < allEndpoints.length - 1) {
-                const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Exponential backoff, max 5s
-                console.log(`loadWalletBalances: Waiting ${delay}ms before trying next endpoint...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-            }
-        }
-    }
-
-    // All endpoints failed
-    console.error('loadWalletBalances: All RPC endpoints failed. Last error:', lastError);
-
-    document.getElementById('sol-balance').textContent = '—';
-    document.getElementById('sio-balance').textContent = '—';
-
-    console.warn('⚠️ Unable to load balances (all RPC endpoints busy). Try again in a few minutes.');
+function onConnect(pub) {
+    const btn = document.getElementById('wallet-btn');
+    btn.textContent = `${pub.slice(0,4)}...${pub.slice(-4)}`;
+    btn.classList.add('connected');
+    document.getElementById('balance-display').classList.remove('hidden');
+    window.loadWalletBalances(pub);
+    renderLeaderboard();
 }
 
 function switchTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
     event.target.classList.add('active');
-    loadLeaderboard();
+    renderLeaderboard();
 }
 
-async function loadLeaderboard() {
-    try {
-        const response = await fetch(`/api/leaderboard/${currentTab}`);
-        const result = await response.json();
-        const data = result.leaderboard;
-        
-        const tbody = document.getElementById('leaderboard-body');
-        
-        tbody.innerHTML = data.map(trader => `
-            <tr>
-                <td class="rank">#${trader.rank}</td>
-                <td>${trader.name}</td>
-                <td class="${trader.pnl > 0 ? 'profit' : 'loss'}">$${trader.pnl.toLocaleString()}</td>
-                <td class="${trader.roi > 0 ? 'profit' : 'loss'}">+${trader.roi.toFixed(1)}%</td>
-                <td>${trader.trades}</td>
-                <td>${trader.winRate}%</td>
-                <td>${trader.followers}</td>
-                <td><button onclick="followTrader('${trader.name}')" style="padding: 0.5rem 1rem; background: #00ff88; color: #000; border: none; border-radius: 4px; cursor: pointer;">Follow</button></td>
-            </tr>
-        `).join('');
-    } catch (error) {
-        console.error('Failed to load leaderboard:', error);
-        // Fallback to static data
-        const data = leaderboardData[currentTab] || leaderboardData.daily;
-        const tbody = document.getElementById('leaderboard-body');
-        tbody.innerHTML = data.map(trader => `
-            <tr>
-                <td class="rank">#${trader.rank}</td>
-                <td>${trader.name}</td>
-                <td class="${trader.pnl > 0 ? 'profit' : 'loss'}">$${trader.pnl.toLocaleString()}</td>
-                <td class="${trader.roi > 0 ? 'profit' : 'loss'}">+${trader.roi}%</td>
-                <td>${trader.trades}</td>
-                <td>${trader.winRate}%</td>
-                <td>${trader.followers}</td>
-                <td><button onclick="followTrader('${trader.name}')" style="padding: 0.5rem 1rem; background: #00ff88; color: #000; border: none; border-radius: 4px; cursor: pointer;">Follow</button></td>
-            </tr>
-        `).join('');
+function renderLeaderboard() {
+    const mult = PERIOD_MULTIPLIERS[currentTab] || 1;
+    // Scale mock data by period multiplier with slight randomness
+    let traders = BASE_TRADERS.map((t, i) => ({
+        rank: i + 1,
+        addr: t.addr,
+        pnl:      +(t.pnl  * mult * (0.9 + Math.random() * 0.2)).toFixed(2),
+        roi:      +(t.roi  * Math.sqrt(mult) * (0.9 + Math.random() * 0.2)).toFixed(1),
+        trades:   Math.round(t.trades * mult * (0.8 + Math.random() * 0.4)),
+        winRate:  +(t.winRate * (0.97 + Math.random() * 0.06)).toFixed(1),
+        followers: t.followers
+    }));
+
+    // Insert user's wallet at random rank if connected
+    if (walletPubkey) {
+        let botStats = { total: 0, success: 0, pnl: 0 };
+        try { botStats = JSON.parse(localStorage.getItem('bot-stats') || '{}'); } catch {}
+        const userRank = Math.floor(Math.random() * 5) + 4; // rank 4-8
+        const userEntry = {
+            rank: userRank,
+            addr: `${walletPubkey.slice(0,4)}...${walletPubkey.slice(-4)} (You)`,
+            pnl:      +(botStats.pnl || 0).toFixed(2),
+            roi:      +((botStats.pnl || 0) / 10).toFixed(1),
+            trades:   botStats.total || 0,
+            winRate:  botStats.total > 0 ? +((botStats.success / botStats.total) * 100).toFixed(1) : 0,
+            followers: 0,
+            isUser: true
+        };
+        traders.splice(userRank - 1, 0, userEntry);
+        traders = traders.slice(0, 11).map((t, i) => ({ ...t, rank: i + 1 }));
     }
+
+    const tbody = document.getElementById('leaderboard-body');
+    tbody.innerHTML = traders.map(t => `
+        <tr style="${t.isUser ? 'background:rgba(220,38,38,0.1);' : ''}">
+            <td class="rank">#${t.rank}</td>
+            <td style="color:${t.isUser ? '#ef4444' : '#fff'};">${t.addr}</td>
+            <td class="${t.pnl >= 0 ? 'profit' : 'loss'}">$${t.pnl.toLocaleString()}</td>
+            <td class="${t.roi >= 0 ? 'profit' : 'loss'}">${t.roi >= 0 ? '+' : ''}${t.roi}%</td>
+            <td>${t.trades}</td>
+            <td>${t.winRate}%</td>
+            <td>${t.followers}</td>
+            <td><button onclick="followTrader('${t.addr}')" style="padding:.4rem .9rem;background:#dc2626;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.85rem;">Follow</button></td>
+        </tr>`).join('');
 }
 
-async function loadTopStrategies() {
-    try {
-        const response = await fetch('/api/leaderboard/strategies');
-        const result = await response.json();
-        const strategies = result.strategies;
-        
-        const html = strategies.map(strategy => `
-            <div style="display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid #333;">
-                <div>
-                    <div style="color: #fff; font-weight: bold;">${strategy.name}</div>
-                    <div style="color: #666; font-size: 0.9rem;">${strategy.users} users</div>
-                </div>
-                <div style="color: #00ff88; font-weight: bold;">+${strategy.roi.toFixed(1)}%</div>
+function renderTopStrategies() {
+    const html = TOP_STRATEGIES.map(s => `
+        <div style="display:flex;justify-content:space-between;padding:.8rem 0;border-bottom:1px solid #333;">
+            <div>
+                <div style="color:#fff;font-weight:bold;">${s.name}</div>
+                <div style="color:#666;font-size:.9rem;">${s.users} users</div>
             </div>
-        `).join('');
-        
-        document.getElementById('top-strategies').innerHTML = html;
-    } catch (error) {
-        console.error('Failed to load strategies:', error);
-    }
+            <div style="color:#ef4444;font-weight:bold;">+${s.roi}%</div>
+        </div>`).join('');
+    const el = document.getElementById('top-strategies');
+    if (el) el.innerHTML = html;
 }
 
-async function loadMarketLeaders() {
-    try {
-        const response = await fetch('/api/leaderboard/market-leaders');
-        const result = await response.json();
-        const leaders = result.market_leaders;
-        
-        const html = leaders.map(leader => `
-            <div style="display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid #333;">
-                <div>
-                    <div style="color: #0066ff; font-weight: bold;">${leader.token}</div>
-                    <div style="color: #ccc; font-size: 0.9rem;">${leader.leader}</div>
-                </div>
-                <div style="color: #00ff88; font-weight: bold;">+$${(leader.pnl/1000).toFixed(1)}K</div>
+function renderMarketLeaders() {
+    const html = MARKET_LEADERS.map(l => `
+        <div style="display:flex;justify-content:space-between;padding:.8rem 0;border-bottom:1px solid #333;">
+            <div>
+                <div style="color:#dc2626;font-weight:bold;">${l.token}</div>
+                <div style="color:#ccc;font-size:.9rem;">${l.leader}</div>
             </div>
-        `).join('');
-        
-        document.getElementById('market-leaders').innerHTML = html;
-    } catch (error) {
-        console.error('Failed to load market leaders:', error);
-    }
+            <div style="color:#ef4444;font-weight:bold;">+$${(l.pnl/1000).toFixed(1)}K</div>
+        </div>`).join('');
+    const el = document.getElementById('market-leaders');
+    if (el) el.innerHTML = html;
 }
 
-function followTrader(traderName) {
-    alert(`Now following ${traderName}! Copy trading activated.`);
+function followTrader(addr) {
+    alert(`Now following ${addr}!`);
 }
