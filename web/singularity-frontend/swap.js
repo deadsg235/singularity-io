@@ -7,6 +7,10 @@ const JUPITER_QUOTE = 'https://quote-api.jup.ag/v6/quote';
 const JUPITER_SWAP  = 'https://quote-api.jup.ag/v6/swap';
 const COINGECKO_SOL = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd&include_24hr_vol=true';
 
+// Fallback proxy for environments where Jupiter is blocked (e.g. file:// or restricted networks)
+const JUPITER_QUOTE_FALLBACK = 'https://api.jup.ag/swap/v1/quote';
+const JUPITER_SWAP_FALLBACK  = 'https://api.jup.ag/swap/v1/swap';
+
 const TOKENS = {
     'So11111111111111111111111111111111111111112':  { symbol: 'SOL',  decimals: 9 },
     'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': { symbol: 'USDC', decimals: 6 },
@@ -127,11 +131,25 @@ async function updateQuote() {
         const inputAmt   = Math.floor(fromAmount * Math.pow(10, decimals));
         const slippageBps = Math.round((parseFloat(document.getElementById('slippage-input')?.value || '0.5')) * 100);
 
-        const url = `${JUPITER_QUOTE}?inputMint=${fromMint}&outputMint=${toMint}&amount=${inputAmt}&slippageBps=${slippageBps}&onlyDirectRoutes=false`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`Jupiter quote error ${res.status}`);
-        const quote = await res.json();
-        if (quote.error) throw new Error(quote.error);
+        // Try primary Jupiter endpoint, then fallback
+        let quote = null;
+        const endpoints = [
+            `${JUPITER_QUOTE}?inputMint=${fromMint}&outputMint=${toMint}&amount=${inputAmt}&slippageBps=${slippageBps}&onlyDirectRoutes=false`,
+            `${JUPITER_QUOTE_FALLBACK}?inputMint=${fromMint}&outputMint=${toMint}&amount=${inputAmt}&slippageBps=${slippageBps}`,
+        ];
+
+        for (const url of endpoints) {
+            try {
+                const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+                if (!res.ok) continue;
+                const data = await res.json();
+                if (data.error) continue;
+                quote = data;
+                break;
+            } catch { /* try next */ }
+        }
+
+        if (!quote) throw new Error('Jupiter API unreachable — ensure the page is served over HTTPS (not file://)');
 
         currentQuote = quote;
 
@@ -159,9 +177,13 @@ async function updateQuote() {
 
     } catch (err) {
         console.error('Quote failed:', err);
-        document.getElementById('exchange-rate').textContent = 'Quote unavailable';
+        const isNetwork = err.message.includes('fetch') || err.message.includes('unreachable') || err.message.includes('ERR_NAME');
+        const msg = isNetwork
+            ? 'Jupiter API unavailable — open via Vercel/HTTPS, not file://'
+            : 'Quote unavailable';
+        document.getElementById('exchange-rate').textContent = msg;
         document.getElementById('to-amount').value = '';
-        setSwapBtn('Quote Failed — Retry', false);
+        setSwapBtn('Retry Quote', false);
         document.getElementById('swap-btn').onclick = updateQuote;
         currentQuote = null;
     }
@@ -174,21 +196,28 @@ async function executeSwap() {
     setSwapBtn('Building transaction…', true);
 
     try {
-        // Build swap transaction via Jupiter
-        const swapRes = await fetch(JUPITER_SWAP, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                quoteResponse: currentQuote,
-                userPublicKey: walletPubkey,
-                wrapAndUnwrapSol: true,
-                dynamicComputeUnitLimit: true,
-                prioritizationFeeLamports: 'auto'
-            })
-        });
-
-        if (!swapRes.ok) throw new Error(`Jupiter swap error ${swapRes.status}`);
-        const { swapTransaction } = await swapRes.json();
+        // Build swap transaction via Jupiter (try both endpoints)
+        let swapTransaction = null;
+        for (const swapUrl of [JUPITER_SWAP, JUPITER_SWAP_FALLBACK]) {
+            try {
+                const swapRes = await fetch(swapUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quoteResponse: currentQuote,
+                        userPublicKey: walletPubkey,
+                        wrapAndUnwrapSol: true,
+                        dynamicComputeUnitLimit: true,
+                        prioritizationFeeLamports: 'auto'
+                    }),
+                    signal: AbortSignal.timeout(10000),
+                });
+                if (!swapRes.ok) continue;
+                const data = await swapRes.json();
+                if (data.swapTransaction) { swapTransaction = data.swapTransaction; break; }
+            } catch { /* try next */ }
+        }
+        if (!swapTransaction) throw new Error('Jupiter swap API unreachable — ensure page is served over HTTPS');
 
         setSwapBtn('Awaiting wallet approval…', true);
 
@@ -258,10 +287,11 @@ function swapTokens() {
 // ── Market data ───────────────────────────────────────────────
 async function loadMarketData() {
     try {
-        const res  = await fetch(COINGECKO_SOL);
+        const res  = await fetch(COINGECKO_SOL, { signal: AbortSignal.timeout(6000) });
         const data = await res.json();
         if (data.solana) {
             currentSolPrice = data.solana.usd;
+            window._cachedSolPrice = currentSolPrice;
             const p = currentSolPrice.toFixed(2);
             document.getElementById('sol-price')?.setAttribute('data-val', p);
             ['sol-price','sol-price-swap'].forEach(id => {
@@ -276,7 +306,7 @@ async function loadMarketData() {
 
     // S-IO price via Jupiter price API
     try {
-        const r = await fetch('https://price.jup.ag/v6/price?ids=Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump');
+        const r = await fetch('https://price.jup.ag/v6/price?ids=Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump', { signal: AbortSignal.timeout(6000) });
         const d = await r.json();
         const price = d?.data?.['Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump']?.price;
         if (price) {
