@@ -1,109 +1,89 @@
-let matrixCanvas, matrixCtx;
-let drops = [];
-let walletConnected = false;
-let matrixEnabled = true;
+/**
+ * matrix.js — Red Matrix rain backdrop
+ * Singularity.io v3.0
+ */
 
-const chars = "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン";
+(function () {
+  const CHARS = "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン";
+  const COL_W = 18;
+  const FONT_SIZE = 14;
 
-function initMatrix() {
-    matrixCanvas = document.createElement('canvas');
-    matrixCanvas.id = 'matrix-bg';
-    matrixCanvas.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none;';
-    document.body.appendChild(matrixCanvas);
-    
-    matrixCtx = matrixCanvas.getContext('2d');
-    resizeMatrix();
-    
-    const columns = Math.floor(matrixCanvas.width / 20);
-    drops.length = 0;
-    for (let i = 0; i < columns; i++) {
-        drops[i] = Math.random() * matrixCanvas.height;
+  let canvas, ctx, drops = [], enabled = true, walletOn = false;
+  let raf;
+
+  function init() {
+    canvas = document.createElement("canvas");
+    canvas.id = "matrix-bg";
+    document.body.prepend(canvas);
+    ctx = canvas.getContext("2d");
+    resize();
+    window.addEventListener("resize", resize);
+
+    const btn = document.getElementById("matrix-toggle");
+    if (btn) {
+      btn.classList.add("active");
+      btn.addEventListener("click", toggle);
     }
-    
-    window.addEventListener('resize', resizeMatrix);
-    
-    // Initialize toggle button
-    const toggleBtn = document.getElementById('matrix-toggle');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', toggleMatrix);
-        updateToggleButton();
+
+    raf = requestAnimationFrame(tick);
+  }
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const cols = Math.ceil(canvas.width / COL_W);
+    drops = Array.from({ length: cols }, () => Math.random() * -canvas.height / FONT_SIZE);
+  }
+
+  function toggle() {
+    enabled = !enabled;
+    const btn = document.getElementById("matrix-toggle");
+    if (btn) btn.classList.toggle("active", enabled);
+    if (!enabled) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-    
-    animateMatrix();
-}
+  }
 
-function toggleMatrix() {
-    matrixEnabled = !matrixEnabled;
-    updateToggleButton();
-    
-    if (!matrixEnabled) {
-        // Clear the canvas
-        matrixCtx.fillStyle = 'rgba(0, 0, 0, 1)';
-        matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+  function tick() {
+    raf = requestAnimationFrame(tick);
+    if (!enabled) return;
+
+    // Fade trail
+    ctx.fillStyle = "rgba(0,0,0,0.055)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.font = `${FONT_SIZE}px 'JetBrains Mono', monospace`;
+
+    for (let i = 0; i < drops.length; i++) {
+      const ch = CHARS[Math.floor(Math.random() * CHARS.length)];
+      const x  = i * COL_W;
+      const y  = drops[i] * FONT_SIZE;
+
+      // Head glyph — bright
+      ctx.fillStyle = walletOn ? "#ff6b6b" : "#ff2222";
+      ctx.fillText(ch, x, y);
+
+      // Tail glyph — dimmer
+      const tailY = (drops[i] - 1) * FONT_SIZE;
+      ctx.fillStyle = walletOn
+        ? `rgba(220,80,80,${0.35 + Math.random() * 0.25})`
+        : `rgba(180,0,0,${0.3 + Math.random() * 0.2})`;
+      ctx.fillText(CHARS[Math.floor(Math.random() * CHARS.length)], x, tailY);
+
+      // Reset column
+      if (y > canvas.height && Math.random() > 0.975) {
+        drops[i] = 0;
+      }
+      drops[i] += 0.6 + Math.random() * 0.4;
     }
-}
+  }
 
-function updateToggleButton() {
-    const toggleBtn = document.getElementById('matrix-toggle');
-    if (toggleBtn) {
-        if (matrixEnabled) {
-            toggleBtn.classList.add('active');
-            toggleBtn.textContent = 'M';
-        } else {
-            toggleBtn.classList.remove('active');
-            toggleBtn.textContent = 'M';
-        }
-    }
-}
+  // Public API
+  window.setWalletConnected = function (v) { walletOn = !!v; };
 
-function resizeMatrix() {
-    matrixCanvas.width = window.innerWidth;
-    matrixCanvas.height = window.innerHeight;
-}
-
-function animateMatrix() {
-    if (matrixEnabled) {
-        matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-        matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
-        
-        const fontSize = 16;
-        matrixCtx.font = `${fontSize}px monospace`;
-        
-        for (let i = 0; i < drops.length; i++) {
-            const char = chars[Math.floor(Math.random() * chars.length)];
-            const x = i * 20;
-            const y = drops[i] * fontSize;
-            
-            if (walletConnected) {
-                const gradient = matrixCtx.createLinearGradient(x, y - 100, x, y + 100);
-                gradient.addColorStop(0, '#dc2626');
-                gradient.addColorStop(0.5, '#ef4444');
-                gradient.addColorStop(1, '#fca5a5');
-                matrixCtx.fillStyle = gradient;
-            } else {
-                matrixCtx.fillStyle = `hsl(0, 100%, ${30 + Math.sin(y * 0.01) * 20}%)`;
-            }
-            
-            matrixCtx.fillText(char, x, y);
-            
-            if (y > matrixCanvas.height && Math.random() > 0.975) {
-                drops[i] = 0;
-            }
-            drops[i]++;
-        }
-    }
-    
-    requestAnimationFrame(animateMatrix);
-}
-
-function setWalletConnected(connected) {
-    walletConnected = connected;
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMatrix);
-} else {
-    initMatrix();
-}
-
-window.setWalletConnected = setWalletConnected;
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();

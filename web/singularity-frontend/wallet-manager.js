@@ -1,112 +1,104 @@
-// Wallet Integration using Cached RPC
+/**
+ * wallet-manager.js — Unified wallet state for Singularity.io v2.0
+ * Supports Phantom; scaffold ready for multi-wallet expansion.
+ */
+
 class WalletManager {
-    constructor() {
-        this.wallet = null;
-        this.publicKey = null;
-        this.isConnected = false;
+  constructor() {
+    this.publicKey  = null;
+    this.connected  = false;
+    this._listeners = {};
+  }
+
+  // ── Event emitter ─────────────────────────────────────────
+  on(event, fn)  { (this._listeners[event] ??= []).push(fn); }
+  off(event, fn) { this._listeners[event] = (this._listeners[event]||[]).filter(f=>f!==fn); }
+  emit(event, data) { (this._listeners[event]||[]).forEach(fn => fn(data)); }
+
+  // ── Connect ───────────────────────────────────────────────
+  async connect() {
+    if (!window.solana?.isPhantom) {
+      throw new Error('Phantom wallet not found. Install it at phantom.app');
     }
+    const resp = await window.solana.connect();
+    this.publicKey = resp.publicKey.toString();
+    this.connected = true;
+    this._updateUI();
+    this.emit('connect', { publicKey: this.publicKey });
+    await this.loadBalances();
+    return this.publicKey;
+  }
 
-    async connect() {
-        if (!window.solana?.isPhantom) {
-            throw new Error('Phantom wallet not found');
-        }
+  // ── Disconnect ────────────────────────────────────────────
+  async disconnect() {
+    await window.solana?.disconnect();
+    this.publicKey = null;
+    this.connected = false;
+    this._updateUI();
+    this.emit('disconnect');
+  }
 
-        // Show confirmation dialog
-        const confirmed = confirm('Connect to Phantom wallet?\n\nThis will allow Singularity.io to:\n• View your wallet address\n• Check your S-IO token balance\n• Request transaction signatures');
-        
-        if (!confirmed) {
-            throw new Error('Connection cancelled by user');
-        }
-
-        try {
-            const response = await window.solana.connect();
-            this.wallet = window.solana;
-            this.publicKey = response.publicKey.toString();
-            this.isConnected = true;
-            
-            this.updateUI();
-            await this.loadBalance();
-            
-            return this.publicKey;
-        } catch (error) {
-            throw new Error(`Connection failed: ${error.message}`);
-        }
+  // ── Load balances ─────────────────────────────────────────
+  async loadBalances() {
+    if (!this.publicKey) return;
+    try {
+      const res  = await fetch(`/api/sio/balance/${this.publicKey}`);
+      const data = res.ok ? await res.json() : {};
+      this._updateBalanceUI(data.sol ?? 0, data.balance ?? 0);
+    } catch {
+      this._updateBalanceUI(0, 0);
     }
+  }
 
-    async loadBalance() {
-        if (!this.publicKey) return;
+  // ── UI helpers ────────────────────────────────────────────
+  _updateUI() {
+    const btn     = document.getElementById('wallet-btn');
+    const display = document.getElementById('balance-display');
+    const wStatus = document.getElementById('wallet-status');
+    const statWallet = document.getElementById('stat-wallet');
 
-        try {
-            const response = await fetch(`/api/sio/balance/${this.publicKey}`);
-            
-            if (!response.ok) {
-                console.error('Balance API error:', response.status);
-                this.updateBalanceDisplay(0);
-                return;
-            }
-            
-            const data = await response.json();
-            this.updateBalanceDisplay(data.balance || 0);
-        } catch (error) {
-            console.error('Balance load failed:', error);
-            this.updateBalanceDisplay(0);
-        }
+    if (this.connected) {
+      const short = `${this.publicKey.slice(0,4)}…${this.publicKey.slice(-4)}`;
+      if (btn)     { btn.textContent = short; btn.classList.add('connected'); }
+      if (display) display.classList.remove('hidden');
+      if (wStatus) { wStatus.textContent = 'Connected'; wStatus.className = 'status-value online'; }
+      if (statWallet) statWallet.textContent = 'ONLINE';
+    } else {
+      if (btn)     { btn.textContent = 'Connect Wallet'; btn.classList.remove('connected'); }
+      if (display) display.classList.add('hidden');
+      if (wStatus) { wStatus.textContent = 'Not Connected'; wStatus.className = 'status-value offline'; }
+      if (statWallet) statWallet.textContent = 'OFFLINE';
     }
+  }
 
-    updateBalanceDisplay(sioBalance) {
-        const sioElement = document.getElementById('sio-balance');
-        const balanceDisplay = document.getElementById('balance-display');
-        
-        if (sioElement) sioElement.textContent = sioBalance.toLocaleString();
-        if (balanceDisplay) balanceDisplay.classList.remove('hidden');
-    }
-
-    updateUI() {
-        const walletBtn = document.getElementById('wallet-btn');
-        if (walletBtn && this.isConnected) {
-            walletBtn.textContent = `${this.publicKey.slice(0, 4)}...${this.publicKey.slice(-4)}`;
-        }
-    }
-
-    disconnect() {
-        this.wallet = null;
-        this.publicKey = null;
-        this.isConnected = false;
-        
-        const walletBtn = document.getElementById('wallet-btn');
-        const balanceDisplay = document.getElementById('balance-display');
-        
-        if (walletBtn) walletBtn.textContent = 'Connect Wallet';
-        if (balanceDisplay) balanceDisplay.classList.add('hidden');
-    }
+  _updateBalanceUI(sol, sio) {
+    const solEl = document.getElementById('sol-balance');
+    const sioEl = document.getElementById('sio-balance');
+    if (solEl) solEl.textContent = Number(sol).toFixed(4);
+    if (sioEl) sioEl.textContent = Number(sio).toLocaleString();
+  }
 }
 
-// Global wallet manager
 window.walletManager = new WalletManager();
 
-// Auto-connect on page load
-document.addEventListener('DOMContentLoaded', async () => {
-    // Connect wallet button
-    const walletBtn = document.getElementById('wallet-btn');
-    if (walletBtn) {
-        walletBtn.addEventListener('click', async () => {
-            if (window.walletManager.isConnected) {
-                window.walletManager.disconnect();
-            } else {
-                try {
-                    await window.walletManager.connect();
-                } catch (error) {
-                    alert(error.message);
-                }
-            }
-        });
+// ── Wire up buttons ────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('wallet-btn');
+  btn?.addEventListener('click', async () => {
+    try {
+      if (window.walletManager.connected) {
+        await window.walletManager.disconnect();
+        window.Toast?.info('Wallet disconnected');
+      } else {
+        await window.walletManager.connect();
+        window.Toast?.success('Wallet connected');
+      }
+    } catch (err) {
+      window.Toast?.error(err.message);
     }
+  });
 
-    // Refresh balance button
-    const refreshBtn = document.getElementById('refresh-balance-btn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => {
-            window.walletManager.loadBalance();
-        });
-    }
+  document.getElementById('refresh-balance-btn')?.addEventListener('click', () => {
+    window.walletManager.loadBalances();
+  });
 });

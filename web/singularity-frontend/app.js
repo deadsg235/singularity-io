@@ -1,475 +1,232 @@
-// Singularity.io Frontend Application
-const API_BASE = window.location.hostname === 'localhost' 
-    ? 'http://localhost:8000' 
-    : '';
-const SOLANA_RPC = 'https://api.mainnet-beta.solana.com';
-const FALLBACK_RPC_ENDPOINTS = [
-    'https://solana-mainnet.rpc.extrnode.com',
-    'https://rpc.ankr.com/solana',
-    'https://solana-mainnet.api.syndica.io',
-    'https://api.metaplex.solana.com',
-    'https://solana-mainnet.phantom.tech',
-    'https://solana-mainnet-public.allthatnode.com'
-];
-const SIO_MINT_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
+/**
+ * app.js — Singularity.io v2.0 core application
+ */
 
-let canvas, ctx;
-let networkData = null;
-let walletAddress = null;
-let solanaConnection = null;
+const API_BASE      = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
+const SIO_MINT      = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
 
-// Initialize application
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('Singularity.io initializing...');
-    initCanvas();
-    initWallet();
-    checkSystemStatus();
-    setInterval(checkSystemStatus, 30000);
-    
-    document.getElementById('update-btn').addEventListener('click', updateNetwork);
-    document.getElementById('wallet-btn').addEventListener('click', connectWallet);
-    console.log('Wallet button event listener attached');
-    document.getElementById('send-btn').addEventListener('click', sendMessage);
-    document.getElementById('chat-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
-    });
-    
-    initChatTerminal();
-    
-    // Initially hide balance display
-    document.getElementById('balance-display').classList.add('hidden');
-    
-    // Load network after short delay to ensure canvas is ready
-    setTimeout(() => loadNeuralNetwork(), 500);
-});
-
-// Check system status
-async function checkSystemStatus() {
-    try {
-        // Check API health
-        const healthResponse = await fetch(`/api/health`);
-        const healthData = await healthResponse.json();
-        updateStatus('api-status', healthData.status === 'healthy' ? 'Online' : 'Offline', healthData.status === 'healthy');
-
-        // Check network stats
-        const networkResponse = await fetch(`/api/health`);
-        const networkData = await networkResponse.json();
-        updateStatus('network-status', networkData.solana_network || 'Unknown', true);
-
-        // Check SolFunMeme status
-        const solfunmemeResponse = await fetch(`/api/health`);
-        const solfunmemeData = await solfunmemeResponse.json();
-        updateStatus('phase-status', solfunmemeData.phase || 'Unknown', true);
-
-    } catch (error) {
-        console.error('Error checking system status:', error);
-        updateStatus('api-status', 'Offline', false);
-        updateStatus('network-status', 'Disconnected', false);
-        updateStatus('phase-status', 'Unknown', false);
-    }
-}
-
-// Update status display
-function updateStatus(elementId, text, isOnline) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        element.textContent = text;
-        element.className = 'value ' + (isOnline ? 'online' : 'offline');
-    }
-}
-
-// Initialize canvas
-let animationFrame;
+// ── Canvas / Neural Network ────────────────────────────────
+let canvas, ctx, networkData, animFrame;
 let particles = [];
 
 function initCanvas() {
-    canvas = document.getElementById('network-canvas');
-    if (!canvas) {
-        console.error('Canvas not found');
-        return;
-    }
-    ctx = canvas.getContext('2d');
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+  canvas = document.getElementById('network-canvas');
+  if (!canvas) return;
+  ctx = canvas.getContext('2d');
+  const resize = () => {
+    const r = canvas.getBoundingClientRect();
+    canvas.width  = r.width;
+    canvas.height = r.height || 380;
+  };
+  resize();
+  window.addEventListener('resize', resize);
 }
 
-function resizeCanvas() {
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+async function loadNetwork() {
+  try {
+    const res = await fetch(`${API_BASE}/api/network`);
+    networkData = await res.json();
+    const count = networkData?.nodes?.length ?? 0;
+    const el = document.getElementById('node-count');
+    if (el) el.textContent = `Nodes: ${count}`;
+    if (count > 0) { buildParticles(); if (!animFrame) animate(); }
+  } catch { /* offline — canvas stays dark */ }
 }
 
-// Load neural network
-async function loadNeuralNetwork() {
-    try {
-        const response = await fetch(`/api/network`);
-        networkData = await response.json();
-        console.log('Network loaded:', networkData);
-        if (networkData.nodes && networkData.nodes.length > 0) {
-            document.getElementById('node-count').textContent = `Nodes: ${networkData.nodes.length}`;
-            initParticles();
-            if (!animationFrame) {
-                animate();
-            }
-        } else {
-            console.error('No nodes in network data');
-        }
-    } catch (error) {
-        console.error('Error loading network:', error);
-    }
+function buildParticles() {
+  particles = [];
+  if (!networkData?.connections?.length) return;
+  for (let i = 0; i < 24; i++) {
+    particles.push({
+      conn:     networkData.connections[Math.floor(Math.random() * networkData.connections.length)],
+      progress: Math.random(),
+      speed:    0.002 + Math.random() * 0.003
+    });
+  }
 }
 
-// Update network
-async function updateNetwork() {
-    try {
-        await fetch(`/api/network`);
-        await loadNeuralNetwork();
-    } catch (error) {
-        console.error('Error updating network:', error);
-    }
-}
-
-// Initialize particles for animation
-function initParticles() {
-    particles = [];
-    if (!networkData || !networkData.connections) return;
-    
-    for (let i = 0; i < 20; i++) {
-        const conn = networkData.connections[Math.floor(Math.random() * networkData.connections.length)];
-        particles.push({
-            connection: conn,
-            progress: Math.random(),
-            speed: 0.002 + Math.random() * 0.003
-        });
-    }
-}
-
-// Animate visualization
 function animate() {
-    if (!ctx || !canvas) return;
-    
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    if (networkData && networkData.nodes && networkData.nodes.length > 0) {
-        drawConnections();
-        drawParticles();
-        drawNodes();
-        drawLayerLabels();
-    }
-    
-    animationFrame = requestAnimationFrame(animate);
+  if (!ctx || !canvas) return;
+  ctx.fillStyle = 'rgba(0,0,0,0.14)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (networkData?.nodes?.length) {
+    drawConnections(); drawParticles(); drawNodes(); drawLabels();
+  }
+  animFrame = requestAnimationFrame(animate);
 }
 
-// Draw connections with gradient
+function _coords(node) {
+  const pad = 60, w = canvas.width - pad*2, h = canvas.height - pad*2;
+  return [pad + node.x * w, pad + node.y * h];
+}
+
 function drawConnections() {
-    const padding = 60;
-    const width = canvas.width - padding * 2;
-    const height = canvas.height - padding * 2;
-    
-    networkData.connections.forEach(conn => {
-        const source = networkData.nodes[conn.source];
-        const target = networkData.nodes[conn.target];
-        const x1 = padding + source.x * width;
-        const y1 = padding + source.y * height;
-        const x2 = padding + target.x * width;
-        const y2 = padding + target.y * height;
-        
-        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-        gradient.addColorStop(0, `rgba(220, 38, 38, ${0.15 * source.value})`);
-        gradient.addColorStop(1, `rgba(220, 38, 38, ${0.15 * target.value})`);
-        
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-    });
+  networkData.connections.forEach(c => {
+    const [x1,y1] = _coords(networkData.nodes[c.source]);
+    const [x2,y2] = _coords(networkData.nodes[c.target]);
+    const g = ctx.createLinearGradient(x1,y1,x2,y2);
+    g.addColorStop(0, 'rgba(220,38,38,0.18)');
+    g.addColorStop(1, 'rgba(239,68,68,0.10)');
+    ctx.strokeStyle = g; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  });
 }
 
-// Draw animated particles
 function drawParticles() {
-    const padding = 60;
-    const width = canvas.width - padding * 2;
-    const height = canvas.height - padding * 2;
-    
-    particles.forEach(particle => {
-        const conn = particle.connection;
-        const source = networkData.nodes[conn.source];
-        const target = networkData.nodes[conn.target];
-        
-        const x1 = padding + source.x * width;
-        const y1 = padding + source.y * height;
-        const x2 = padding + target.x * width;
-        const y2 = padding + target.y * height;
-        
-        const x = x1 + (x2 - x1) * particle.progress;
-        const y = y1 + (y2 - y1) * particle.progress;
-        
-        const gradient = ctx.createRadialGradient(x, y, 0, x, y, 10);
-        gradient.addColorStop(0, 'rgba(220, 38, 38, 1)');
-        gradient.addColorStop(1, 'rgba(220, 38, 38, 0)');
-        
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(x, y, 8, 0, Math.PI * 2);
-        ctx.fill();
-        
-        particle.progress += particle.speed;
-        if (particle.progress > 1) {
-            particle.progress = 0;
-            particle.connection = networkData.connections[Math.floor(Math.random() * networkData.connections.length)];
-        }
-    });
+  particles.forEach(p => {
+    const src = networkData.nodes[p.conn.source];
+    const tgt = networkData.nodes[p.conn.target];
+    const [x1,y1] = _coords(src), [x2,y2] = _coords(tgt);
+    const x = x1 + (x2-x1)*p.progress, y = y1 + (y2-y1)*p.progress;
+    const g = ctx.createRadialGradient(x,y,0,x,y,8);
+    g.addColorStop(0,'rgba(220,38,38,0.95)'); g.addColorStop(1,'rgba(220,38,38,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,7,0,Math.PI*2); ctx.fill();
+    p.progress += p.speed;
+    if (p.progress > 1) {
+      p.progress = 0;
+      p.conn = networkData.connections[Math.floor(Math.random()*networkData.connections.length)];
+    }
+  });
 }
 
-// Draw nodes with 3D effect
 function drawNodes() {
-    const padding = 60;
-    const width = canvas.width - padding * 2;
-    const height = canvas.height - padding * 2;
-    
-    networkData.nodes.forEach(node => {
-        const x = padding + node.x * width;
-        const y = padding + node.y * height;
-        const radius = 5 + node.value * 8;
-        
-        // Outer glow
-        const outerGlow = ctx.createRadialGradient(x, y, 0, x, y, radius * 3);
-        outerGlow.addColorStop(0, `rgba(220, 38, 38, ${0.4 * node.value})`);
-        outerGlow.addColorStop(1, 'rgba(220, 38, 38, 0)');
-        ctx.fillStyle = outerGlow;
-        ctx.beginPath();
-        ctx.arc(x, y, radius * 3, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Main node with gradient
-        const nodeGradient = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, 0, x, y, radius);
-        nodeGradient.addColorStop(0, 'rgba(255, 150, 150, 1)');
-        nodeGradient.addColorStop(0.5, `rgba(220, 38, 38, ${0.9})`);
-        nodeGradient.addColorStop(1, `rgba(153, 27, 27, ${0.7})`);
-        
-        ctx.fillStyle = nodeGradient;
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Highlight
-        ctx.fillStyle = `rgba(255, 255, 255, ${0.4 * node.value})`;
-        ctx.beginPath();
-        ctx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.3, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Border
-        ctx.strokeStyle = `rgba(220, 38, 38, ${0.8 + node.value * 0.2})`;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.stroke();
-    });
+  networkData.nodes.forEach(n => {
+    const [x,y] = _coords(n), r = 5 + n.value * 8;
+    const glow = ctx.createRadialGradient(x,y,0,x,y,r*3);
+    glow.addColorStop(0,`rgba(220,38,38,${0.35*n.value})`); glow.addColorStop(1,'rgba(220,38,38,0)');
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x,y,r*3,0,Math.PI*2); ctx.fill();
+    const ng = ctx.createRadialGradient(x-r*.3,y-r*.3,0,x,y,r);
+    ng.addColorStop(0,'rgba(255,160,160,1)'); ng.addColorStop(.5,'rgba(220,38,38,.9)'); ng.addColorStop(1,'rgba(153,27,27,.7)');
+    ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = `rgba(220,38,38,${0.7+n.value*.3})`; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
+  });
 }
 
-// Draw layer labels
-function drawLayerLabels() {
-    const padding = 60;
-    const height = canvas.height - padding * 2;
-    const layerNames = ['Input', 'Hidden 1', 'Hidden 2', 'Output'];
-    
-    ctx.font = '12px Orbitron, monospace';
-    ctx.textAlign = 'left';
-    
-    networkData.layers.forEach((size, idx) => {
-        const y = padding + (idx / (networkData.layers.length - 1)) * height;
-        ctx.fillStyle = 'rgba(220, 38, 38, 0.8)';
-        ctx.fillText(`${layerNames[idx] || `Layer ${idx}`} (${size})`, 10, y + 5);
-    });
+function drawLabels() {
+  const pad = 60, h = canvas.height - pad*2;
+  const names = ['Input','Hidden 1','Hidden 2','Hidden 3','Output'];
+  ctx.font = '11px "JetBrains Mono", monospace';
+  ctx.textAlign = 'left';
+  networkData.layers?.forEach((size, i) => {
+    const y = pad + (i/(networkData.layers.length-1))*h;
+    ctx.fillStyle = 'rgba(220,38,38,0.75)';
+    ctx.fillText(`${names[i]||`L${i}`} (${size})`, 8, y+4);
+  });
 }
 
-// Phantom Wallet Integration
-function initWallet() {
-    if (window.solana && window.solana.isPhantom) {
-        console.log('Phantom wallet detected');
-    }
+// ── System Status ──────────────────────────────────────────
+function setStatus(id, text, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className = `status-value ${state}`;
 }
 
-async function connectWallet() {
-    console.log('connectWallet: Function called');
-    
-    if (!window.walletAdapter) {
-        console.error('Wallet adapter not initialized');
-        return;
-    }
-    
-    try {
-        if (window.walletAdapter.isConnected()) {
-            await window.walletAdapter.disconnect();
-            walletAddress = null;
-            solanaConnection = null;
-            updateStatus('wallet-status', 'Not Connected', false);
-            console.log('Wallet disconnected');
-        } else {
-            const response = await window.walletAdapter.connect();
-            walletAddress = response.publicKey.toString();
-            
-            updateStatus('wallet-status', 'Connected', true);
-            console.log('Wallet connected:', walletAddress);
-        }
-    } catch (error) {
-        console.error('Wallet connection error:', error);
-        updateStatus('wallet-status', 'Connection Failed', false);
-    }
+async function checkStatus() {
+  try {
+    const res  = await fetch(`${API_BASE}/api/health`);
+    const data = await res.json();
+    setStatus('api-status',     data.status === 'healthy' ? 'Online' : 'Degraded', data.status === 'healthy' ? 'online' : 'pending');
+    setStatus('network-status', data.solana_network || 'mainnet-beta', 'online');
+    setStatus('phase-status',   data.phase || 'Active', 'online');
+    setStatus('dqn-status',     'Active', 'online');
+    setStatus('x402-status',    data.x402 || 'Online', 'online');
+    const tps = document.getElementById('stat-tps');
+    if (tps && data.tps) tps.textContent = data.tps;
+    const nodes = document.getElementById('stat-nodes');
+    if (nodes && data.validators) nodes.textContent = data.validators;
+    const phase = document.getElementById('stat-phase');
+    if (phase && data.phase) phase.textContent = data.phase;
+  } catch {
+    setStatus('api-status',     'Offline',      'offline');
+    setStatus('network-status', 'Disconnected', 'offline');
+    setStatus('phase-status',   'Unknown',      'offline');
+    setStatus('dqn-status',     'Active',       'online');  // local — always on
+    setStatus('x402-status',    'Offline',      'offline');
+  }
 }
 
-// Chat Terminal
+// ── Chat Terminal ──────────────────────────────────────────
 let chatHistory = [];
 
-function initChatTerminal() {
-    const output = document.getElementById('chat-output');
-    output.innerHTML = '';
-    
-    const welcome = document.createElement('div');
-    welcome.className = 'chat-message system';
-    welcome.innerHTML = `<span style="color: #dc2626;">╔═══════════════════════════════════════╗</span><br>
-<span style="color: #dc2626;">║</span>  SINGULARITY.IO AI TERMINAL v0.2.0  <span style="color: #dc2626;">║</span><br>
-<span style="color: #dc2626;">╚═══════════════════════════════════════╝</span><br><br>
-<span style="color: #666;">Connected to Groq Llama 3.3 70B</span><br>
-<span style="color: #666;">Type your message or try:</span><br>
-<span style="color: #dc2626;">• "Create a token called MyToken"</span><br>
-<span style="color: #dc2626;">• "What is my wallet status?"</span><br>
-<span style="color: #dc2626;">• "Explain the neural network"</span><br><br>
-<span style="color: #ef4444;">Ready ></span>`;
-    output.appendChild(welcome);
+function initChat() {
+  const out = document.getElementById('chat-output');
+  if (!out) return;
+  out.innerHTML = `<div class="msg-system">SINGULARITY.IO AI TERMINAL v2.0 — Groq Llama 3.3 70B</div>
+<div class="msg-system" style="margin-top:.5rem">Try: "What is my wallet balance?" · "Create a token called NOVA" · "Explain the DQN"</div>
+<div class="msg-system" style="margin-top:.25rem;color:var(--cyan)">Ready ›</div>`;
 }
 
 async function sendMessage() {
-    const input = document.getElementById('chat-input');
-    const message = input.value.trim();
-    if (!message) return;
-    
-    addChatMessage('user', message);
-    input.value = '';
-    
+  const input = document.getElementById('chat-input');
+  const msg   = input?.value.trim();
+  if (!msg) return;
+  addMsg('user', msg);
+  input.value = '';
+
+  try {
+    const res  = await fetch(`${API_BASE}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, wallet: window.walletManager?.publicKey, history: chatHistory })
+    });
+    const data = await res.json();
+    const reply = data.response || 'No response.';
+
+    // Handle structured agent actions
     try {
-        const response = await fetch(`/api/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                message, 
-                wallet: walletAddress,
-                history: chatHistory 
-            })
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            addChatMessage('assistant', data.response || `Error ${response.status}`);
-        } else {
-            const resp = data.response;
-            
-            try {
-                const parsed = JSON.parse(resp);
-                if (parsed.action === 'create_token') {
-                    addChatMessage('assistant', parsed.message);
-                    await executeTokenCreation(parsed.params);
-                    return;
-                } else if (parsed.action === 'get_wallet_balance') {
-                    // Call loadWalletBalances() instead, or handle directly
-                    await loadWalletBalances();
-                    addChatMessage('assistant', 'Wallet balances loaded in header.');
-                    return;
-                }
-            } catch (e) {
-                // Not JSON, regular message
-            }
-            
-            addChatMessage('assistant', resp);
-            chatHistory.push({ user: message, assistant: resp });
-        }
-    } catch (error) {
-        console.error('Chat error:', error);
-        addChatMessage('assistant', `Connection error: ${error.message}`);
-    }
-}
-
-function addChatMessage(role, text) {
-    const output = document.getElementById('chat-output');
-    const msg = document.createElement('div');
-    msg.className = `chat-message ${role}`;
-    
-    if (role === 'user') {
-        msg.innerHTML = `<span style="color: #fff;">> ${text}</span>`;
-    } else if (role === 'assistant') {
-        msg.innerHTML = `<span style="color: #dc2626;">AI:</span> <span style="color: #ccc;">${text}</span>`;
-    } else {
-        msg.innerHTML = text;
-    }
-    
-    output.appendChild(msg);
-    output.scrollTop = output.scrollHeight;
-}
-
-// Execute token creation from agent
-async function executeTokenCreation(params) {
-    if (!walletAddress) {
-        addChatMessage('assistant', 'Please connect your wallet first to create tokens.');
+      const parsed = JSON.parse(reply);
+      if (parsed.action === 'create_token') {
+        addMsg('ai', parsed.message);
+        createToken(parsed.params);
         return;
-    }
-    
-    try {
-        addChatMessage('assistant', 'Creating token on Solana devnet...');
-        
-        // Generate mint address
-        const mintKeypair = generateMintAddress();
-        
-        const tokenData = {
-            mint: mintKeypair,
-            name: params.name || 'Unknown Token',
-            symbol: params.symbol || 'UNK',
-            decimals: parseInt(params.decimals) || 9,
-            supply: parseInt(params.supply) || 0,
-            description: params.description || 'Created via AI chat',
-            creator: walletAddress,
-            timestamp: Date.now(),
-            status: 'created'
-        };
-        
-        console.log('Saving token:', tokenData);
-        
-        // Store token info
-        let tokens = [];
-        try {
-            tokens = JSON.parse(localStorage.getItem('tokens') || '[]');
-        } catch (e) {
-            console.error('Error parsing tokens:', e);
-            tokens = [];
-        }
-        
-        tokens.push(tokenData);
-        localStorage.setItem('tokens', JSON.stringify(tokens));
-        console.log('Token saved. Total tokens:', tokens.length);
-        
-        // Trigger storage event for launchpad page
-        window.dispatchEvent(new Event('storage'));
-        
-        addChatMessage('assistant', `✅ Token created successfully!\n\nName: ${params.name}\nSymbol: ${params.symbol}\nSupply: ${params.supply.toLocaleString()}\nMint: ${mintKeypair.slice(0, 8)}...${mintKeypair.slice(-8)}\n\nView all tokens on the <a href="token-launchpad.html" style="color: #dc2626;">Token Launchpad</a>`);
-    } catch (error) {
-        addChatMessage('assistant', `Failed to create token: ${error.message}`);
-    }
+      }
+    } catch { /* plain text */ }
+
+    addMsg('ai', reply);
+    chatHistory.push({ user: msg, assistant: reply });
+    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+  } catch (err) {
+    addMsg('ai', `Connection error: ${err.message}`);
+  }
 }
 
-function generateMintAddress() {
-    const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-    let result = '';
-    for (let i = 0; i < 44; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
+function addMsg(role, text) {
+  const out = document.getElementById('chat-output');
+  if (!out) return;
+  const div = document.createElement('div');
+  div.className = `msg-${role}`;
+  div.style.marginTop = '0.4rem';
+  div.textContent = text;
+  out.appendChild(div);
+  out.scrollTop = out.scrollHeight;
 }
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-    if (animationFrame) cancelAnimationFrame(animationFrame);
+function createToken(params) {
+  if (!window.walletManager?.connected) {
+    addMsg('ai', 'Connect your wallet first to create tokens.');
+    return;
+  }
+  const mint = Array.from({length:44},()=>'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'[Math.floor(Math.random()*58)]).join('');
+  const tokens = JSON.parse(localStorage.getItem('tokens')||'[]');
+  tokens.push({ mint, ...params, creator: window.walletManager.publicKey, timestamp: Date.now() });
+  localStorage.setItem('tokens', JSON.stringify(tokens));
+  addMsg('ai', `✓ Token created — ${params.name} (${params.symbol})\nMint: ${mint.slice(0,8)}…${mint.slice(-8)}\nView on Token Launchpad`);
+  window.Toast?.success(`Token ${params.symbol} created`);
+}
+
+// ── Boot ───────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initCanvas();
+  initChat();
+  checkStatus();
+  setInterval(checkStatus, 30_000);
+  setTimeout(loadNetwork, 400);
+
+  document.getElementById('update-btn')?.addEventListener('click', loadNetwork);
+  document.getElementById('send-btn')?.addEventListener('click', sendMessage);
+  document.getElementById('chat-input')?.addEventListener('keydown', e => { if (e.key==='Enter') sendMessage(); });
 });
 
-// Log initialization
-console.log('Singularity.io v0.2.0 - Neural Network Visualization Ready');
+window.addEventListener('beforeunload', () => { if (animFrame) cancelAnimationFrame(animFrame); });
