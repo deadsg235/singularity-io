@@ -1,0 +1,45 @@
+{
+  "output": {
+    "results": [
+      {
+        "address": "JUPy7A8q5YVn2G9r1wY7RZyw8AV", 
+        "symbol": "JUP",
+        "name": "Jupiter",
+        "info": {
+          "imageUrl": "https://assets.dexter.cash/tokens/jup.png",
+          "openGraphImageUrl": "https://assets.dexter.cash/tokens/jup-og.png"
+        },
+        "priceUsd": 1.42,
+        "liquidityUsd": 214000000,
+        "volume24hUsd": 18500000,
+        "marketCap": 1950000000,
+        "priceChange": {
+          "h24": 3.8
+        },
+        "pairs": [
+          {
+            "pairAddress": "Pa1rJuP1terOrca",
+            "dexId": "Orca",
+            "url": "https://www.orca.so/pools/jup",
+            "liquidity": { "usd": 5250000 },
+            "priceUsd": 1.41,
+            "volume": { "h24": 6500000 },
+            "priceChange": { "h24": 2.9 }
+          },
+          {
+            "pairAddress": "Pa1rJuP1terRayd",
+            "dexId": "Raydium",
+            "url": "https://raydium.io/pools/jup",
+            "liquidity": { "usd": 3180000 },
+            "priceUsd": 1.43,
+            "volume": { "h24": 4300000 },
+            "priceChange": { "h24": 4.1 }
+          }
+        ]
+      }
+    ]
+  },
+  "arguments": {
+    "query": "JUP"
+  }
+}

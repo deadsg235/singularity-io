@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singularity.io Dashboard | S-IO Premium</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        .header {
+            background: rgba(255,255,255,0.05);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { font-size: 1.5rem; font-weight: bold; color: #00d4ff; }
+        .user-info { display: flex; align-items: center; gap: 1rem; }
+        .tier-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .tier-free { background: rgba(136,136,136,0.2); color: #888; }
+        .tier-basic { background: rgba(0,212,255,0.2); color: #00d4ff; }
+        .tier-pro { background: rgba(255,170,0,0.2); color: #ffaa00; }
+        .tier-enterprise { background: rgba(255,0,102,0.2); color: #ff0066; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; margin-bottom: 2rem; }
+        .subscription-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 2rem;
+        }
+        .subscription-card h2 { color: #00d4ff; margin-bottom: 1.5rem; }
+        .current-plan {
+            background: rgba(0,212,255,0.1);
+            border: 1px solid #00d4ff;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .plan-name { font-size: 1.2rem; font-weight: bold; color: #00d4ff; }
+        .plan-details { color: #ccc; margin-top: 0.5rem; }
+        .upgrade-options { display: grid; gap: 1rem; }
+        .upgrade-option {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upgrade-option:hover { background: rgba(255,255,255,0.05); border-color: #00d4ff; }
+        .upgrade-option.recommended { border-color: #ffaa00; background: rgba(255,170,0,0.1); }
+        .option-name { font-weight: bold; color: #00d4ff; }
+        .option-price { color: #00ff88; font-weight: bold; margin: 0.5rem 0; }
+        .option-features { color: #ccc; font-size: 0.9rem; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .feature-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+        }
+        .feature-card.locked {
+            opacity: 0.6;
+            background: rgba(255,68,68,0.1);
+            border-color: rgba(255,68,68,0.3);
+        }
+        .feature-card.unlocked {
+            background: rgba(0,255,136,0.1);
+            border-color: rgba(0,255,136,0.3);
+        }
+        .feature-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .feature-title { color: #00d4ff; font-weight: bold; }
+        .feature-status {
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .status-unlocked { background: rgba(0,255,136,0.2); color: #00ff88; }
+        .status-locked { background: rgba(255,68,68,0.2); color: #ff4444; }
+        .feature-content { min-height: 200px; }
+        .unlock-btn {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .unlock-btn:disabled { background: #666; cursor: not-allowed; }
+        .api-usage {
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .usage-bar {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            height: 8px;
+            margin: 0.5rem 0;
+        }
+        .usage-fill {
+            background: linear-gradient(90deg, #00ff88, #00d4ff);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        .connect-wallet-btn {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🚀 Singularity.io Dashboard</div>
+        <div class="user-info" id="userInfo">
+            <button class="connect-wallet-btn" onclick="connectWallet()">Connect Wallet</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="dashboardContent" style="display: none;">
+            <div class="dashboard-grid">
+                <div class="subscription-card">
+                    <h2>💎 Your Subscription</h2>
+                    
+                    <div class="current-plan" id="currentPlan">
+                        <div class="plan-name">Free Tier</div>
+                        <div class="plan-details">Limited access to basic features</div>
+                    </div>
+
+                    <div class="api-usage">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>API Calls Used</span>
+                            <span id="apiUsage">0 / 10</span>
+                        </div>
+                        <div class="usage-bar">
+                            <div class="usage-fill" id="usageFill" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <h3 style="color: #00d4ff; margin: 2rem 0 1rem 0;">Upgrade Options</h3>
+                    <div class="upgrade-options" id="upgradeOptions">
+                        <div class="upgrade-option" onclick="upgradeTier('basic')">
+                            <div class="option-name">Basic Plan</div>
+                            <div class="option-price">100,000 S-IO/month</div>
+                            <div class="option-features">1,000 API calls, Neural Network, Guardian Basic</div>
+                        </div>
+                        <div class="upgrade-option recommended" onclick="upgradeTier('pro')">
+                            <div class="option-name">Pro Plan (Recommended)</div>
+                            <div class="option-price">750,000 S-IO/month</div>
+                            <div class="option-features">10,000 API calls, All Analytics, AI Trading Signals</div>
+                        </div>
+                        <div class="upgrade-option" onclick="upgradeTier('enterprise')">
+                            <div class="option-name">Enterprise Plan</div>
+                            <div class="option-price">2,500,000 S-IO/month</div>
+                            <div class="option-features">Unlimited API calls, All Features, Priority Support</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="subscription-card">
+                    <h2>📊 Account Overview</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 8px;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #00ff88;" id="sioBalance">0</div>
+                            <div style="color: #888;">S-IO Balance</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 8px;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #00d4ff;" id="daysRemaining">0</div>
+                            <div style="color: #888;">Days Remaining</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features-grid" id="featuresGrid">
+                <!-- Features will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let walletAddress = '';
+        let userSubscription = null;
+
+        const FEATURES = {
+            'neural_network_access': {
+                title: '🧠 Neural Network Access',
+                description: 'Access to AI neural network predictions and analysis',
+                price: 100000
+            },
+            'premium_analytics': {
+                title: '📈 Premium Analytics',
+                description: 'Advanced market analytics and insights',
+                price: 250000
+            },
+            'ai_trading_signals': {
+                title: '🎯 AI Trading Signals',
+                description: 'Real-time AI-powered trading signals',
+                price: 500000
+            },
+            'guardian_premium': {
+                title: '🛡️ Guardian Premium',
+                description: 'Advanced security monitoring and alerts',
+                price: 150000
+            },
+            'ai_model_training': {
+                title: '🔬 Custom AI Training',
+                description: 'Train custom AI models on your data',
+                price: 1000000
+            }
+        };
+
+        async function connectWallet() {
+            if (window.solana && window.solana.isPhantom) {
+                try {
+                    const response = await window.solana.connect();
+                    walletAddress = response.publicKey.toString();
+                    
+                    document.getElementById('userInfo').innerHTML = `
+                        <div class="tier-badge tier-free" id="tierBadge">Free</div>
+                        <span>${formatAddress(walletAddress)}</span>
+                    `;
+                    
+                    document.getElementById('dashboardContent').style.display = 'block';
+                    
+                    await loadUserData();
+                } catch (error) {
+                    alert('Failed to connect wallet: ' + error.message);
+                }
+            } else {
+                alert('Please install Phantom wallet');
+            }
+        }
+
+        async function loadUserData() {
+            try {
+                // Load subscription
+                const subResponse = await fetch(`/api/access/subscription/${walletAddress}`);
+                userSubscription = await subResponse.json();
+                
+                // Load S-IO balance
+                const balanceResponse = await fetch(`/api/sio/balance/${walletAddress}`);
+                const balanceData = await balanceResponse.json();
+                
+                updateUI();
+                loadFeatures();
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+
+        function updateUI() {
+            if (!userSubscription) return;
+
+            // Update tier badge
+            const tierBadge = document.getElementById('tierBadge');
+            tierBadge.textContent = userSubscription.tier.toUpperCase();
+            tierBadge.className = `tier-badge tier-${userSubscription.tier}`;
+
+            // Update current plan
+            document.getElementById('currentPlan').innerHTML = `
+                <div class="plan-name">${userSubscription.tier.toUpperCase()} Plan</div>
+                <div class="plan-details">Expires in ${userSubscription.days_remaining} days</div>
+            `;
+
+            // Update API usage
+            const totalCalls = userSubscription.tier === 'enterprise' ? 'Unlimited' : 
+                              userSubscription.tier === 'pro' ? 10000 :
+                              userSubscription.tier === 'basic' ? 1000 : 10;
+            
+            const remaining = userSubscription.api_calls_remaining;
+            const used = totalCalls === 'Unlimited' ? 0 : totalCalls - remaining;
+            
+            document.getElementById('apiUsage').textContent = 
+                totalCalls === 'Unlimited' ? 'Unlimited' : `${used} / ${totalCalls}`;
+            
+            if (totalCalls !== 'Unlimited') {
+                const percentage = (used / totalCalls) * 100;
+                document.getElementById('usageFill').style.width = `${percentage}%`;
+            }
+
+            // Update balance and days
+            document.getElementById('sioBalance').textContent = '1,000,000'; // Mock balance
+            document.getElementById('daysRemaining').textContent = userSubscription.days_remaining;
+        }
+
+        function loadFeatures() {
+            const featuresGrid = document.getElementById('featuresGrid');
+            featuresGrid.innerHTML = '';
+
+            Object.entries(FEATURES).forEach(([featureId, feature]) => {
+                const isUnlocked = userSubscription.features_unlocked.includes(featureId) || 
+                                 userSubscription.features_unlocked.includes('all');
+                
+                const featureCard = document.createElement('div');
+                featureCard.className = `feature-card ${isUnlocked ? 'unlocked' : 'locked'}`;
+                
+                featureCard.innerHTML = `
+                    <div class="feature-header">
+                        <div class="feature-title">${feature.title}</div>
+                        <div class="feature-status ${isUnlocked ? 'status-unlocked' : 'status-locked'}">
+                            ${isUnlocked ? 'UNLOCKED' : 'LOCKED'}
+                        </div>
+                    </div>
+                    <div class="feature-content">
+                        <p>${feature.description}</p>
+                        ${isUnlocked ? 
+                            '<div style="margin-top: 1rem; color: #00ff88;">✅ Feature active and ready to use</div>' :
+                            `<div style="margin-top: 1rem; color: #ff4444;">🔒 Requires ${feature.price.toLocaleString()} S-IO</div>`
+                        }
+                    </div>
+                    ${!isUnlocked ? 
+                        `<button class="unlock-btn" onclick="unlockFeature('${featureId}')">
+                            Unlock for ${feature.price.toLocaleString()} S-IO
+                        </button>` : ''
+                    }
+                `;
+                
+                featuresGrid.appendChild(featureCard);
+            });
+        }
+
+        async function upgradeTier(tier) {
+            try {
+                const response = await fetch('/api/access/upgrade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ wallet_address: walletAddress, tier: tier })
+                });
+                
+                if (response.ok) {
+                    alert(`Successfully upgraded to ${tier.toUpperCase()} plan!`);
+                    await loadUserData();
+                } else {
+                    alert('Upgrade failed. Please try again.');
+                }
+            } catch (error) {
+                alert('Upgrade failed: ' + error.message);
+            }
+        }
+
+        async function unlockFeature(featureId) {
+            try {
+                const response = await fetch('/api/access/pay-for-feature', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ wallet_address: walletAddress, feature: featureId })
+                });
+                
+                if (response.ok) {
+                    alert(`Successfully unlocked ${FEATURES[featureId].title}!`);
+                    await loadUserData();
+                } else {
+                    alert('Feature unlock failed. Please try again.');
+                }
+            } catch (error) {
+                alert('Feature unlock failed: ' + error.message);
+            }
+        }
+
+        function formatAddress(address) {
+            return `${address.substring(0, 4)}...${address.substring(address.length - 4)}`;
+        }
+
+        // Auto-connect if wallet is available
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (window.solana && window.solana.isPhantom) {
+                try {
+                    const response = await window.solana.connect({ onlyIfTrusted: true });
+                    walletAddress = response.publicKey.toString();
+                    
+                    document.getElementById('userInfo').innerHTML = `
+                        <div class="tier-badge tier-free" id="tierBadge">Free</div>
+                        <span>${formatAddress(walletAddress)}</span>
+                    `;
+                    
+                    document.getElementById('dashboardContent').style.display = 'block';
+                    await loadUserData();
+                } catch (error) {
+                    console.log('Wallet not auto-connected');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

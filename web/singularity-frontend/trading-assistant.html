@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trading Assistant - Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">AI Trading Assistant</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <a href="index.html" class="header-link" style="color: #dc2626;">Home</a>
+                    <a href="bot-launchpad.html" class="header-link" style="color: #dc2626;">Bot Launchpad</a>
+                    <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+                    <div id="balance-display" class="balance-display hidden">
+                        <div class="balance-item">
+                            <span class="balance-label">SOL</span>
+                            <span id="sol-balance">0</span>
+                        </div>
+                        <div class="balance-item">
+                            <span class="balance-label">S-IO</span>
+                            <span id="sio-balance">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div style="max-width: 1200px; margin: 2rem auto; padding: 0 2rem;">
+            <div style="text-align: center; margin-bottom: 3rem;">
+                <h1 style="color: #dc2626; font-size: 2.5rem; margin-bottom: 1rem;">AI Trading Assistant</h1>
+                <p style="color: #ccc; font-size: 1.2rem;">Natural language trading commands and market analysis</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                <!-- Chat Interface -->
+                <div style="background: var(--bg-card); border: 1px solid var(--primary-red); border-radius: 12px; padding: 2rem;">
+                    <h2 style="color: #dc2626; margin-bottom: 1.5rem;">Trading Chat</h2>
+                    
+                    <div id="trading-chat" style="background: var(--bg-black); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.9rem; margin-bottom: 1rem;"></div>
+                    
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="trading-input" placeholder="Ask me to buy SOL, check prices, or analyze markets..." style="flex: 1; background: var(--bg-dark); border: 1px solid var(--primary-red); color: var(--text-primary); padding: 0.75rem; border-radius: 8px; font-family: 'Courier New', monospace;">
+                        <button id="trading-send" class="send-btn">Send</button>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div style="background: var(--bg-card); border: 1px solid var(--primary-red); border-radius: 12px; padding: 2rem;">
+                    <h2 style="color: #dc2626; margin-bottom: 1.5rem;">Quick Actions</h2>
+                    
+                    <div style="display: grid; gap: 1rem;">
+                        <button class="quick-action" data-command="What's the current price of SOL?">📊 SOL Price</button>
+                        <button class="quick-action" data-command="Show me my portfolio balance">💰 Portfolio</button>
+                        <button class="quick-action" data-command="Buy 0.1 SOL">🛒 Buy SOL</button>
+                        <button class="quick-action" data-command="Analyze the market trends">📈 Market Analysis</button>
+                        <button class="quick-action" data-command="What are the top gainers today?">🚀 Top Gainers</button>
+                        <button class="quick-action" data-command="Set a price alert for SOL at $200">🔔 Price Alert</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div style="background: var(--bg-card); border: 1px solid var(--primary-red); border-radius: 12px; padding: 2rem; margin-bottom: 2rem;">
+                <h2 style="color: #dc2626; margin-bottom: 1.5rem;">Assistant Capabilities</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🗣️</div>
+                        <h4 style="color: #ef4444; margin-bottom: 0.5rem;">Natural Language</h4>
+                        <p style="color: #ccc; font-size: 0.9rem;">Trade using plain English commands</p>
+                    </div>
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
+                        <h4 style="color: #ef4444; margin-bottom: 0.5rem;">Market Analysis</h4>
+                        <p style="color: #ccc; font-size: 0.9rem;">Real-time price data and trends</p>
+                    </div>
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚡</div>
+                        <h4 style="color: #ef4444; margin-bottom: 0.5rem;">Instant Execution</h4>
+                        <p style="color: #ccc; font-size: 0.9rem;">Execute trades with confirmation</p>
+                    </div>
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🛡️</div>
+                        <h4 style="color: #ef4444; margin-bottom: 0.5rem;">Risk Management</h4>
+                        <p style="color: #ccc; font-size: 0.9rem;">Built-in safety checks and limits</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Example Commands -->
+            <div style="background: var(--bg-card); border: 1px solid var(--primary-red); border-radius: 12px; padding: 2rem;">
+                <h2 style="color: #dc2626; margin-bottom: 1.5rem;">Example Commands</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div>
+                        <h4 style="color: #ef4444; margin-bottom: 1rem;">Trading</h4>
+                        <ul style="color: #ccc; line-height: 1.8;">
+                            <li>"Buy 0.5 SOL"</li>
+                            <li>"Sell 100 USDC for SOL"</li>
+                            <li>"Swap my RAY for SOL"</li>
+                            <li>"Set stop loss at $180"</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="color: #ef4444; margin-bottom: 1rem;">Analysis</h4>
+                        <ul style="color: #ccc; line-height: 1.8;">
+                            <li>"What's the SOL price?"</li>
+                            <li>"Show market trends"</li>
+                            <li>"Analyze my portfolio"</li>
+                            <li>"Find arbitrage opportunities"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Singularity.io | AI-Powered Trading Assistant</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="wallet-balance-unified.js"></script>
+    <script src="wallet-adapter.js"></script>
+    <script src="matrix.js"></script>
+    <script src="trading-assistant.js"></script>
+
+    <style>
+        .quick-action {
+            background: linear-gradient(135deg, var(--primary-red), var(--secondary-red));
+            color: var(--text-primary);
+            border: none;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .quick-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+        }
+    </style>
+</body>
+</html>
