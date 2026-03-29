@@ -152,6 +152,7 @@
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
     <script src="wallet-balance-loader.js"></script>
     <script src="wallet-manager.js"></script>
+    <script src="x402-client.js"></script>
     <script src="matrix.js"></script>
     <script>
         const SERVICES = [
@@ -203,7 +204,7 @@
             document.getElementById('unlocked-count').textContent = Object.keys(unlocked).length;
         }
 
-        function unlockService(serviceId) {
+        async function unlockService(serviceId) {
             if (!walletPubkey) { alert('Connect your wallet first'); return; }
             const service = SERVICES.find(s => s.id === serviceId);
             const sio = window._cachedBalances?.sio ?? 0;
@@ -211,11 +212,37 @@
                 alert('Insufficient S-IO balance.\nYou have: ' + sio.toLocaleString() + ' S-IO\nRequired: ' + service.price.toLocaleString() + ' S-IO');
                 return;
             }
-            const unlocked = getUnlocked();
-            const expiresAt = Date.now() + service.duration * 24 * 60 * 60 * 1000;
-            unlocked[serviceId] = { unlockedAt: Date.now(), expiresAt };
-            saveUnlocked(unlocked);
-            renderServices();
+
+            const btn = document.querySelector('[onclick="unlockService(\'' + serviceId + '\')"]');
+            if (btn) { btn.disabled = true; btn.textContent = 'Processing…'; }
+
+            try {
+                // Use X402 on-chain payment if available, else localStorage-only
+                if (window.x402Pay) {
+                    const decimals = 6;
+                    const rawAmount = BigInt(service.price) * BigInt(10 ** decimals);
+                    // Treasury address — receives S-IO payments
+                    const TREASURY = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
+                    await window.x402Pay({
+                        serviceName:  service.id,
+                        asset:        window.X402_TOKENS.SIO,
+                        amount:       rawAmount.toString(),
+                        payTo:        TREASURY,
+                        payerPubkey:  walletPubkey,
+                        onStatus:     (msg) => { if (btn) btn.textContent = msg; }
+                    });
+                } else {
+                    // Fallback: localStorage only
+                    const unlocked = getUnlocked();
+                    unlocked[serviceId] = { unlockedAt: Date.now(), expiresAt: Date.now() + service.duration * 86400000 };
+                    saveUnlocked(unlocked);
+                }
+                renderServices();
+                window.Toast?.success?.('Service unlocked: ' + service.name);
+            } catch (e) {
+                alert('Payment failed: ' + e.message);
+                if (btn) { btn.disabled = false; btn.textContent = 'Unlock for ' + service.price.toLocaleString() + ' S-IO'; }
+            }
         }
 
         function updateBalanceDisplay() {

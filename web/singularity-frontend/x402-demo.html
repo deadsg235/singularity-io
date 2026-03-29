@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0a0a">
+    <title>X402 Payment Demo — Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .demo-wrap { max-width: 900px; margin: 2rem auto; }
+        .demo-card {
+            background: rgba(15,15,15,0.92);
+            border: 1px solid rgba(220,38,38,0.4);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            margin-bottom: 1.5rem;
+        }
+        .demo-card h2 { font-family: 'Orbitron', sans-serif; font-size: 1rem; color: #dc2626; letter-spacing: .08em; margin-bottom: 1rem; }
+        .resource-card {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        .resource-card.locked::after {
+            content: '🔒 PAYMENT REQUIRED';
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 8px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: .85rem; color: #dc2626;
+            letter-spacing: .1em;
+        }
+        .resource-card.unlocked { border-color: rgba(0,255,136,0.3); }
+        .resource-title { font-family: 'Orbitron', sans-serif; font-size: .85rem; color: #f0f0f0; margin-bottom: .5rem; }
+        .resource-desc { color: #888; font-size: .85rem; margin-bottom: 1rem; }
+        .resource-price { color: #dc2626; font-weight: 700; font-size: .9rem; margin-bottom: 1rem; }
+        .pay-btn {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            color: #fff; border: none; border-radius: 6px;
+            padding: .6rem 1.25rem;
+            font-family: 'Orbitron', sans-serif; font-size: .78rem;
+            cursor: pointer; transition: all .2s;
+        }
+        .pay-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(220,38,38,.4); }
+        .pay-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+        .status-log {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .78rem;
+            color: #00ff88;
+            min-height: 80px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .protocol-flow {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .flow-step {
+            background: rgba(220,38,38,0.08);
+            border: 1px solid rgba(220,38,38,0.25);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .flow-step .step-num { font-family: 'Orbitron', sans-serif; font-size: 1.4rem; color: #dc2626; font-weight: 900; }
+        .flow-step .step-label { font-size: .78rem; color: #aaa; margin-top: .35rem; }
+        .flow-step.active { border-color: #dc2626; background: rgba(220,38,38,0.15); }
+        .flow-step.done { border-color: #00ff88; background: rgba(0,255,136,0.08); }
+        .flow-step.done .step-num { color: #00ff88; }
+        .sig-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .75rem;
+            color: #60a5fa;
+            word-break: break-all;
+            margin-top: .5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 class="logo">SINGULARITY<span>.io</span></h1>
+                    <p class="tagline">X402 Payment Protocol Demo</p>
+                </div>
+                <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+                    <a href="index.html" class="header-link" style="color:#dc2626;">← Home</a>
+                    <a href="services.html" class="header-link" style="color:#dc2626;">Services</a>
+                    <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+                    <div id="balance-display" class="balance-display hidden">
+                        <div class="balance-item"><span class="balance-label">SOL</span><span id="sol-balance">0</span></div>
+                        <div class="balance-item"><span class="balance-label">S-IO</span><span id="sio-balance">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="demo-wrap">
+
+            <!-- Protocol explanation -->
+            <div class="demo-card">
+                <h2>⚡ X402 PAYMENT PROTOCOL</h2>
+                <p style="color:#aaa;font-size:.9rem;margin-bottom:1.5rem">
+                    X402 is an HTTP-native micropayment protocol. Resources return a <code style="color:#dc2626">402 Payment Required</code> response with payment requirements. The client builds a Solana transaction, signs it, and sends it as a payment payload to unlock access.
+                </p>
+                <div class="protocol-flow">
+                    <div class="flow-step" id="step-1">
+                        <div class="step-num">1</div>
+                        <div class="step-label">Request Resource</div>
+                    </div>
+                    <div class="flow-step" id="step-2">
+                        <div class="step-num">2</div>
+                        <div class="step-label">Receive 402 + Requirements</div>
+                    </div>
+                    <div class="flow-step" id="step-3">
+                        <div class="step-num">3</div>
+                        <div class="step-label">Build SPL Transaction</div>
+                    </div>
+                    <div class="flow-step" id="step-4">
+                        <div class="step-num">4</div>
+                        <div class="step-label">Sign with Phantom</div>
+                    </div>
+                    <div class="flow-step" id="step-5">
+                        <div class="step-num">5</div>
+                        <div class="step-label">Send + Confirm On-Chain</div>
+                    </div>
+                    <div class="flow-step" id="step-6">
+                        <div class="step-num">6</div>
+                        <div class="step-label">Access Granted</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paywall resources -->
+            <div class="demo-card">
+                <h2>🔒 PAYWALLED RESOURCES</h2>
+
+                <div class="resource-card locked" id="resource-dqn">
+                    <div class="resource-title">🧠 DQN Market Analysis Report</div>
+                    <div class="resource-desc">Real-time 5-layer DQN inference on current Solana market conditions with full Q-value breakdown and confidence scores.</div>
+                    <div class="resource-price">1,000 S-IO · one-time access</div>
+                    <button class="pay-btn" onclick="payForResource('dqn_report', 1000, 'DQN Market Analysis Report')">Pay 1,000 S-IO to Access</button>
+                </div>
+
+                <div class="resource-card locked" id="resource-signals">
+                    <div class="resource-title">🎯 Live Trading Signals Feed</div>
+                    <div class="resource-desc">24-hour access to Groq-powered AI trading signals with entry/exit recommendations for top Solana tokens.</div>
+                    <div class="resource-price">5,000 S-IO · 24h access</div>
+                    <button class="pay-btn" onclick="payForResource('trading_signals', 5000, 'Live Trading Signals Feed')">Pay 5,000 S-IO to Access</button>
+                </div>
+
+                <div class="resource-card locked" id="resource-guardian">
+                    <div class="resource-title">🛡️ Guardian Wallet Risk Report</div>
+                    <div class="resource-desc">Deep wallet analysis using the Higher Guardian AI — threat scoring, transaction pattern analysis, and risk assessment.</div>
+                    <div class="resource-price">2,500 S-IO · one-time access</div>
+                    <button class="pay-btn" onclick="payForResource('guardian_report', 2500, 'Guardian Wallet Risk Report')">Pay 2,500 S-IO to Access</button>
+                </div>
+            </div>
+
+            <!-- Status log -->
+            <div class="demo-card">
+                <h2>📡 PAYMENT STATUS LOG</h2>
+                <div class="status-log" id="status-log">Waiting for payment request…</div>
+                <div id="sig-display" class="sig-display" style="display:none"></div>
+            </div>
+
+        </div>
+
+        <footer><p>Singularity.io | X402 Payment Protocol Demo</p></footer>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="wallet-balance-loader.js"></script>
+    <script src="wallet-manager.js"></script>
+    <script src="x402-client.js"></script>
+    <script src="matrix.js"></script>
+    <script>
+        let walletPubkey = null;
+        const TREASURY = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
+
+        // Wallet connect
+        document.getElementById('wallet-btn').addEventListener('click', async () => {
+            if (walletPubkey) {
+                await window.solana?.disconnect();
+                walletPubkey = null;
+                const btn = document.getElementById('wallet-btn');
+                btn.textContent = 'Connect Wallet'; btn.classList.remove('connected');
+                document.getElementById('balance-display')?.classList.add('hidden');
+            } else {
+                if (!window.solana?.isPhantom) { alert('Install Phantom Wallet'); return; }
+                const resp = await window.solana.connect();
+                walletPubkey = resp.publicKey.toString();
+                const btn = document.getElementById('wallet-btn');
+                btn.textContent = walletPubkey.slice(0,4) + '…' + walletPubkey.slice(-4);
+                btn.classList.add('connected');
+                document.getElementById('balance-display')?.classList.remove('hidden');
+                window.loadWalletBalances?.(walletPubkey);
+            }
+        });
+
+        setTimeout(async () => {
+            if (window.solana?.isPhantom) {
+                try {
+                    const r = await window.solana.connect({ onlyIfTrusted: true });
+                    walletPubkey = r.publicKey.toString();
+                    const btn = document.getElementById('wallet-btn');
+                    btn.textContent = walletPubkey.slice(0,4) + '…' + walletPubkey.slice(-4);
+                    btn.classList.add('connected');
+                    document.getElementById('balance-display')?.classList.remove('hidden');
+                    window.loadWalletBalances?.(walletPubkey);
+                } catch {}
+            }
+        }, 600);
+
+        function log(msg, color) {
+            const el = document.getElementById('status-log');
+            const line = document.createElement('div');
+            line.style.color = color || '#00ff88';
+            line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+            el.appendChild(line);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function setStep(n, state) {
+            const el = document.getElementById('step-' + n);
+            if (!el) return;
+            el.classList.remove('active', 'done');
+            if (state) el.classList.add(state);
+        }
+
+        function resetSteps() {
+            for (let i = 1; i <= 6; i++) setStep(i, null);
+        }
+
+        async function payForResource(resourceId, amount, name) {
+            if (!walletPubkey) { alert('Connect your wallet first'); return; }
+
+            const sio = window._cachedBalances?.sio ?? 0;
+            if (sio < amount) {
+                alert('Insufficient S-IO balance.\nYou have: ' + sio.toLocaleString() + ' S-IO\nRequired: ' + amount.toLocaleString() + ' S-IO');
+                return;
+            }
+
+            resetSteps();
+            document.getElementById('sig-display').style.display = 'none';
+
+            try {
+                setStep(1, 'active');
+                log('Requesting resource: ' + name);
+                await new Promise(r => setTimeout(r, 300));
+
+                setStep(1, 'done'); setStep(2, 'active');
+                log('402 Payment Required received', '#ffaa00');
+                log('  scheme: exact | network: Solana Mainnet | asset: S-IO', '#888');
+                log('  amount: ' + amount.toLocaleString() + ' S-IO | payTo: ' + TREASURY.slice(0,8) + '…', '#888');
+                await new Promise(r => setTimeout(r, 400));
+
+                setStep(2, 'done'); setStep(3, 'active');
+                log('Building SPL TransferChecked transaction…');
+
+                const decimals = 6;
+                const rawAmount = BigInt(amount) * BigInt(10 ** decimals);
+
+                setStep(3, 'done'); setStep(4, 'active');
+                log('Awaiting Phantom wallet signature…', '#ffaa00');
+
+                const { signature } = await window.x402Pay({
+                    serviceName:  resourceId,
+                    asset:        window.X402_TOKENS.SIO,
+                    amount:       rawAmount.toString(),
+                    payTo:        TREASURY,
+                    payerPubkey:  walletPubkey,
+                    onStatus: (msg) => {
+                        if (msg.includes('Signing')) { setStep(4, 'done'); setStep(5, 'active'); }
+                        if (msg.includes('Sending')) log('Sending transaction to Solana…');
+                        if (msg.includes('Confirmed')) { setStep(5, 'done'); setStep(6, 'active'); }
+                        log(msg);
+                    }
+                });
+
+                setStep(6, 'done');
+                log('✅ Payment confirmed! Access granted to: ' + name, '#00ff88');
+
+                // Unlock the resource card
+                const card = document.getElementById('resource-' + resourceId.split('_')[0]);
+                if (card) {
+                    card.classList.remove('locked');
+                    card.classList.add('unlocked');
+                    card.querySelector('.pay-btn').textContent = '✅ Unlocked';
+                    card.querySelector('.pay-btn').disabled = true;
+                }
+
+                const sigEl = document.getElementById('sig-display');
+                sigEl.style.display = 'block';
+                sigEl.innerHTML = 'Transaction: <a href="https://solscan.io/tx/' + signature + '" target="_blank" style="color:#60a5fa">' + signature + ' ↗</a>';
+
+            } catch (e) {
+                resetSteps();
+                log('❌ Payment failed: ' + e.message, '#ff4444');
+            }
+        }
+
+        // Check already-unlocked resources on load
+        window.addEventListener('balanceUpdated', () => {
+            if (!walletPubkey) return;
+            const unlocked = JSON.parse(localStorage.getItem('sio-services-' + walletPubkey) || '{}');
+            ['dqn_report', 'trading_signals', 'guardian_report'].forEach(id => {
+                if (unlocked[id] && Date.now() < unlocked[id].expiresAt) {
+                    const prefix = id.split('_')[0];
+                    const card = document.getElementById('resource-' + prefix);
+                    if (card) {
+                        card.classList.remove('locked');
+                        card.classList.add('unlocked');
+                        const btn = card.querySelector('.pay-btn');
+                        if (btn) { btn.textContent = '✅ Unlocked'; btn.disabled = true; }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
