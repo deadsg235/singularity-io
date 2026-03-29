@@ -42,10 +42,11 @@ class WalletManager {
   async loadBalances() {
     if (!this.publicKey) return;
     try {
-      const res  = await fetch(`/api/sio/balance/${this.publicKey}`);
-      const data = res.ok ? await res.json() : {};
-      this._updateBalanceUI(data.sol ?? 0, data.balance ?? 0);
-    } catch {
+      // Use direct RPC balance loader — no backend required
+      const result = await window.loadWalletBalances(this.publicKey);
+      if (result) this._updateBalanceUI(result.sol, result.sio);
+    } catch (err) {
+      console.warn('Balance load failed:', err);
       this._updateBalanceUI(0, 0);
     }
   }
@@ -101,4 +102,20 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('refresh-balance-btn')?.addEventListener('click', () => {
     window.walletManager.loadBalances();
   });
+
+  // Auto-connect if Phantom is already authorized
+  setTimeout(async () => {
+    if (window.solana?.isPhantom) {
+      try {
+        const resp = await window.solana.connect({ onlyIfTrusted: true });
+        window.walletManager.publicKey = resp.publicKey.toString();
+        window.walletManager.connected = true;
+        window.walletManager._updateUI();
+        await window.walletManager.loadBalances();
+        window.dispatchEvent(new CustomEvent('walletConnected', {
+          detail: { publicKey: window.walletManager.publicKey }
+        }));
+      } catch { /* not previously authorized */ }
+    }
+  }, 600);
 });

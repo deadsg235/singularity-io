@@ -1,409 +1,351 @@
-let currentSolPrice = 0;
-let currentSlippage = 0.5;
+/**
+ * swap.js — Jupiter-powered token swap for Singularity.io
+ * Uses Jupiter Quote API v6 for real quotes + transaction building.
+ */
 
-let connection;
-let recentSwaps = [];
+const JUPITER_QUOTE = 'https://quote-api.jup.ag/v6/quote';
+const JUPITER_SWAP  = 'https://quote-api.jup.ag/v6/swap';
+const COINGECKO_SOL = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd&include_24hr_vol=true';
 
-const RPC_ENDPOINTS = [
-    'https://solana-mainnet.phantom.tech',
-    'https://api.metaplex.solana.com',
-    'https://solana-mainnet-public.allthatnode.com'
-];
-
-const tokens = {
-    'So11111111111111111111111111111111111111112': { symbol: 'SOL', decimals: 9 },
+const TOKENS = {
+    'So11111111111111111111111111111111111111112':  { symbol: 'SOL',  decimals: 9 },
     'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': { symbol: 'USDC', decimals: 6 },
-    '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R': { symbol: 'RAY', decimals: 6 },
+    '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R': { symbol: 'RAY',  decimals: 6 },
     'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump': { symbol: 'S-IO', decimals: 6 }
 };
 
+let currentQuote   = null;
+let currentSolPrice = 0;
+let recentSwaps    = [];
+let walletPubkey   = null;
+
+// ── Init ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    connection = new solanaWeb3.Connection(RPC_ENDPOINTS[0], 'confirmed');
-    document.getElementById('wallet-btn').addEventListener('click', async () => {
-        console.log('Wallet button clicked');
-        if (!window.solana?.isPhantom) {
-            alert('Install Phantom Wallet');
-            return;
-        }
-        
-        try {
-            const resp = await window.solana.connect();
-            console.log('Wallet connected:', resp.publicKey.toString());
-            
-            const btn = document.getElementById('wallet-btn');
-            btn.textContent = `${resp.publicKey.toString().slice(0, 4)}...${resp.publicKey.toString().slice(-4)}`;
-            btn.classList.add('connected');
-            
-            document.getElementById('balance-display').classList.remove('hidden');
-            document.getElementById('swap-btn').textContent = 'Get Quote';
-            document.getElementById('swap-btn').disabled = false;
-            
-        } catch (error) {
-            console.error('Wallet connection failed:', error);
-            alert('Failed to connect wallet: ' + error.message);
-        }
-    });
-    document.getElementById('from-amount').addEventListener('input', updateQuote);
-    document.getElementById('from-token').addEventListener('change', () => {
-        updateTokenBalances();
-        updateQuote();
-    });
-    document.getElementById('to-token').addEventListener('change', () => {
-        updateTokenBalances();
-        updateQuote();
-    });
-    
     loadRecentSwaps();
     loadMarketData();
-    
-    // Real-time price and slippage updates every 15 seconds
-    setInterval(() => {
-        loadMarketData();
-        // Update quote if amount is entered
-        const fromAmount = document.getElementById('from-amount').value;
-        if (fromAmount && parseFloat(fromAmount) > 0) {
-            updateQuote();
-        }
-    }, 15000);
-    
-    // Check if wallet already connected on page load
-    setTimeout(() => {
-        if (window.walletAdapter?.isConnected()) {
-            document.getElementById('swap-btn').textContent = 'Get Quote';
-            document.getElementById('swap-btn').disabled = false;
-            updateTokenBalances();
-        }
-    }, 1000);
-    
-    // Listen for balance updates
-    window.addEventListener('balanceUpdated', (event) => {
-        updateTokenBalances();
-    });
+    setInterval(loadMarketData, 30_000);
+
+    document.getElementById('from-amount').addEventListener('input', debounce(updateQuote, 400));
+    document.getElementById('from-token').addEventListener('change', () => { updateTokenBalances(); updateQuote(); });
+    document.getElementById('to-token').addEventListener('change',   () => { updateTokenBalances(); updateQuote(); });
+
+    // Wallet button
+    document.getElementById('wallet-btn')?.addEventListener('click', handleWalletClick);
+
+    // Auto-detect already-connected wallet
+    setTimeout(syncWalletState, 800);
 });
 
-// Listen for wallet events
-window.addEventListener('walletConnected', () => {
-    document.getElementById('swap-btn').textContent = 'Get Quote';
+window.addEventListener('walletConnected',    syncWalletState);
+window.addEventListener('walletDisconnected', onWalletDisconnect);
+window.addEventListener('balanceUpdated',     updateTokenBalances);
+
+// ── Wallet helpers ────────────────────────────────────────────
+async function handleWalletClick() {
+    if (walletPubkey) {
+        await window.solana?.disconnect();
+        onWalletDisconnect();
+    } else {
+        if (!window.solana?.isPhantom) { alert('Install Phantom Wallet'); return; }
+        try {
+            const resp = await window.solana.connect();
+            walletPubkey = resp.publicKey.toString();
+            onWalletConnect(walletPubkey);
+        } catch (e) { alert('Wallet connection failed: ' + e.message); }
+    }
+}
+
+function syncWalletState() {
+    const pub = window.walletManager?.publicKey
+        || window.walletAdapter?.getPublicKey()?.toString()
+        || window.solana?.publicKey?.toString();
+    if (pub) { walletPubkey = pub; onWalletConnect(pub); }
+}
+
+function onWalletConnect(pub) {
+    walletPubkey = pub;
+    const btn = document.getElementById('wallet-btn');
+    if (btn) { btn.textContent = `${pub.slice(0,4)}…${pub.slice(-4)}`; btn.classList.add('connected'); }
+    document.getElementById('balance-display')?.classList.remove('hidden');
     document.getElementById('swap-btn').disabled = false;
-    document.getElementById('swap-btn').onclick = null;
+    document.getElementById('swap-btn').textContent = 'Get Quote';
     updateTokenBalances();
-});
+    window.loadWalletBalances?.(pub);
+}
 
-window.addEventListener('walletDisconnected', () => {
-    document.getElementById('swap-btn').textContent = 'Connect Wallet';
+function onWalletDisconnect() {
+    walletPubkey = null;
+    const btn = document.getElementById('wallet-btn');
+    if (btn) { btn.textContent = 'Connect Wallet'; btn.classList.remove('connected'); }
+    document.getElementById('balance-display')?.classList.add('hidden');
     document.getElementById('swap-btn').disabled = true;
-    document.getElementById('swap-btn').onclick = null;
-});
-
-function switchRPC() {
-    // RPC switching handled by unified balance loader
+    document.getElementById('swap-btn').textContent = 'Connect Wallet';
+    currentQuote = null;
 }
 
+// ── Balance display ───────────────────────────────────────────
 function updateTokenBalances() {
-    if (!window.solana?.publicKey) {
-        document.getElementById('from-balance').textContent = 'Balance: 0';
-        document.getElementById('to-balance').textContent = 'Balance: 0';
-        return;
-    }
-    
-    const fromToken = document.getElementById('from-token').value;
-    const toToken = document.getElementById('to-token').value;
-    
-    const solBalance = document.getElementById('sol-balance')?.textContent || '0';
-    const sioBalance = document.getElementById('sio-balance')?.textContent || '0';
-    
-    // Update from balance
-    if (fromToken === 'So11111111111111111111111111111111111111112') {
-        document.getElementById('from-balance').textContent = `Balance: ${solBalance}`;
-    } else if (fromToken === 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump') {
-        document.getElementById('from-balance').textContent = `Balance: ${sioBalance}`;
-    } else {
-        document.getElementById('from-balance').textContent = 'Balance: 0';
-    }
-    
-    // Update to balance
-    if (toToken === 'So11111111111111111111111111111111111111112') {
-        document.getElementById('to-balance').textContent = `Balance: ${solBalance}`;
-    } else if (toToken === 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump') {
-        document.getElementById('to-balance').textContent = `Balance: ${sioBalance}`;
-    } else {
-        document.getElementById('to-balance').textContent = 'Balance: 0';
-    }
+    const sol = document.getElementById('sol-balance')?.textContent || '0';
+    const sio = document.getElementById('sio-balance')?.textContent || '0';
+    const fromMint = document.getElementById('from-token').value;
+    const toMint   = document.getElementById('to-token').value;
+
+    const balOf = mint => {
+        if (mint === 'So11111111111111111111111111111111111111112') return sol;
+        if (mint === 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump') return sio;
+        return '0';
+    };
+
+    document.getElementById('from-balance').textContent = `Balance: ${balOf(fromMint)}`;
+    document.getElementById('to-balance').textContent   = `Balance: ${balOf(toMint)}`;
 }
 
+// ── Quote ─────────────────────────────────────────────────────
 async function updateQuote() {
-    const fromAmount = document.getElementById('from-amount').value;
-    const fromToken = document.getElementById('from-token').value;
-    const toToken = document.getElementById('to-token').value;
-    
-    if (!fromAmount || fromAmount <= 0 || fromToken === toToken) {
+    const fromAmount = parseFloat(document.getElementById('from-amount').value);
+    const fromMint   = document.getElementById('from-token').value;
+    const toMint     = document.getElementById('to-token').value;
+
+    if (!fromAmount || fromAmount <= 0 || fromMint === toMint) {
         document.getElementById('to-amount').value = '';
         document.getElementById('exchange-rate').textContent = 'Enter amount';
-        if (window.solana?.publicKey) {
-            document.getElementById('swap-btn').textContent = 'Enter Amount';
-            document.getElementById('swap-btn').disabled = true;
-        }
+        setSwapBtn('Enter Amount', true);
+        currentQuote = null;
         return;
     }
-    
-    if (!window.solana?.publicKey) {
-        document.getElementById('swap-btn').textContent = 'Connect Wallet';
-        document.getElementById('swap-btn').disabled = true;
+
+    if (!walletPubkey) {
+        setSwapBtn('Connect Wallet', true);
         return;
     }
-    
+
+    setSwapBtn('Getting quote…', true);
+    document.getElementById('exchange-rate').textContent = 'Fetching…';
+
     try {
-        document.getElementById('exchange-rate').textContent = 'Getting quote...';
-        
-        const fromDecimals = tokens[fromToken].decimals;
-        const inputAmount = Math.floor(parseFloat(fromAmount) * Math.pow(10, fromDecimals));
-        
-        // Use CoinGecko price API as fallback
-        const priceUrl = `https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd`;
-        console.log('Fetching price from CoinGecko:', priceUrl);
-        const priceResponse = await fetch(priceUrl);
-        const priceData = await priceResponse.json();
-        
-        // Calculate simple rate (mock for demo)
-        let outputAmount;
-        if (fromToken === 'So11111111111111111111111111111111111111112' && toToken === 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump') {
-            // SOL to S-IO: 1 SOL = ~416,666 S-IO (based on $0.0024 S-IO price)
-            outputAmount = parseFloat(fromAmount) * 416666;
-        } else if (fromToken === 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump' && toToken === 'So11111111111111111111111111111111111111112') {
-            // S-IO to SOL: reverse calculation
-            outputAmount = parseFloat(fromAmount) / 416666;
-        } else {
-            // Default 1:1 for other pairs
-            outputAmount = parseFloat(fromAmount);
-        }
-        
-        const quote = { outAmount: outputAmount, fromAmount: parseFloat(fromAmount) };
-        
-        document.getElementById('to-amount').value = outputAmount.toFixed(6);
-        
-        const rate = outputAmount / parseFloat(fromAmount);
-        let rateText = `1 ${tokens[fromToken].symbol} = ${rate.toFixed(4)} ${tokens[toToken].symbol}`;
-        
-        // Add USD value if SOL is involved
-        if (fromToken === 'So11111111111111111111111111111111111111112' && currentSolPrice > 0) {
+        const decimals   = TOKENS[fromMint].decimals;
+        const inputAmt   = Math.floor(fromAmount * Math.pow(10, decimals));
+        const slippageBps = Math.round((parseFloat(document.getElementById('slippage-input')?.value || '0.5')) * 100);
+
+        const url = `${JUPITER_QUOTE}?inputMint=${fromMint}&outputMint=${toMint}&amount=${inputAmt}&slippageBps=${slippageBps}&onlyDirectRoutes=false`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Jupiter quote error ${res.status}`);
+        const quote = await res.json();
+        if (quote.error) throw new Error(quote.error);
+
+        currentQuote = quote;
+
+        const outDecimals = TOKENS[toMint]?.decimals ?? 6;
+        const outAmount   = quote.outAmount / Math.pow(10, outDecimals);
+        document.getElementById('to-amount').value = outAmount.toFixed(6);
+
+        const rate = outAmount / fromAmount;
+        let rateText = `1 ${TOKENS[fromMint].symbol} = ${rate.toFixed(4)} ${TOKENS[toMint].symbol}`;
+        if (fromMint === 'So11111111111111111111111111111111111111112' && currentSolPrice > 0) {
             rateText += ` (~$${currentSolPrice.toFixed(2)})`;
         }
-        
         document.getElementById('exchange-rate').textContent = rateText;
-        
-        document.getElementById('swap-btn').textContent = 'Execute Swap';
-        document.getElementById('swap-btn').disabled = false;
-        document.getElementById('swap-btn').onclick = () => executeSwap(quote);
-        
-    } catch (error) {
-        console.error('Quote failed:', error);
-        document.getElementById('to-amount').value = '';
+
+        // Price impact
+        const impact = parseFloat(quote.priceImpactPct || 0);
+        const impactEl = document.getElementById('price-impact');
+        if (impactEl) {
+            impactEl.textContent = `${(impact * 100).toFixed(3)}%`;
+            impactEl.style.color = impact > 0.05 ? '#ff4444' : impact > 0.01 ? '#ffaa00' : '#00ff88';
+        }
+
+        setSwapBtn('Execute Swap', false);
+        document.getElementById('swap-btn').onclick = executeSwap;
+
+    } catch (err) {
+        console.error('Quote failed:', err);
         document.getElementById('exchange-rate').textContent = 'Quote unavailable';
-        document.getElementById('swap-btn').textContent = 'Quote Failed';
-        document.getElementById('swap-btn').disabled = true;
-        document.getElementById('swap-btn').onclick = null;
+        document.getElementById('to-amount').value = '';
+        setSwapBtn('Quote Failed — Retry', false);
+        document.getElementById('swap-btn').onclick = updateQuote;
+        currentQuote = null;
     }
 }
 
+// ── Execute swap ──────────────────────────────────────────────
+async function executeSwap() {
+    if (!walletPubkey || !currentQuote) { alert('Get a quote first'); return; }
+
+    setSwapBtn('Building transaction…', true);
+
+    try {
+        // Build swap transaction via Jupiter
+        const swapRes = await fetch(JUPITER_SWAP, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                quoteResponse: currentQuote,
+                userPublicKey: walletPubkey,
+                wrapAndUnwrapSol: true,
+                dynamicComputeUnitLimit: true,
+                prioritizationFeeLamports: 'auto'
+            })
+        });
+
+        if (!swapRes.ok) throw new Error(`Jupiter swap error ${swapRes.status}`);
+        const { swapTransaction } = await swapRes.json();
+
+        setSwapBtn('Awaiting wallet approval…', true);
+
+        // Deserialize + sign
+        const txBuf = Uint8Array.from(atob(swapTransaction), c => c.charCodeAt(0));
+        const tx    = solanaWeb3.VersionedTransaction.deserialize(txBuf);
+        const signed = await window.solana.signTransaction(tx);
+
+        setSwapBtn('Sending…', true);
+
+        // Send via RPC
+        const connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+        const sig = await connection.sendRawTransaction(signed.serialize(), {
+            skipPreflight: false,
+            maxRetries: 3
+        });
+
+        setSwapBtn('Confirming…', true);
+        await connection.confirmTransaction(sig, 'confirmed');
+
+        // Success
+        const fromMint = document.getElementById('from-token').value;
+        const toMint   = document.getElementById('to-token').value;
+        const fromAmt  = document.getElementById('from-amount').value;
+        const toAmt    = document.getElementById('to-amount').value;
+
+        recentSwaps.unshift({
+            from: `${fromAmt} ${TOKENS[fromMint].symbol}`,
+            to:   `${toAmt} ${TOKENS[toMint]?.symbol || '?'}`,
+            signature: sig,
+            time: new Date().toLocaleTimeString()
+        });
+        localStorage.setItem('recent-swaps', JSON.stringify(recentSwaps.slice(0, 20)));
+        displayRecentSwaps();
+
+        showSuccessDialog({ fromAmt, fromSym: TOKENS[fromMint].symbol, toAmt, toSym: TOKENS[toMint]?.symbol, sig });
+
+        document.getElementById('from-amount').value = '';
+        document.getElementById('to-amount').value   = '';
+        currentQuote = null;
+
+        // Refresh balances
+        setTimeout(() => window.loadWalletBalances?.(walletPubkey), 2000);
+
+    } catch (err) {
+        console.error('Swap error:', err);
+        const msg = err.message.includes('User rejected') ? 'Transaction cancelled.' : `Swap failed: ${err.message}`;
+        alert(msg);
+    } finally {
+        setSwapBtn('Get Quote', false);
+        document.getElementById('swap-btn').onclick = updateQuote;
+    }
+}
+
+// ── Swap tokens direction ─────────────────────────────────────
 function swapTokens() {
-    const fromToken = document.getElementById('from-token');
-    const toToken = document.getElementById('to-token');
-    
-    const temp = fromToken.value;
-    fromToken.value = toToken.value;
-    toToken.value = temp;
-    
+    const from = document.getElementById('from-token');
+    const to   = document.getElementById('to-token');
+    [from.value, to.value] = [to.value, from.value];
     document.getElementById('from-amount').value = '';
-    document.getElementById('to-amount').value = '';
-    
+    document.getElementById('to-amount').value   = '';
+    currentQuote = null;
+    updateTokenBalances();
     updateQuote();
 }
 
-async function executeSwap(quote) {
-    if (!window.solana?.publicKey || !quote) {
-        alert('Connect wallet and get quote first');
-        return;
-    }
-    
+// ── Market data ───────────────────────────────────────────────
+async function loadMarketData() {
     try {
-        document.getElementById('swap-btn').textContent = 'Processing...';
-        document.getElementById('swap-btn').disabled = true;
-        
-        const fromToken = document.getElementById('from-token').value;
-        const toToken = document.getElementById('to-token').value;
-        const fromAmount = document.getElementById('from-amount').value;
-        const toAmount = document.getElementById('to-amount').value;
-        
-        // Send to S-IO Protocol for processing
-        const sioData = {
-            wallet: window.solana.publicKey.toString(),
-            fromToken,
-            toToken,
-            fromAmount: parseFloat(fromAmount),
-            toAmount: parseFloat(toAmount),
-            quote
-        };
-        
-        console.log('Sending swap to S-IO Protocol:', sioData);
-        const sioResponse = await fetch('/api/sio/swap', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(sioData)
-        });
-        
-        console.log('S-IO API response status:', sioResponse.status);
-        
-        if (!sioResponse.ok) {
-            const errorText = await sioResponse.text();
-            console.error('S-IO API error:', errorText);
-            throw new Error(`API Error: ${sioResponse.status}`);
+        const res  = await fetch(COINGECKO_SOL);
+        const data = await res.json();
+        if (data.solana) {
+            currentSolPrice = data.solana.usd;
+            const p = currentSolPrice.toFixed(2);
+            document.getElementById('sol-price')?.setAttribute('data-val', p);
+            ['sol-price','sol-price-swap'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = `$${p}`;
+            });
+            const vol = (data.solana.usd_24h_vol / 1e6).toFixed(1);
+            const volEl = document.getElementById('volume-24h');
+            if (volEl) volEl.textContent = `$${vol}M`;
         }
-        
-        const result = await sioResponse.json();
-        
-        if (!result.success) {
-            throw new Error(result.message || 'Swap failed');
+    } catch { /* silent */ }
+
+    // S-IO price via Jupiter price API
+    try {
+        const r = await fetch('https://price.jup.ag/v6/price?ids=Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump');
+        const d = await r.json();
+        const price = d?.data?.['Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump']?.price;
+        if (price) {
+            const el = document.getElementById('sio-price');
+            if (el) el.textContent = `$${parseFloat(price).toFixed(6)}`;
         }
-        
-        recentSwaps.unshift({
-            from: `${fromAmount} ${tokens[fromToken].symbol}`,
-            to: `${toAmount} ${tokens[toToken].symbol}`,
-            signature: result.signature,
-            time: new Date().toLocaleTimeString()
-        });
-        
-        displayRecentSwaps();
-        
-        showSwapSuccessDialog({
-            fromAmount,
-            fromSymbol: tokens[fromToken].symbol,
-            toAmount,
-            toSymbol: tokens[toToken].symbol,
-            signature: result.signature
-        });
-        
-        document.getElementById('from-amount').value = '';
-        document.getElementById('to-amount').value = '';
-        
-    } catch (error) {
-        console.error('Swap error:', error);
-        alert('Swap failed: ' + error.message);
-    } finally {
-        document.getElementById('swap-btn').textContent = 'Get Quote';
-        document.getElementById('swap-btn').disabled = false;
-        document.getElementById('swap-btn').onclick = null;
-    }
+    } catch { /* silent */ }
 }
 
+// ── Recent swaps ──────────────────────────────────────────────
 function loadRecentSwaps() {
     const saved = localStorage.getItem('recent-swaps');
-    if (saved) {
-        recentSwaps = JSON.parse(saved);
-    }
+    if (saved) recentSwaps = JSON.parse(saved);
     displayRecentSwaps();
 }
 
 function displayRecentSwaps() {
-    const html = recentSwaps.slice(0, 5).map(swap => `
-        <div style="display: flex; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid #333;">
+    const el = document.getElementById('recent-swaps');
+    if (!el) return;
+    if (!recentSwaps.length) {
+        el.innerHTML = '<p style="color:#555;text-align:center;padding:1rem">No recent swaps</p>';
+        return;
+    }
+    el.innerHTML = recentSwaps.slice(0, 5).map(s => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 0;border-bottom:1px solid rgba(255,255,255,0.06)">
             <div>
-                <div style="color: #fff;">${swap.from} → ${swap.to}</div>
-                <div style="color: #666; font-size: 0.9rem;">${swap.time}</div>
+                <div style="color:#f0f0f0">${s.from} → ${s.to}</div>
+                <div style="color:#555;font-size:.8rem">${s.time}</div>
             </div>
-            <div>
-                <a href="https://solscan.io/tx/${swap.signature}" target="_blank" style="color: #0066ff; text-decoration: none; font-size: 0.9rem;">
-                    View Tx
-                </a>
-            </div>
-        </div>
-    `).join('');
-    
-    document.getElementById('recent-swaps').innerHTML = html || '<p style="color: #666; text-align: center;">No recent swaps</p>';
-    
-    localStorage.setItem('recent-swaps', JSON.stringify(recentSwaps));
+            <a href="https://solscan.io/tx/${s.signature}" target="_blank"
+               style="color:#dc2626;font-size:.85rem;text-decoration:none">View ↗</a>
+        </div>`).join('');
 }
 
-function showSwapSuccessDialog({ fromAmount, fromSymbol, toAmount, toSymbol, signature }) {
-    const dialog = document.createElement('div');
-    dialog.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.8); display: flex; align-items: center; 
-        justify-content: center; z-index: 10000;
-    `;
-    
-    dialog.innerHTML = `
-        <div style="
-            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
-            border: 2px solid #dc2626; border-radius: 12px; padding: 2rem;
-            max-width: 400px; text-align: center; color: #fff;
-        ">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div>
-            <h3 style="color: #dc2626; margin-bottom: 1rem;">Swap Successful!</h3>
-            <div style="margin-bottom: 1.5rem;">
-                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">
-                    ${fromAmount} ${fromSymbol} → ${toAmount} ${toSymbol}
-                </div>
-                <div style="color: #666; font-size: 0.9rem;">Transaction confirmed</div>
-            </div>
-            <div style="margin-bottom: 1.5rem;">
-                <a href="https://solscan.io/tx/${signature}" target="_blank" 
-                   style="color: #0066ff; text-decoration: none; font-size: 0.9rem;">
-                    View on Solscan →
-                </a>
-            </div>
-            <button onclick="this.parentElement.parentElement.remove()" 
-                    style="background: #dc2626; color: #fff; border: none; 
-                           padding: 0.8rem 2rem; border-radius: 6px; cursor: pointer;">
+// ── Success dialog ────────────────────────────────────────────
+function showSuccessDialog({ fromAmt, fromSym, toAmt, toSym, sig }) {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999';
+    d.innerHTML = `
+        <div style="background:#111;border:1px solid #dc2626;border-radius:12px;padding:2rem;max-width:380px;text-align:center;color:#f0f0f0">
+            <div style="font-size:2.5rem;margin-bottom:.75rem">✅</div>
+            <h3 style="color:#dc2626;margin-bottom:.75rem">Swap Successful</h3>
+            <p style="font-size:1.1rem;margin-bottom:.5rem">${fromAmt} ${fromSym} → ${toAmt} ${toSym}</p>
+            <a href="https://solscan.io/tx/${sig}" target="_blank"
+               style="color:#60a5fa;font-size:.85rem;display:block;margin:.75rem 0">
+               View on Solscan ↗</a>
+            <button onclick="this.closest('div[style]').remove()"
+                    style="background:#dc2626;color:#fff;border:none;padding:.6rem 1.5rem;border-radius:6px;cursor:pointer;margin-top:.5rem">
                 Close
             </button>
-        </div>
-    `;
-    
-    document.body.appendChild(dialog);
-    setTimeout(() => dialog.remove(), 10000);
+        </div>`;
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 15_000);
 }
 
-async function loadMarketData() {
-    try {
-        // Get SOL price from CoinGecko
-        const solResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd&include_24hr_vol=true');
-        const solData = await solResponse.json();
-        
-        if (solData.solana) {
-            currentSolPrice = solData.solana.usd;
-            const priceText = `$${currentSolPrice.toFixed(2)}`;
-            
-            // Update all SOL price displays
-            document.getElementById('sol-price').textContent = priceText;
-            document.getElementById('sol-price-swap').textContent = priceText;
-            document.getElementById('volume-24h').textContent = `$${(solData.solana.usd_24h_vol / 1000000).toFixed(1)}M`;
-            
-            // Update swap fee in USD
-            const feeInUsd = (0.0025 * currentSolPrice).toFixed(3);
-            document.getElementById('swap-fee').textContent = `~$${feeInUsd}`;
-            
-            // Calculate real-time slippage based on volume
-            const volume24h = solData.solana.usd_24h_vol;
-            if (volume24h > 2000000000) { // High volume
-                currentSlippage = 0.1 + Math.random() * 0.2; // 0.1-0.3%
-            } else if (volume24h > 1000000000) { // Medium volume
-                currentSlippage = 0.3 + Math.random() * 0.4; // 0.3-0.7%
-            } else { // Low volume
-                currentSlippage = 0.5 + Math.random() * 0.8; // 0.5-1.3%
-            }
-            
-            document.getElementById('slippage-display').textContent = `${currentSlippage.toFixed(2)}%`;
-        }
-        
-        // Get S-IO price (mock for now)
-        document.getElementById('sio-price').textContent = '$0.0024';
-        
-    } catch (error) {
-        console.error('Failed to load market data:', error);
-        document.getElementById('sol-price').textContent = '$--';
-        document.getElementById('sol-price-swap').textContent = '$--';
-        document.getElementById('sio-price').textContent = '$--';
-        document.getElementById('volume-24h').textContent = '$--';
-        document.getElementById('slippage-display').textContent = '--';
-    }
+// ── Helpers ───────────────────────────────────────────────────
+function setSwapBtn(text, disabled) {
+    const btn = document.getElementById('swap-btn');
+    if (!btn) return;
+    btn.textContent = text;
+    btn.disabled    = disabled;
+}
+
+function setSlippage(val) {
+    const input = document.getElementById('slippage-input');
+    if (input) { input.value = val; updateQuote(); }
+}
+
+function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }

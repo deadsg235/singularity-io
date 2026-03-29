@@ -11,9 +11,44 @@
     <link rel="stylesheet" href="style.css">
     <style>
         .staking-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
-        .staking-card { background: linear-gradient(135deg, rgba(0, 102, 255, 0.1), rgba(0, 255, 136, 0.1)); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem; }
-        .apy-display { font-size: 3rem; color: #ef4444; font-family: 'Orbitron', sans-serif; text-align: center; margin: 1rem 0; }
-        .reward-card { background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+        @media(max-width:700px){ .staking-grid { grid-template-columns: 1fr; } }
+        .staking-card {
+            background: rgba(15,15,15,0.92);
+            border: 1px solid rgba(220,38,38,0.5); border-radius: 12px; padding: 2rem;
+            backdrop-filter: blur(12px);
+        }
+        .apy-display { font-size: 3rem; color: #ef4444; font-family: 'Orbitron', sans-serif; text-align: center; margin: 1rem 0; text-shadow: 0 0 20px rgba(239,68,68,0.4); }
+        .reward-card {
+            background: rgba(10,10,10,0.9);
+            border: 1px solid rgba(220,38,38,0.3); border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem;
+        }
+        .pool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .info-section {
+            background: rgba(15,15,15,0.92);
+            border: 1px solid rgba(220,38,38,0.3); border-radius: 8px; padding: 2rem; margin-bottom: 2rem;
+            backdrop-filter: blur(12px);
+        }
+        .stake-input-wrap { position: relative; }
+        .max-btn {
+            position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
+            background: rgba(220,38,38,0.2); border: 1px solid rgba(220,38,38,0.4);
+            color: #dc2626; border-radius: 4px; padding: 0.15rem 0.5rem; font-size: 0.75rem; cursor: pointer;
+        }
+        .max-btn:hover { background: rgba(220,38,38,0.4); }
+        .action-btn {
+            width: 100%; padding: 0.9rem; border: none; border-radius: 6px;
+            font-family: 'Orbitron', sans-serif; font-size: 0.85rem; font-weight: 700;
+            cursor: pointer; transition: all 0.2s ease; letter-spacing: 0.05em;
+        }
+        .action-btn:hover:not(:disabled) { transform: translateY(-1px); }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-stake { background: linear-gradient(135deg, #dc2626, #ef4444); color: #fff; margin-bottom: 0.5rem; }
+        .btn-unstake { background: rgba(255,136,0,0.15); border: 1px solid #ff8800; color: #ff8800; }
+        .btn-claim { background: linear-gradient(135deg, #dc2626, #ef4444); color: #fff; }
+        .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-label { color: #888; font-size: 0.9rem; }
+        .metric-value { font-size: 1.1rem; font-weight: 700; color: #f0f0f0; }
     </style>
 </head>
 <body>
@@ -53,84 +88,58 @@
                     </div>
                     
                     <div style="margin-bottom: 1rem;">
-                        <label style="color: #dc2626; display: block; margin-bottom: 0.5rem;">Amount to Stake</label>
-                        <input type="number" id="stake-amount" placeholder="0" style="width: 100%; padding: 0.8rem; background: #000; border: 1px solid #dc2626; color: #fff; border-radius: 4px;">
-                        <div style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">
-                            Balance: <span id="stake-sio-balance">0 S-IO</span>
+                        <label style="color: #dc2626; display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em;">AMOUNT TO STAKE</label>
+                        <div class="stake-input-wrap">
+                            <input type="number" id="stake-amount" placeholder="0.00" style="width: 100%; padding: 0.8rem 3.5rem 0.8rem 0.8rem; background: rgba(0,0,0,0.6); border: 1px solid rgba(220,38,38,0.4); color: #fff; border-radius: 6px; font-size: 1rem;">
+                            <button class="max-btn" id="max-stake-btn">MAX</button>
+                        </div>
+                        <div style="color: #666; font-size: 0.85rem; margin-top: 0.5rem;">
+                            Available: <span id="stake-sio-balance" style="color: #dc2626;">0 S-IO</span>
                         </div>
                     </div>
                     
-                    <button onclick="stakeTokens()" style="width: 100%; padding: 1rem; background: #ef4444; color: #000; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer; margin-bottom: 0.5rem;">Stake S-IO</button>
-                    <button onclick="unstakeTokens()" style="width: 100%; padding: 1rem; background: #ff8800; color: #fff; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer;">Unstake</button>
+                    <button onclick="stakeTokens()" class="action-btn btn-stake">Stake S-IO</button>
+                    <button onclick="unstakeTokens()" class="action-btn btn-unstake">Unstake</button>
                 </div>
 
                 <div class="staking-card">
-                    <h3 style="color: #dc2626; margin-bottom: 1rem;">Your Staking Position</h3>
-                    <div style="margin-bottom: 1rem;">
-                        <div style="color: #ccc;">Staked Amount</div>
-                        <div style="font-size: 1.5rem; color: #fff;" id="staked-amount">0 S-IO</div>
+                    <h3 style="color: #dc2626; margin-bottom: 1.5rem; font-family: 'Orbitron', sans-serif; font-size: 0.9rem; letter-spacing: 0.08em;">YOUR STAKING POSITION</h3>
+                    <div class="metric-row">
+                        <span class="metric-label">Staked Amount</span>
+                        <span class="metric-value" id="staked-amount">0 S-IO</span>
                     </div>
-                    <div style="margin-bottom: 1rem;">
-                        <div style="color: #ccc;">Pending Rewards</div>
-                        <div style="font-size: 1.5rem; color: #ef4444;" id="pending-rewards">0 S-IO</div>
+                    <div class="metric-row">
+                        <span class="metric-label">Pending Rewards</span>
+                        <span class="metric-value" style="color: #ef4444;" id="pending-rewards">0 S-IO</span>
                     </div>
-                    <div style="margin-bottom: 1.5rem;">
-                        <div style="color: #ccc;">Est. Daily Rewards</div>
-                        <div style="color: #dc2626;" id="daily-rewards">0 S-IO</div>
+                    <div class="metric-row" style="margin-bottom: 1.5rem;">
+                        <span class="metric-label">Est. Daily Rewards</span>
+                        <span class="metric-value" style="color: #dc2626;" id="daily-rewards">0 S-IO</span>
                     </div>
-                    <button onclick="claimRewards()" style="width: 100%; padding: 1rem; background: #dc2626; color: #fff; border: none; border-radius: 4px; font-family: 'Orbitron', sans-serif; cursor: pointer;">Claim Rewards</button>
+                    <button onclick="claimRewards()" class="action-btn btn-claim">Claim Rewards</button>
                 </div>
             </div>
 
-            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem; margin-bottom: 2rem;">
-                <h3 style="color: #dc2626; margin-bottom: 1rem;">Staking Pools</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+            <div class="info-section">
+                <h3 style="color: #dc2626; margin-bottom: 1.5rem; font-family: 'Orbitron', sans-serif; font-size: 0.9rem; letter-spacing: 0.1em;">STAKING POOLS</h3>
+                <div class="pool-grid">
                     <div class="reward-card">
-                        <h4 style="color: #ef4444; margin-bottom: 0.5rem;">S-IO Pool</h4>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span style="color: #ccc;">APY</span>
-                            <span style="color: #ef4444;">24.5%</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span style="color: #ccc;">TVL</span>
-                            <span style="color: #fff;">$18.5M</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #ccc;">Lock Period</span>
-                            <span style="color: #fff;">None</span>
-                        </div>
+                        <h4 style="color: #ef4444; margin-bottom: 1rem; font-family: 'Orbitron', sans-serif; font-size: 0.85rem;">S-IO POOL</h4>
+                        <div class="metric-row"><span class="metric-label">APY</span><span style="color: #ef4444; font-weight: 700;">24.5%</span></div>
+                        <div class="metric-row"><span class="metric-label">TVL</span><span style="color: #f0f0f0;">$18.5M</span></div>
+                        <div class="metric-row"><span class="metric-label">Lock Period</span><span style="color: #f0f0f0;">None</span></div>
                     </div>
-                    
                     <div class="reward-card">
-                        <h4 style="color: #ef4444; margin-bottom: 0.5rem;">S-IO-SOL LP</h4>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span style="color: #ccc;">APY</span>
-                            <span style="color: #ef4444;">45.2%</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span style="color: #ccc;">TVL</span>
-                            <span style="color: #fff;">$5.2M</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #ccc;">Lock Period</span>
-                            <span style="color: #fff;">30 days</span>
-                        </div>
+                        <h4 style="color: #ef4444; margin-bottom: 1rem; font-family: 'Orbitron', sans-serif; font-size: 0.85rem;">S-IO-SOL LP</h4>
+                        <div class="metric-row"><span class="metric-label">APY</span><span style="color: #ef4444; font-weight: 700;">45.2%</span></div>
+                        <div class="metric-row"><span class="metric-label">TVL</span><span style="color: #f0f0f0;">$5.2M</span></div>
+                        <div class="metric-row"><span class="metric-label">Lock Period</span><span style="color: #f0f0f0;">30 days</span></div>
                     </div>
-                    
                     <div class="reward-card">
-                        <h4 style="color: #ef4444; margin-bottom: 0.5rem;">Revenue Share</h4>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span style="color: #ccc;">APY</span>
-                            <span style="color: #ef4444;">18.7%</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span style="color: #ccc;">TVL</span>
-                            <span style="color: #fff;">$12.1M</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #ccc;">Lock Period</span>
-                            <span style="color: #fff;">90 days</span>
-                        </div>
+                        <h4 style="color: #ef4444; margin-bottom: 1rem; font-family: 'Orbitron', sans-serif; font-size: 0.85rem;">REVENUE SHARE</h4>
+                        <div class="metric-row"><span class="metric-label">APY</span><span style="color: #ef4444; font-weight: 700;">18.7%</span></div>
+                        <div class="metric-row"><span class="metric-label">TVL</span><span style="color: #f0f0f0;">$12.1M</span></div>
+                        <div class="metric-row"><span class="metric-label">Lock Period</span><span style="color: #f0f0f0;">90 days</span></div>
                     </div>
                 </div>
             </div>
@@ -168,8 +177,8 @@
     </div>
 
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
-    <script src="wallet-balance-unified.js"></script>
-    <script src="wallet-adapter.js"></script>
+    <script src="wallet-balance-loader.js"></script>
+    <script src="wallet-manager.js"></script>
     <script src="matrix.js"></script>
     <script src="staking.js"></script>
 </body>

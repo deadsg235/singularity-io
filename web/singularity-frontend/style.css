@@ -7,17 +7,17 @@
   --red:        #dc2626;
   --red-2:      #ef4444;
   --red-3:      #fca5a5;
-  --red-dim:    rgba(220,38,38,0.15);
+  --red-dim:    rgba(220,38,38,0.18);
   --red-glow:   rgba(220,38,38,0.35);
   --black:      #000000;
-  --bg:         #080808;
-  --bg-card:    #0f0f0f;
-  --bg-card-2:  #141414;
-  --border:     rgba(220,38,38,0.25);
-  --border-dim: rgba(255,255,255,0.06);
+  --bg:         #0a0a0a;
+  --bg-card:    #141414;
+  --bg-card-2:  #1a1a1a;
+  --border:     rgba(220,38,38,0.30);
+  --border-dim: rgba(255,255,255,0.09);
   --text:       #f0f0f0;
-  --text-2:     #a0a0a0;
-  --text-3:     #555;
+  --text-2:     #b0b0b0;
+  --text-3:     #666;
   --font-mono:  'JetBrains Mono','Courier New',monospace;
   --font-ui:    'Inter',sans-serif;
   --font-hud:   'Orbitron',sans-serif;
@@ -55,7 +55,7 @@ img{max-width:100%}
   position:fixed;top:0;left:0;
   width:100vw;height:100vh;
   z-index:0;pointer-events:none;
-  opacity:0.55;
+  opacity:0.25;
 }
 
 /* ══════════════════════════════════════════
@@ -330,11 +330,13 @@ main{flex:1;max-width:1440px;margin:0 auto;width:100%;padding:2rem 1.5rem}
   border:1px solid var(--border);
   border-radius:var(--radius);
   overflow:hidden;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
   transition:border-color var(--transition),box-shadow var(--transition);
 }
 .card:hover{
-  border-color:rgba(220,38,38,.5);
-  box-shadow:0 0 20px rgba(220,38,38,.08);
+  border-color:rgba(220,38,38,.6);
+  box-shadow:0 0 24px rgba(220,38,38,.12);
 }
 .card-header{
   display:flex;align-items:center;justify-content:space-between;
@@ -385,7 +387,7 @@ main{flex:1;max-width:1440px;margin:0 auto;width:100%;padding:2rem 1.5rem}
 
 /* ── Terminal ── */
 .terminal-output{
-  background:var(--black);
+  background:rgba(5,5,5,0.95);
   border-radius:var(--radius-sm);
   padding:1rem;
   height:260px;
@@ -393,6 +395,7 @@ main{flex:1;max-width:1440px;margin:0 auto;width:100%;padding:2rem 1.5rem}
   font-family:var(--font-mono);
   font-size:.82rem;
   line-height:1.6;
+  border:1px solid var(--border-dim);
 }
 .terminal-input-row{display:flex;gap:.5rem;margin-top:.75rem}
 .terminal-input{

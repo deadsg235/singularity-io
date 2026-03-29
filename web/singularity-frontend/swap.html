@@ -10,12 +10,43 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="style.css">
     <style>
-        .swap-container { max-width: 500px; margin: 2rem auto; background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 12px; padding: 2rem; }
-        .token-input { background: rgba(0, 0, 0, 0.5); border: 1px solid #333; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
-        .token-select { background: #dc2626; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; cursor: pointer; }
+        .swap-container {
+            max-width: 500px; margin: 2rem auto;
+            background: rgba(15, 15, 15, 0.92);
+            border: 1px solid #dc2626; border-radius: 12px; padding: 2rem;
+            backdrop-filter: blur(12px);
+        }
+        .token-input {
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(220,38,38,0.4); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+        }
+        .token-input:focus-within { border-color: #dc2626; box-shadow: 0 0 8px rgba(220,38,38,0.2); }
+        .token-select { background: #dc2626; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; cursor: pointer; font-weight: 600; }
         .amount-input { background: transparent; border: none; color: #fff; font-size: 1.5rem; width: 100%; outline: none; }
-        .swap-arrow { text-align: center; margin: 1rem 0; }
-        .swap-button { width: 100%; padding: 1rem; background: #ef4444; color: #000; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
+        .swap-arrow { text-align: center; margin: 0.5rem 0; }
+        .swap-button {
+            width: 100%; padding: 1rem;
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            color: #fff; border: none; border-radius: 8px;
+            font-size: 1rem; font-weight: 700; cursor: pointer;
+            font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em;
+            transition: all 0.2s ease;
+        }
+        .swap-button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(220,38,38,0.4); }
+        .swap-button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .info-row { display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.88rem; }
+        .info-row span:first-child { color: #888; }
+        .slippage-row { display: flex; align-items: center; gap: 0.5rem; }
+        .slippage-preset { background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.3); color: #dc2626; border-radius: 4px; padding: 0.2rem 0.5rem; cursor: pointer; font-size: 0.8rem; }
+        .slippage-preset:hover { background: rgba(220,38,38,0.3); }
+        .slippage-input-wrap { display: flex; align-items: center; gap: 0.25rem; }
+        #slippage-input { width: 60px; background: rgba(0,0,0,0.5); border: 1px solid rgba(220,38,38,0.3); color: #fff; border-radius: 4px; padding: 0.2rem 0.4rem; font-size: 0.85rem; text-align: right; }
+        .market-card {
+            background: rgba(15,15,15,0.92); border: 1px solid rgba(220,38,38,0.3);
+            border-radius: 8px; padding: 1.5rem;
+            backdrop-filter: blur(12px);
+        }
+        .market-stat { text-align: center; padding: 1rem; background: rgba(0,0,0,0.5); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); }
     </style>
 </head>
 <body>
@@ -127,22 +158,30 @@
                 </div>
             </div>
 
-            <div style="background: rgba(0, 0, 0, 0.3); border-radius: 8px; padding: 1rem; margin: 1rem 0;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <span style="color: #666;">Rate</span>
-                    <span style="color: #fff;" id="exchange-rate">Loading...</span>
+            <div style="background: rgba(10,10,10,0.9); border: 1px solid rgba(220,38,38,0.2); border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+                <div class="info-row">
+                    <span>Rate</span>
+                    <span style="color: #f0f0f0;" id="exchange-rate">Enter amount</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <span style="color: #666;">SOL Price</span>
-                    <span style="color: #00ff88;" id="sol-price-swap">$0.00</span>
+                <div class="info-row">
+                    <span>SOL Price</span>
+                    <span style="color: #00ff88;">$<span id="sol-price-swap">—</span></span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <span style="color: #666;">Slippage</span>
-                    <span style="color: #fff;" id="slippage-display">0.5%</span>
+                <div class="info-row">
+                    <span>Price Impact</span>
+                    <span id="price-impact" style="color: #00ff88;">—</span>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #666;">Fee</span>
-                    <span style="color: #fff;" id="swap-fee">~$0.00</span>
+                <div class="info-row" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem; margin-top: 0.25rem;">
+                    <span>Slippage</span>
+                    <div class="slippage-row">
+                        <button class="slippage-preset" onclick="setSlippage(0.1)">0.1%</button>
+                        <button class="slippage-preset" onclick="setSlippage(0.5)">0.5%</button>
+                        <button class="slippage-preset" onclick="setSlippage(1)">1%</button>
+                        <div class="slippage-input-wrap">
+                            <input type="number" id="slippage-input" value="0.5" min="0.01" max="50" step="0.1" />
+                            <span style="color:#888;font-size:.8rem">%</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -150,23 +189,23 @@
         </div>
 
         <div style="max-width: 800px; margin: 2rem auto;">
-            <div style="background: rgba(0, 102, 255, 0.05); border: 1px solid #dc2626; border-radius: 8px; padding: 2rem;">
-                <h3 style="color: #dc2626; margin-bottom: 1rem;">Market Analytics</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-                    <div style="text-align: center; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px;">
-                        <div style="color: #666; font-size: 0.9rem;">SOL Price</div>
-                        <div style="color: #fff; font-size: 1.5rem;" id="sol-price">$0.00</div>
+            <div class="market-card">
+                <h3 style="color: #dc2626; margin-bottom: 1rem; font-family: 'Orbitron', sans-serif; font-size: 0.9rem; letter-spacing: 0.1em;">MARKET ANALYTICS</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div class="market-stat">
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.25rem;">SOL Price</div>
+                        <div style="color: #f0f0f0; font-size: 1.4rem; font-weight: 700;">$<span id="sol-price">—</span></div>
                     </div>
-                    <div style="text-align: center; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px;">
-                        <div style="color: #666; font-size: 0.9rem;">S-IO Price</div>
-                        <div style="color: #dc2626; font-size: 1.5rem;" id="sio-price">$0.00</div>
+                    <div class="market-stat">
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.25rem;">S-IO Price</div>
+                        <div style="color: #dc2626; font-size: 1.4rem; font-weight: 700;">$<span id="sio-price">—</span></div>
                     </div>
-                    <div style="text-align: center; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px;">
-                        <div style="color: #666; font-size: 0.9rem;">24h Volume</div>
-                        <div style="color: #fff; font-size: 1.5rem;" id="volume-24h">$0</div>
+                    <div class="market-stat">
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.25rem;">24h Volume</div>
+                        <div style="color: #f0f0f0; font-size: 1.4rem; font-weight: 700;">$<span id="volume-24h">—</span></div>
                     </div>
                 </div>
-                <h3 style="color: #dc2626; margin-bottom: 1rem;">Recent Swaps</h3>
+                <h3 style="color: #dc2626; margin-bottom: 1rem; font-family: 'Orbitron', sans-serif; font-size: 0.9rem; letter-spacing: 0.1em;">RECENT SWAPS</h3>
                 <div id="recent-swaps"></div>
             </div>
         </div>
@@ -177,8 +216,8 @@
     </div>
 
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
-    <script src="wallet-balance-unified.js"></script>
-    <script src="wallet-adapter.js"></script>
+    <script src="wallet-balance-loader.js"></script>
+    <script src="wallet-manager.js"></script>
     <script src="matrix.js"></script>
     <script src="swap.js"></script>
     <script src="sidebar.js"></script>
