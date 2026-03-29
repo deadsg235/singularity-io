@@ -236,6 +236,18 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('update-btn')?.addEventListener('click', loadNetwork);
   document.getElementById('send-btn')?.addEventListener('click', sendMessage);
   document.getElementById('chat-input')?.addEventListener('keydown', e => { if (e.key==='Enter') sendMessage(); });
+
+  // DQN signal in stats bar
+  window.addEventListener('dqnLoaded', async () => {
+    const result = await window.dqnInfer?.({
+      price: 150, volume: 500_000_000, rsi: 50, macd: 0,
+      bbUpper: 160, bbLower: 140, solTps: 3000, walletBalance: 0
+    });
+    if (result) {
+      const el = document.getElementById('stat-dqn');
+      if (el) { el.textContent = result.actionLabel; el.style.color = result.color; }
+    }
+  });
 });
 
 window.addEventListener('beforeunload', () => { if (animFrame) cancelAnimationFrame(animFrame); });

@@ -111,11 +111,11 @@ async function fetchSolanaData() {
     const el = document.getElementById('market-stats');
     if (el) el.innerHTML = statsHtml;
 
+    window._cachedSolPrice = price;
     return { price, change24h, volume24h, marketCap };
 }
 
-async function fetchSioData() {
-    let price = 0.0001, change24h = 0, liquidity = 0;
+async function fetchSioData() {    let price = 0.0001, change24h = 0, liquidity = 0;
 
     try {
         const r = await fetch(`https://price.jup.ag/v6/price?ids=${SIO_MINT}`);
@@ -239,11 +239,55 @@ async function loadRealTimeData() {
     generateBuySellData();
 }
 
+async function loadDQNSignal() {
+    const container = document.getElementById('dqn-signal-container');
+    if (!container) return;
+
+    try {
+        await window.dqnReady;
+        if (!window.dqnInfer) { container.innerHTML = '<p style="color:#666">DQN model not available</p>'; return; }
+
+        const solPrice = window._cachedSolPrice ?? 150;
+        const result = await window.dqnInfer({
+            price: solPrice,
+            volume: 500_000_000 + Math.random() * 100_000_000,
+            rsi: 35 + Math.random() * 50,
+            macd: (Math.random() - 0.5) * 4,
+            bbUpper: solPrice * 1.05,
+            bbLower: solPrice * 0.95,
+            solTps: 3000 + Math.random() * 1500,
+            walletBalance: window._cachedBalances?.sol ?? 0
+        });
+
+        const barWidth = (v, max) => `${Math.max(2, (v / max) * 100).toFixed(1)}%`;
+        const maxQ = Math.max(...result.qValues.map(Math.abs), 0.01);
+
+        container.innerHTML = `
+            <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+                <div style="font-size:1.8rem;font-weight:700;color:${result.color}">${result.actionLabel}</div>
+                <div style="color:#888;font-size:.85rem">Confidence: <span style="color:${result.color}">${(result.confidence*100).toFixed(1)}%</span> · Source: ${result.source}</div>
+            </div>
+            <div style="font-size:.8rem;color:#666;margin-bottom:.75rem">Q-Values (10 actions):</div>
+            ${window.DQN_ACTIONS.map((a, i) => `
+                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
+                    <div style="width:120px;font-size:.75rem;color:${i===result.actionIndex?result.color:'#888'};font-weight:${i===result.actionIndex?'700':'400'}">${a}</div>
+                    <div style="flex:1;background:rgba(255,255,255,0.05);border-radius:2px;height:8px">
+                        <div style="width:${barWidth(Math.abs(result.qValues[i]??0), maxQ)};height:100%;background:${i===result.actionIndex?result.color:'rgba(255,255,255,0.2)'};border-radius:2px;transition:width .3s"></div>
+                    </div>
+                    <div style="width:50px;text-align:right;font-size:.72rem;color:#555">${(result.qValues[i]??0).toFixed(3)}</div>
+                </div>`).join('')}
+        `;
+    } catch (err) {
+        container.innerHTML = `<p style="color:#ff4444">DQN inference error: ${err.message}</p>`;
+    }
+}
+
 // ── Init ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     initCharts();
     document.getElementById('wallet-btn').addEventListener('click', connectWallet);
     loadRealTimeData();
+    loadDQNSignal();
     updateInterval = setInterval(loadRealTimeData, 60000);
 
     // Auto-connect

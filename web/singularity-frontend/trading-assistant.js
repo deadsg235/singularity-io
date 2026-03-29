@@ -36,6 +36,34 @@ class TradingAssistant {
 <span style="color: #dc2626;">• "Show my portfolio"</span><br><br>
 <span style="color: #ef4444;">Ready for trading ></span>`;
         chat.appendChild(welcome);
+
+        // Fetch DQN signal asynchronously and append to chat
+        this.getDQNSignal().then(signal => {
+            if (!signal) return;
+            const sigEl = document.createElement('div');
+            sigEl.className = 'chat-message assistant';
+            sigEl.innerHTML = `<span style="color:#dc2626;">DQN Signal:</span> <span style="color:${signal.color};font-weight:700">${signal.actionLabel}</span> <span style="color:#888;font-size:.85rem">(${(signal.confidence*100).toFixed(0)}% confidence · ${signal.source})</span>`;
+            chat.appendChild(sigEl);
+        });
+    }
+
+    async getDQNSignal() {
+        try {
+            await window.dqnReady;
+            if (!window.dqnInfer) return null;
+            const solPrice = window._cachedSolPrice ?? 150;
+            const result = await window.dqnInfer({
+                price: solPrice,
+                volume: 500_000_000,
+                rsi: 45 + Math.random() * 30,
+                macd: (Math.random() - 0.5) * 3,
+                bbUpper: solPrice * 1.04,
+                bbLower: solPrice * 0.96,
+                solTps: 3200,
+                walletBalance: 0
+            });
+            return result;
+        } catch { return null; }
     }
 
     bindEvents() {

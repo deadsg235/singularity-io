@@ -55,6 +55,12 @@
         </header>
 
         <div class="analytics-container">
+            <!-- DQN Signal -->
+            <div class="chart-container" style="margin-bottom:2rem;background:rgba(15,15,15,0.92);border:1px solid rgba(220,38,38,0.4)">
+                <h3 style="font-family:'Orbitron',sans-serif;font-size:.85rem;letter-spacing:.08em;color:#dc2626;margin-bottom:1rem">🧠 DQN TRADING SIGNAL</h3>
+                <div id="dqn-signal-container" style="color:#888;font-size:.9rem">Loading DQN model...</div>
+            </div>
+
             <!-- S-IO Token Analytics -->
             <div class="token-analytics">
                 <div class="chart-container sio-stats">
@@ -144,6 +150,8 @@
     <script src="wallet-balance-loader.js"></script>
     <script src="wallet-manager.js"></script>
     <script src="matrix.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.1/dist/ort.min.js"></script>
+    <script src="dqn-inference.js"></script>
     <script src="analytics.js"></script>
 </body>
 </html>

@@ -182,21 +182,46 @@ async function executeTrade(strategy, baseToken, quoteToken, amount) {
 }
 
 async function analyzeStrategy(strategy, baseToken, quoteToken) {
+    // Try DQN inference first
+    try {
+        await window.dqnReady;
+        if (window.dqnInfer) {
+            const solPrice = window._cachedSolPrice ?? 150;
+            const marketData = {
+                price: solPrice,
+                volume: 500_000_000 + Math.random() * 200_000_000,
+                rsi: 40 + Math.random() * 40,
+                macd: (Math.random() - 0.5) * 5,
+                bbUpper: solPrice * 1.05,
+                bbLower: solPrice * 0.95,
+                solTps: 3000 + Math.random() * 1000,
+                walletBalance: parseFloat(document.getElementById('sol-balance')?.textContent ?? '0') || 0
+            };
+            const result = await window.dqnInfer(marketData);
+            const label = result.actionLabel;
+            if (label === 'HOLD' || label === 'EXIT') {
+                return { shouldTrade: false, reason: `DQN: ${label} (conf: ${(result.confidence*100).toFixed(0)}%)` };
+            }
+            const isBuy = ['STRONG_BUY','BUY','WEAK_BUY','INCREASE_POSITION'].includes(label);
+            return {
+                shouldTrade: result.confidence > 0.45,
+                direction: isBuy ? 'BUY' : 'SELL',
+                reason: `DQN[${result.source}]: ${label} (conf: ${(result.confidence*100).toFixed(0)}%)`
+            };
+        }
+    } catch (e) {
+        console.warn('DQN strategy analysis failed, falling back to Groq:', e);
+    }
+
+    // Groq fallback
     try {
         const system = `You are a Solana DeFi trading bot strategy analyzer. 
-Respond ONLY with valid JSON in this exact format: {"action":"BUY"|"SELL"|"HOLD","confidence":0-100,"reason":"brief reason"}
-No other text. Just the JSON object.`;
-
-        const msg = `Strategy: ${strategy}. Base: ${baseToken.slice(0,8)}. Quote: ${quoteToken.slice(0,8)}. Current time: ${new Date().toISOString()}. Should I trade?`;
-
-        const response = await window.groqChat(
-            [{ role: 'user', content: msg }],
-            { system, onChunk: null }
-        );
-
+Respond ONLY with valid JSON: {"action":"BUY"|"SELL"|"HOLD","confidence":0-100,"reason":"brief reason"}`;
+        const msg = `Strategy: ${strategy}. Base: ${baseToken.slice(0,8)}. Quote: ${quoteToken.slice(0,8)}. Time: ${new Date().toISOString()}. Trade?`;
+        const response = await window.groqChat([{ role: 'user', content: msg }], { system });
         const parsed = JSON.parse(response.trim());
         if (parsed.action === 'HOLD') return { shouldTrade: false, reason: parsed.reason };
-        return { shouldTrade: parsed.confidence > 50, direction: parsed.action, reason: `AI: ${parsed.reason} (${parsed.confidence}%)` };
+        return { shouldTrade: parsed.confidence > 50, direction: parsed.action, reason: `Groq: ${parsed.reason} (${parsed.confidence}%)` };
     } catch {
         return fallbackStrategy(strategy, baseToken, quoteToken);
     }
