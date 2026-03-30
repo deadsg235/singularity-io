@@ -1,41 +1,12 @@
 {
   "version": 2,
   "outputDirectory": "web/singularity-frontend",
-  "builds": [
-    {
-      "src": "api/index.py",
-      "use": "@vercel/python",
-      "config": {
-        "runtime": "python3.12",
-        "includeFiles": [
-          "api/**",
-          "dqn-core/*.py",
-          "dqn-core/reasoning_dqn_model.pth"
-        ],
-        "excludeFiles": [
-          "dqn-core/training_data/**",
-          "dqn-core/__pycache__/**",
-          "dqn-core/tests/**",
-          "dqn-core/*.onnx",
-          "typescript/**",
-          "go/**",
-          "java/**",
-          "packages/**",
-          "examples/**",
-          "e2e/**",
-          "specs/**",
-          "neural_network/**",
-          "singularity-agent/**",
-          "blockchain/**",
-          "conf/**",
-          "crate/**",
-          "node_modules/**",
-          "**/__pycache__/**",
-          "**/*.pyc"
-        ]
-      }
+  "functions": {
+    "api/index.py": {
+      "runtime": "vercel-python@4.3.1",
+      "maxDuration": 30
     }
-  ],
+  },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index.py" }
   ],
@@ -45,8 +16,7 @@
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options",        "value": "SAMEORIGIN" },
-        { "key": "X-XSS-Protection",       "value": "1; mode=block" },
-        { "key": "Referrer-Policy",         "value": "strict-origin-when-cross-origin" }
+        { "key": "X-XSS-Protection",       "value": "1; mode=block" }
       ]
     },
     {
@@ -57,8 +27,5 @@
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type,Authorization,X-Wallet-Address,X-Wallet-Signature,X-Nonce,X-Payment" }
       ]
     }
-  ],
-  "env": {
-    "PYTHONPATH": "/var/task/dqn-core:/var/task/api"
-  }
+  ]
 }

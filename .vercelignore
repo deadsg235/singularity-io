@@ -1,4 +1,4 @@
-# Ignore large files and directories
+# Ignore large directories not needed for deployment
 packages/
 examples/
 crate/
@@ -9,27 +9,25 @@ wallet-adapter-book/
 partial-idl-parser/
 singularity-agent/
 solfunmeme-introspector/
+typescript/
+go/
+java/
+e2e/
+specs/
+conf/
+dqn-core/training_data/
+dqn-core/tests/
+dqn-core/__pycache__/
 
-# Ignore development files
-*.md
+# Ignore CI/build config files
 *.toml
 *.lock
-*.yml
-*.yaml
 .github/
 .changeset/
 .devcontainer/
 .cargo/
 
-# Ignore documentation
-README*
-CHANGELOG*
-LICENSE
-*.svg
-*.png
-
-# Keep only essential API and web files
+# Keep everything in api/ and web/ (including .svg, .png, .ico, .onnx)
 !api/
 !web/
 !vercel.json
-!package.json
