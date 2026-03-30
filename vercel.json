@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "outputDirectory": "web/singularity-frontend",
   "builds": [
     {
       "src": "api/index.py",
@@ -34,20 +33,17 @@
           "**/*.pyc"
         ]
       }
+    },
+    {
+      "src": "web/singularity-frontend/index.html",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+    { "src": "/api/(.*)", "dest": "/api/index.py" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/web/singularity-frontend/$1" },
+    { "src": "/", "dest": "/web/singularity-frontend/index.html" }
   ],
   "headers": [
     {
