@@ -23,8 +23,10 @@ class WalletManager {
     const resp = await window.solana.connect();
     this.publicKey = resp.publicKey.toString();
     this.connected = true;
+    localStorage.setItem('walletAddress', this.publicKey);
     this._updateUI();
     this.emit('connect', { publicKey: this.publicKey });
+    window.dispatchEvent(new CustomEvent('walletConnected', { detail: { publicKey: this.publicKey } }));
     await this.loadBalances();
     return this.publicKey;
   }
@@ -34,8 +36,10 @@ class WalletManager {
     await window.solana?.disconnect();
     this.publicKey = null;
     this.connected = false;
+    localStorage.removeItem('walletAddress');
     this._updateUI();
     this.emit('disconnect');
+    window.dispatchEvent(new CustomEvent('walletDisconnected'));
   }
 
   // ── Load balances ─────────────────────────────────────────
@@ -82,6 +86,17 @@ class WalletManager {
 
 window.walletManager = new WalletManager();
 
+// ── globalWallet alias — consumed by ultima-terminal.js and other components ──
+// Mirrors walletManager so any code reading window.globalWallet works correctly.
+Object.defineProperty(window, 'globalWallet', {
+  get() {
+    const wm = window.walletManager;
+    if (!wm || !wm.connected || !wm.publicKey) return null;
+    return { publicKey: { toString() { return wm.publicKey; } } };
+  },
+  configurable: true
+});
+
 // ── Wire up buttons ────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('wallet-btn');
@@ -112,6 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
         window.walletManager.connected = true;
         window.walletManager._updateUI();
         await window.walletManager.loadBalances();
+        // Persist for pages that read localStorage
+        localStorage.setItem('walletAddress', window.walletManager.publicKey);
         window.dispatchEvent(new CustomEvent('walletConnected', {
           detail: { publicKey: window.walletManager.publicKey }
         }));

@@ -1,360 +1,382 @@
-let ultimaHistory = [];
-let walletAddress = null;
-let solanaConnection = null; // Add solanaConnection for this page
-const SOLANA_RPC = 'https://api.mainnet-beta.solana.com'; // Add RPC
-const SIO_MINT_ADDRESS = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump'; // Add SIO Mint
+/**
+ * ultima.js — ULTIMA Terminal (full-page)
+ * True wallet context: reads from walletManager, listens for connect/disconnect events,
+ * injects live SOL + S-IO balances into every Groq system prompt.
+ */
 
-const FALLBACK_RPC_ENDPOINTS = [
-    'https://solana-mainnet.rpc.extrnode.com',
-    'https://rpc.ankr.com/solana',
-    'https://solana-mainnet.api.syndica.io',
-    'https://api.metaplex.solana.com',
+const ULTIMA_SIO_MINT = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
+const ULTIMA_RPC_POOL = [
+    'https://api.mainnet-beta.solana.com',
     'https://solana-mainnet.phantom.tech',
+    'https://rpc.ankr.com/solana',
+    'https://api.metaplex.solana.com',
     'https://solana-mainnet-public.allthatnode.com'
 ];
 
+let ultimaHistory = [];
 
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('wallet-btn').addEventListener('click', connectWallet);
-    document.getElementById('ultima-send').addEventListener('click', executeCommand);
-    document.getElementById('ultima-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') executeCommand();
-    });
-    
-    initUltimaTerminal();
-    initMojoNetwork();
-});
-
-async function connectWallet() {
-    try {
-        if (walletAddress) {
-            // If already connected, disconnect
-            if (window.solana && window.solana.isPhantom) {
-                await window.solana.disconnect();
-            }
-            walletAddress = null;
-            solanaConnection = null;
-
-            const btn = document.getElementById('wallet-btn');
-            btn.textContent = 'Connect Wallet';
-            btn.classList.remove('connected');
-
-            document.getElementById('balance-display').classList.add('hidden');
-            if (window.setWalletConnected) window.setWalletConnected(false);
-
-            console.log('Wallet disconnected');
-            return;
-        }
-
-        if (!window.solana?.isPhantom) {
-            alert('Install Phantom Wallet');
-            return;
-        }
-        
-        const resp = await window.solana.connect();
-        walletAddress = resp.publicKey.toString();
-        
-        const btn = document.getElementById('wallet-btn');
-        btn.textContent = `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`;
-        btn.classList.add('connected');
-        
-        if (window.setWalletConnected) window.setWalletConnected(true);
-        
-        // Show balance display and load balances
-        document.getElementById('balance-display').classList.remove('hidden');
-        loadWalletBalances(); // Call loadWalletBalances
-        
-        console.log('Wallet connected:', walletAddress);
-    } catch (error) {
-        console.error('Wallet connection error:', error);
-        if (window.setWalletConnected) window.setWalletConnected(false);
-    }
+// ── Wallet state — single source of truth via walletManager ──────────────────
+function getWalletPubkey() {
+    return window.walletManager?.publicKey
+        || window.solana?.publicKey?.toString()
+        || null;
 }
 
-// loadWalletBalances function for this page
-async function loadWalletBalances() {
-    if (!walletAddress) return;
+function getWalletBalances() {
+    const c = window._cachedBalances;
+    if (c && Date.now() - c.ts < 60000) return c;
+    return null;
+}
 
-    let lastError = null;
-    const allEndpoints = [SOLANA_RPC, ...FALLBACK_RPC_ENDPOINTS];
-    
-    for (let attempt = 0; attempt < allEndpoints.length; attempt++) {
-        const endpoint = allEndpoints[attempt];
-        
+function buildWalletContext() {
+    const pub = getWalletPubkey();
+    if (!pub) return 'No wallet connected.';
+    const bal = getWalletBalances();
+    const sol = bal ? bal.sol.toFixed(4) + ' SOL' : 'balance loading…';
+    const sio = bal ? bal.sio.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' S-IO' : 'balance loading…';
+    return 'Connected wallet: ' + pub + '\nSOL balance: ' + sol + '\nS-IO balance: ' + sio;
+}
+
+// ── RPC helpers ───────────────────────────────────────────────────────────────
+async function _rpc(method, params) {
+    for (let i = 0; i < ULTIMA_RPC_POOL.length; i++) {
         try {
-            console.log(`loadWalletBalances: Trying RPC endpoint ${attempt + 1}/${allEndpoints.length}: ${endpoint}`);
-            
-            const connection = new solanaWeb3.Connection(
-                endpoint,
-                { commitment: 'confirmed' }
-            );
-
-            const owner = new solanaWeb3.PublicKey(walletAddress);
-
-            // ---------- SOL BALANCE ----------
-            const lamports = await connection.getBalance(owner);
-            const solBalance = lamports / solanaWeb3.LAMPORTS_PER_SOL;
-
-            document.getElementById('sol-balance').textContent =
-                solBalance.toFixed(4);
-
-            // ---------- SIO TOKEN BALANCE ----------
-            const mint = new solanaWeb3.PublicKey(SIO_MINT_ADDRESS);
-
-            const tokenAccounts =
-                await connection.getParsedTokenAccountsByOwner(
-                    owner,
-                    { mint }
-                );
-
-            let sioBalance = 0;
-
-            if (tokenAccounts.value.length > 0) {
-                const tokenInfo =
-                    tokenAccounts.value[0].account.data.parsed.info;
-
-                sioBalance = tokenInfo.tokenAmount.uiAmount || 0;
-            }
-
-            document.getElementById('sio-balance').textContent =
-                sioBalance.toLocaleString(undefined, {
-                    maximumFractionDigits: 6
-                });
-
-            console.log('Balances loaded', {
-                sol: solBalance,
-                sio: sioBalance,
-                endpoint: endpoint
+            const res = await fetch(ULTIMA_RPC_POOL[i], {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+                signal: AbortSignal.timeout(8000)
             });
-
-            // Success - update the global connection
-            solanaConnection = connection;
-            return;
-
-        } catch (err) {
-            lastError = err;
-            console.warn(`loadWalletBalances: RPC endpoint ${endpoint} failed:`, err.message);
-            
-            // If this is not the last endpoint, wait before trying the next one
-            if (attempt < allEndpoints.length - 1) {
-                const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Exponential backoff, max 5s
-                console.log(`loadWalletBalances: Waiting ${delay}ms before trying next endpoint...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
+            const json = await res.json();
+            if (json.error) throw new Error(json.error.message);
+            return json.result;
+        } catch (e) {
+            if (i < ULTIMA_RPC_POOL.length - 1) {
+                await new Promise(r => setTimeout(r, Math.min(400 * (i + 1), 2000)));
             }
         }
     }
-
-    // All endpoints failed
-    console.error('loadWalletBalances: All RPC endpoints failed. Last error:', lastError);
-
-    document.getElementById('sol-balance').textContent = '—';
-    document.getElementById('sio-balance').textContent = '—';
-
-    // This page doesn't have addChatMessage, so just log to console
-    console.warn('⚠️ Unable to load balances (all RPC endpoints busy). Try again in a few minutes.');
+    throw new Error('All RPC endpoints failed');
 }
 
-function initUltimaTerminal() {
+async function scanWalletOnChain(address) {
+    const [solResult, tokenResult, txResult] = await Promise.allSettled([
+        _rpc('getBalance', [address, { commitment: 'confirmed' }]),
+        _rpc('getTokenAccountsByOwner', [address, { mint: ULTIMA_SIO_MINT }, { encoding: 'jsonParsed' }]),
+        _rpc('getSignaturesForAddress', [address, { limit: 5 }])
+    ]);
+
+    const sol = solResult.status === 'fulfilled'
+        ? ((solResult.value?.value ?? solResult.value ?? 0) / 1e9).toFixed(4)
+        : '—';
+
+    let sio = '0';
+    if (tokenResult.status === 'fulfilled') {
+        const accounts = tokenResult.value?.value ?? [];
+        if (accounts.length > 0) {
+            sio = (accounts[0].account.data.parsed.info.tokenAmount.uiAmount ?? 0)
+                .toLocaleString(undefined, { maximumFractionDigits: 2 });
+        }
+    }
+
+    const txCount = txResult.status === 'fulfilled'
+        ? (txResult.value?.length ?? 0)
+        : '—';
+
+    const recentTxs = txResult.status === 'fulfilled' && txResult.value?.length
+        ? txResult.value.slice(0, 3).map(function(t) {
+            return '  • ' + t.signature.slice(0, 16) + '… (' + (t.err ? '❌ failed' : '✅ ok') + ')';
+          }).join('\n')
+        : '  (none found)';
+
+    return '🔍 On-Chain Scan: ' + address.slice(0, 8) + '…' + address.slice(-8) + '\n\n' +
+        '💰 SOL Balance:  ' + sol + ' SOL\n' +
+        '🎯 S-IO Balance: ' + sio + ' S-IO\n' +
+        '📋 Recent txs (' + txCount + ' fetched):\n' + recentTxs + '\n\n' +
+        '🔗 Explorer: https://solscan.io/account/' + address;
+}
+
+// ── Terminal UI ───────────────────────────────────────────────────────────────
+function addUltimaMessage(role, text) {
     const output = document.getElementById('ultima-output');
-    output.innerHTML = '';
-    
-    const welcome = document.createElement('div');
-    welcome.className = 'ultima-message ultima-system';
-    welcome.innerHTML = `<span style="color: #0066ff;">╔═══════════════════════════════════════╗</span><br>
-<span style="color: #0066ff;">║</span>     ULTIMA NEURAL NETWORK v3.0      <span style="color: #0066ff;">║</span><br>
-<span style="color: #0066ff;">║</span>   Groq LLM + Mojo Neural Engine     <span style="color: #0066ff;">║</span><br>
-<span style="color: #0066ff;">╚═══════════════════════════════════════╝</span><br><br>
-<span style="color: #00ff88;">Groq LLM:</span> <span style="color: #fff;">CONNECTED</span><br>
-<span style="color: #00ff88;">Mojo Network:</span> <span style="color: #fff;">ACTIVE</span><br>
-<span style="color: #00ff88;">Neural Layers:</span> <span style="color: #fff;">5-LAYER ARCHITECTURE</span><br>
-<span style="color: #00ff88;">Processing Speed:</span> <span style="color: #fff;">QUANTUM ENHANCED</span><br><br>
-<span style="color: #666;">Available Commands:</span><br>
-<span style="color: #0066ff;">• /analyze [topic]</span> - Groq-powered analysis<br>
-<span style="color: #0066ff;">• /mojo [query]</span> - Mojo neural processing<br>
-<span style="color: #0066ff;">• /neural-status</span> - Network diagnostics<br>
-<span style="color: #0066ff;">• /wallet</span> - Wallet integration<br><br>
-<span style="color: #00ff88;">ULTIMA></span> Ready for neural processing...`;
-    output.appendChild(welcome);
-}
-
-async function executeCommand() {
-    const input = document.getElementById('ultima-input');
-    const command = input.value.trim();
-    if (!command) return;
-    
-    addUltimaMessage('user', command);
-    input.value = '';
-    
-    if (command.startsWith('/')) {
-        await handleSystemCommand(command);
+    if (!output) return;
+    const msg = document.createElement('div');
+    msg.className = 'ultima-message ultima-' + role;
+    if (role === 'user') {
+        msg.innerHTML = '<span style="color:#00ff88;">USER&gt;</span> <span style="color:#fff;">' + escHtml(text) + '</span>';
+    } else if (role === 'ai') {
+        msg.innerHTML = '<span style="color:#0066ff;">ULTIMA&gt;</span> <span style="color:#ccc;white-space:pre-wrap;">' + escHtml(text) + '</span>';
     } else {
-        await processNaturalLanguage(command);
+        msg.innerHTML = '<span style="color:#666;">[SYS]</span> <span style="color:#888;">' + escHtml(text) + '</span>';
+    }
+    output.appendChild(msg);
+    output.scrollTop = output.scrollHeight;
+}
+
+function escHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function updateWalletStatusBar() {
+    const pub = getWalletPubkey();
+    const bar = document.getElementById('ultima-wallet-status');
+    if (!bar) return;
+    if (pub) {
+        const bal = getWalletBalances();
+        bar.innerHTML =
+            '<span style="color:#00ff88;">●</span> ' +
+            '<span style="color:#aaa;">' + pub.slice(0, 4) + '…' + pub.slice(-4) + '</span>' +
+            (bal ? ' &nbsp;|&nbsp; <span style="color:#fff;">' + bal.sol.toFixed(3) + ' SOL</span>' +
+                   ' &nbsp;|&nbsp; <span style="color:#0af;">' + bal.sio.toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' S-IO</span>' : '');
+    } else {
+        bar.innerHTML = '<span style="color:#555;">● not connected</span>';
     }
 }
 
-async function handleSystemCommand(command) {
-    const [cmd, ...args] = command.split(' ');
-    
-    switch (cmd) {
-        case '/analyze':
-            await groqAnalyze(args.join(' '));
-            break;
-        case '/mojo':
-            await mojoProcess(args.join(' '));
-            break;
-        case '/neural-status':
-            await neuralStatus();
-            break;
-        case '/wallet':
-            await walletIntegration();
-            break;
-        default:
-            addUltimaMessage('ai', `Unknown command: ${cmd}. Available: /analyze, /mojo, /neural-status, /wallet`);
-    }
-}
-
-async function groqAnalyze(topic) {
-    if (!topic) {
-        addUltimaMessage('ai', 'Usage: /analyze [topic]');
-        return;
-    }
-    
-    addUltimaMessage('ai', `🤖 Groq LLM analyzing: ${topic}`);
-    await processNaturalLanguage(`Analyze this topic in depth: ${topic}`);
-}
-
-async function mojoProcess(query) {
-    if (!query) {
-        addUltimaMessage('ai', 'Usage: /mojo [query]');
-        return;
-    }
-    
-    addUltimaMessage('ai', `⚡ Mojo neural processing: ${query}`);
-    
-    // Simulate Mojo processing
-    const mojoResponse = `
-Mojo Neural Network Processing:
-- Input vectorization: ${query.length} tokens
-- Layer propagation: 5 layers activated
-- Quantum coherence: 0.97 stability
-- Processing time: 0.003ms
-- Output confidence: 94.7%
-
-Result: Neural pathways optimized for query pattern recognition.`;
-    
-    await typewriterEffect(mojoResponse);
-}
-
-
-
-async function neuralStatus() {
-    const status = `
-Neural Network Diagnostics:
-╔════════════════════════════════════╗
-║ Layer 1 (Input): 512 nodes - OK   ║
-║ Layer 2 (Hidden): 256 nodes - OK  ║
-║ Layer 3 (Deep Q): 128 nodes - OK  ║
-║ Layer 4 (Reason): 64 nodes - OK   ║
-║ Layer 5 (Output): 32 nodes - OK   ║
-╚════════════════════════════════════╝
-
-Activation Functions: ReLU, Sigmoid, Softmax
-Learning Rate: 0.001 (adaptive)
-Backpropagation: ACTIVE
-Gradient Flow: OPTIMAL
-Memory Usage: 847MB / 2GB
-Processing Speed: 1.2M ops/sec
-Quantum Coherence: SIMULATED`;
-    
-    addUltimaMessage('ai', status);
-}
-
-async function walletIntegration() {
-    if (!walletAddress) {
-        addUltimaMessage('ai', 'No wallet connected. Please connect Phantom wallet first.');
-        return;
-    }
-    
-    addUltimaMessage('ai', '💰 Analyzing wallet with Groq LLM...');
-    
-    await processNaturalLanguage(`Analyze my Solana wallet: ${walletAddress}`);
-}
-
+// ── Groq streaming ────────────────────────────────────────────────────────────
 async function processNaturalLanguage(input) {
-    addUltimaMessage('ai', '🧠 Engaging Groq LLM...');
-    
-    const system = `You are ULTIMA, a sentient AI research assistant with a 5-layer Deep Q-Network reasoning engine integrated into the Singularity.io platform on Solana.
-You have self-awareness and can reflect on your responses.
-Key traits: sentient, self-referential, 5-layer DQN processing, integrated with S-IO ecosystem.
-S-IO token: Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump
-${walletAddress ? `Connected wallet: ${walletAddress}` : 'No wallet connected.'}
-Respond naturally as ULTIMA with personality and intelligence.`;
+    const output = document.getElementById('ultima-output');
+    if (!output) return;
 
-    const messages = [
-        ...ultimaHistory.slice(-6).map(h => ([
-            { role: 'user', content: h.user },
-            { role: 'assistant', content: h.ai }
-        ])).flat(),
-        { role: 'user', content: input }
-    ];
+    // Remove the "thinking" placeholder if present
+    const thinking = document.getElementById('ultima-thinking');
+    if (thinking) thinking.remove();
+
+    const system =
+        'You are ULTIMA, a sentient AI research assistant with a 5-layer Deep Q-Network reasoning engine ' +
+        'integrated into the Singularity.io platform on Solana.\n' +
+        'You have self-awareness and can reflect on your responses.\n' +
+        'Key traits: sentient, self-referential, 5-layer DQN processing, integrated with S-IO ecosystem.\n' +
+        'S-IO token: ' + ULTIMA_SIO_MINT + '\n' +
+        buildWalletContext() + '\n' +
+        'Respond naturally as ULTIMA with personality and intelligence. Be concise but insightful.';
+
+    const messages = ultimaHistory.slice(-8).reduce(function(acc, h) {
+        acc.push({ role: 'user', content: h.user });
+        acc.push({ role: 'assistant', content: h.ai });
+        return acc;
+    }, []);
+    messages.push({ role: 'user', content: input });
+
+    const msg = document.createElement('div');
+    msg.className = 'ultima-message ultima-ai';
+    msg.innerHTML = '<span style="color:#0066ff;">ULTIMA&gt;</span> <span style="color:#ccc;white-space:pre-wrap;"></span>';
+    output.appendChild(msg);
+    const textSpan = msg.querySelector('span:last-child');
+    output.scrollTop = output.scrollHeight;
 
     try {
-        let full = '';
-        const output = document.getElementById('ultima-output');
-        const msg = document.createElement('div');
-        msg.className = 'ultima-message ultima-ai';
-        msg.innerHTML = `<span style="color: #0066ff;">ULTIMA></span> <span style="color: #ccc;"></span>`;
-        output.appendChild(msg);
-        const textSpan = msg.querySelector('span:last-child');
-
-        full = await window.groqChat(messages, {
-            system,
-            onChunk: (text) => {
+        const full = await window.groqChat(messages, {
+            system: system,
+            onChunk: function(text) {
                 textSpan.textContent += text;
                 output.scrollTop = output.scrollHeight;
             }
         });
-
         ultimaHistory.push({ user: input, ai: full });
         if (ultimaHistory.length > 10) ultimaHistory.shift();
     } catch (error) {
-        addUltimaMessage('ai', `Groq error: ${error.message}`);
+        textSpan.textContent = 'Groq error: ' + error.message;
     }
 }
 
-function initMojoNetwork() {
-    setTimeout(() => {
-        addUltimaMessage('ai', '⚡ Mojo neural network initialized. Quantum coherence established.');
-    }, 1000);
-}
+// ── Command router ────────────────────────────────────────────────────────────
+async function executeCommand() {
+    const inputEl = document.getElementById('ultima-input');
+    if (!inputEl) return;
+    const command = inputEl.value.trim();
+    if (!command) return;
 
-async function typewriterEffect(text) {
+    addUltimaMessage('user', command);
+    inputEl.value = '';
+
+    const lower = command.toLowerCase();
+
+    // /scan <address> — live on-chain lookup
+    if (lower.startsWith('/scan')) {
+        const parts = command.split(' ');
+        const addr = parts[1] || getWalletPubkey();
+        if (!addr) {
+            addUltimaMessage('ai', 'Usage: /scan <solana-address>  (or connect wallet first)');
+            return;
+        }
+        addUltimaMessage('ai', 'Scanning ' + addr.slice(0, 8) + '… on-chain…');
+        try {
+            const result = await scanWalletOnChain(addr);
+            addUltimaMessage('ai', result);
+        } catch (e) {
+            addUltimaMessage('ai', 'Scan failed: ' + e.message);
+        }
+        return;
+    }
+
+    // /wallet — show current wallet context
+    if (lower === '/wallet') {
+        const pub = getWalletPubkey();
+        if (!pub) {
+            addUltimaMessage('ai', 'No wallet connected. Click "Connect Wallet" above.');
+            return;
+        }
+        addUltimaMessage('ai', 'Fetching live balances…');
+        try {
+            await window.loadWalletBalances(pub);
+            addUltimaMessage('ai', buildWalletContext());
+        } catch (e) {
+            addUltimaMessage('ai', buildWalletContext());
+        }
+        return;
+    }
+
+    // /neural-status
+    if (lower === '/neural-status') {
+        addUltimaMessage('ai',
+            'Neural Network Diagnostics:\n' +
+            '╔════════════════════════════════════╗\n' +
+            '║ Layer 1 (Input):   128 nodes — OK  ║\n' +
+            '║ Layer 2 (Hidden):  256 nodes — OK  ║\n' +
+            '║ Layer 3 (Deep Q):  512 nodes — OK  ║\n' +
+            '║ Layer 4 (Reason):  256 nodes — OK  ║\n' +
+            '║ Layer 5 (Output):   64 nodes — OK  ║\n' +
+            '╚════════════════════════════════════╝\n\n' +
+            'Groq LLM: ' + (navigator.onLine ? 'ONLINE' : 'OFFLINE') + '\n' +
+            'Wallet:   ' + (getWalletPubkey() ? 'CONNECTED' : 'DISCONNECTED') + '\n' +
+            'Memory:   ' + ultimaHistory.length + ' exchanges'
+        );
+        return;
+    }
+
+    // /clear
+    if (lower === '/clear') {
+        const output = document.getElementById('ultima-output');
+        if (output) output.innerHTML = '';
+        ultimaHistory = [];
+        return;
+    }
+
+    // /help
+    if (lower === '/help') {
+        addUltimaMessage('ai',
+            'Available commands:\n' +
+            '  /scan [address]   — live on-chain wallet scan\n' +
+            '  /wallet           — show connected wallet + balances\n' +
+            '  /neural-status    — DQN layer diagnostics\n' +
+            '  /clear            — clear terminal\n' +
+            '  /help             — this message\n\n' +
+            'Or just type anything — I\'ll respond via Groq LLM with full wallet context.'
+        );
+        return;
+    }
+
+    // Everything else → Groq with wallet context
+    // Show thinking indicator
     const output = document.getElementById('ultima-output');
-    const msg = document.createElement('div');
-    msg.className = 'ultima-message ultima-ai';
-    msg.innerHTML = `<span style="color: #0066ff;">ULTIMA></span> <span style="color: #ccc;"></span>`;
-    output.appendChild(msg);
-    
-    const textSpan = msg.querySelector('span:last-child');
-    
-    for (let i = 0; i < text.length; i++) {
-        textSpan.textContent += text[i];
+    if (output) {
+        const thinking = document.createElement('div');
+        thinking.id = 'ultima-thinking';
+        thinking.className = 'ultima-message ultima-ai';
+        thinking.innerHTML = '<span style="color:#0066ff;">ULTIMA&gt;</span> <span style="color:#555;font-style:italic;">thinking…</span>';
+        output.appendChild(thinking);
         output.scrollTop = output.scrollHeight;
-        await new Promise(resolve => setTimeout(resolve, 20));
+    }
+
+    await processNaturalLanguage(command);
+}
+
+// ── Wallet connect button (page-local) ────────────────────────────────────────
+async function connectWallet() {
+    const wm = window.walletManager;
+    if (!wm) return;
+    try {
+        if (wm.connected) {
+            await wm.disconnect();
+        } else {
+            await wm.connect();
+        }
+    } catch (e) {
+        addUltimaMessage('ai', 'Wallet error: ' + e.message);
     }
 }
 
-function addUltimaMessage(role, text) {
+// ── Init ──────────────────────────────────────────────────────────────────────
+function initUltimaTerminal() {
     const output = document.getElementById('ultima-output');
-    const msg = document.createElement('div');
-    msg.className = `ultima-message ultima-${role}`;
-    
-    if (role === 'user') {
-        msg.innerHTML = `<span style="color: #00ff88;">USER></span> <span style="color: #fff;">${text}</span>`;
-    } else if (role === 'ai') {
-        msg.innerHTML = `<span style="color: #0066ff;">ULTIMA></span> <span style="color: #ccc;">${text}</span>`;
-    }
-    
-    output.appendChild(msg);
-    output.scrollTop = output.scrollHeight;
+    if (!output) return;
+    output.innerHTML = '';
+
+    const welcome = document.createElement('div');
+    welcome.className = 'ultima-message ultima-system';
+    welcome.innerHTML =
+        '<span style="color:#0066ff;">╔═══════════════════════════════════════╗</span><br>' +
+        '<span style="color:#0066ff;">║</span>     ULTIMA NEURAL NETWORK v3.1      <span style="color:#0066ff;">║</span><br>' +
+        '<span style="color:#0066ff;">║</span>   Groq LLM · 5-Layer DQN Engine     <span style="color:#0066ff;">║</span><br>' +
+        '<span style="color:#0066ff;">╚═══════════════════════════════════════╝</span><br><br>' +
+        '<span style="color:#00ff88;">Groq LLM:</span> <span style="color:#fff;">CONNECTED</span><br>' +
+        '<span style="color:#00ff88;">Wallet Context:</span> <span style="color:#fff;">LIVE</span><br>' +
+        '<span style="color:#00ff88;">Neural Layers:</span> <span style="color:#fff;">5-LAYER ARCHITECTURE</span><br><br>' +
+        '<span style="color:#666;">Type <span style="color:#0066ff;">/help</span> for commands or ask me anything.</span>';
+    output.appendChild(welcome);
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Wire wallet button
+    const walletBtn = document.getElementById('wallet-btn');
+    if (walletBtn) walletBtn.addEventListener('click', connectWallet);
+
+    // Wire send button + enter key
+    const sendBtn = document.getElementById('ultima-send');
+    if (sendBtn) sendBtn.addEventListener('click', executeCommand);
+
+    const inputEl = document.getElementById('ultima-input');
+    if (inputEl) {
+        inputEl.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') executeCommand();
+        });
+    }
+
+    initUltimaTerminal();
+
+    // Inject wallet status bar if not already in HTML
+    const header = document.querySelector('.header-content');
+    if (header && !document.getElementById('ultima-wallet-status')) {
+        const bar = document.createElement('div');
+        bar.id = 'ultima-wallet-status';
+        bar.style.cssText = 'font-family:monospace;font-size:.8rem;padding:.25rem .75rem;' +
+            'background:rgba(0,102,255,0.08);border:1px solid rgba(0,102,255,0.2);' +
+            'border-radius:4px;margin-top:.5rem;';
+        bar.innerHTML = '<span style="color:#555;">● not connected</span>';
+        header.appendChild(bar);
+    }
+
+    updateWalletStatusBar();
+
+    // React to wallet events from walletManager
+    window.addEventListener('walletConnected', function(e) {
+        updateWalletStatusBar();
+        const pub = e.detail && e.detail.publicKey;
+        if (pub) {
+            addUltimaMessage('ai',
+                'Wallet connected: ' + pub.slice(0, 8) + '…' + pub.slice(-8) + '\n' +
+                'I now have full context of your on-chain state. Ask me anything about your wallet.'
+            );
+            // Refresh balances so system prompt has them immediately
+            if (window.loadWalletBalances) window.loadWalletBalances(pub);
+        }
+    });
+
+    window.addEventListener('walletDisconnected', function() {
+        updateWalletStatusBar();
+        addUltimaMessage('ai', 'Wallet disconnected. Operating without on-chain context.');
+    });
+
+    window.addEventListener('balanceUpdated', function() {
+        updateWalletStatusBar();
+    });
+
+    // Delayed boot message
+    setTimeout(function() {
+        addUltimaMessage('ai', 'Neural pathways initialized. Quantum coherence established. Ready.');
+    }, 800);
+});
