@@ -6,8 +6,33 @@
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "maxLambdaSize": "50mb",
-        "runtime": "python3.11"
+        "runtime": "python3.12",
+        "includeFiles": [
+          "api/**",
+          "dqn-core/*.py",
+          "dqn-core/reasoning_dqn_model.pth"
+        ],
+        "excludeFiles": [
+          "dqn-core/training_data/**",
+          "dqn-core/__pycache__/**",
+          "dqn-core/tests/**",
+          "dqn-core/*.onnx",
+          "typescript/**",
+          "go/**",
+          "java/**",
+          "packages/**",
+          "examples/**",
+          "e2e/**",
+          "specs/**",
+          "neural_network/**",
+          "singularity-agent/**",
+          "blockchain/**",
+          "conf/**",
+          "crate/**",
+          "node_modules/**",
+          "**/__pycache__/**",
+          "**/*.pyc"
+        ]
       }
     },
     {

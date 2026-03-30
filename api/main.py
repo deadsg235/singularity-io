@@ -20,26 +20,30 @@ from fastapi.responses import JSONResponse
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-# ── Path bootstrap — make dqn_core importable ─────────────────────────────────
+# ── Path bootstrap — make dqn_core importable when torch is available ────────
 _repo_root = Path(__file__).parent.parent
 for _p in [str(_repo_root), str(_repo_root / "dqn-core"), str(Path(__file__).parent)]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-# If dqn-core can't be imported as dqn_core (hyphen issue), register alias
-try:
-    import dqn_core  # noqa: F401
-except ModuleNotFoundError:
-    import importlib.util as _ilu
-    _spec = _ilu.spec_from_file_location(
-        "dqn_core",
-        str(_repo_root / "dqn-core" / "__init__.py"),
-        submodule_search_locations=[str(_repo_root / "dqn-core")],
-    )
-    _mod = _ilu.module_from_spec(_spec)
-    sys.modules["dqn_core"] = _mod
-    _spec.loader.exec_module(_mod)
-    logger.info("dqn_core registered via importlib alias")
+# Register dqn_core alias (handles the dqn-core hyphen → dqn_core underscore mapping)
+# We do NOT import dqn_core here — torch is heavy and may not be installed.
+# The guardian_analytics and bot_agent routers do lazy _get_engine() calls instead.
+if "dqn_core" not in sys.modules:
+    try:
+        import importlib.util as _ilu
+        _init = _repo_root / "dqn-core" / "__init__.py"
+        if _init.exists():
+            _spec = _ilu.spec_from_file_location(
+                "dqn_core", str(_init),
+                submodule_search_locations=[str(_repo_root / "dqn-core")],
+            )
+            _mod = _ilu.module_from_spec(_spec)
+            sys.modules["dqn_core"] = _mod
+            # Do NOT exec_module here — that would import torch at startup.
+            # The lazy __getattr__ in __init__.py handles actual attribute access.
+    except Exception:
+        pass
 
 # ── App ───────────────────────────────────────────────────────────────────────
 
