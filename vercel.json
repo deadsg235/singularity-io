@@ -35,15 +35,20 @@
       }
     },
     {
-      "src": "web/singularity-frontend/index.html",
+      "src": "web/singularity-frontend/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/index.py" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/web/singularity-frontend/$1" },
-    { "src": "/", "dest": "/web/singularity-frontend/index.html" }
+    { "src": "/favicon.ico", "dest": "/web/singularity-frontend/favicon.ico" },
+    { "src": "/favicon.svg", "dest": "/web/singularity-frontend/favicon.svg" },
+    { "src": "/style.css", "dest": "/web/singularity-frontend/style.css" },
+    { "src": "/style-old.css", "dest": "/web/singularity-frontend/style-old.css" },
+    { "src": "/(.+\\.(?:js|css|html|ico|svg|png|jpg|jpeg|gif|woff|woff2|ttf|onnx|json))", "dest": "/web/singularity-frontend/$1" },
+    { "src": "/", "dest": "/web/singularity-frontend/index.html" },
+    { "src": "/([^.]+)", "dest": "/web/singularity-frontend/$1.html" },
+    { "src": "/(.*)", "dest": "/web/singularity-frontend/$1" }
   ],
   "headers": [
     {
