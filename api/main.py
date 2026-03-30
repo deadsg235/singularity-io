@@ -1,232 +1,141 @@
+"""
+main.py — Singularity.io FastAPI application.
+
+Registers all routers and middleware. Entry point for Vercel via api/index.py.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+import time
+from typing import Any, Dict
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-try:
-    from neural_network import dqn
-    NEURAL_AVAILABLE = True
-except Exception as e:
-    print(f"Neural network not available: {e}")
-    NEURAL_AVAILABLE = False
-    dqn = None
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
-# Import S-IO protocol
-try:
-    from sio_middleware import require_sio_payment, sio_protected
-    from sio_protocol import SIODataTransmission
-    SIO_AVAILABLE = True
-except ImportError as e:
-    print(f"S-IO protocol not available: {e}")
-    SIO_AVAILABLE = False
-
-# Import working API routers
-try:
-    from sio_token import router as sio_router
-except ImportError as e:
-    print(f"sio_token not available: {e}")
-    sio_router = None
-
-try:
-    from wallet_analytics import router as wallet_analytics_router
-    from revenue import router as revenue_router
-    from social import router as social_router
-    from staking import router as staking_router
-    from sio_swap import router as swap_router
-    from sio_staking import router as sio_staking_router
-    from guardian_analytics import router as guardian_router
-    from guardian_advanced import router as guardian_advanced_router
-    from sio_payments import router as sio_payments_router
-    from access_control import router as access_router
-    from neural_protected import router as neural_router
-    from sio_protocol import router as sio_protocol_router
-    from services_catalog import router as services_catalog_router
-except ImportError as e:
-    print(f"Some API modules not available: {e}")
+# ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="Singularity.io API",
-    description="Backend API for Singularity.io - Solana blockchain integration platform",
-    version="0.1.0"
+    description="Full-stack Solana DeFi platform — AI trading, Guardian analytics, X402 payments",
+    version="0.6.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
 )
 
+# ── CORS ──────────────────────────────────────────────────────────────────────
+
+ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[ALLOWED_ORIGIN] if ALLOWED_ORIGIN != "*" else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include working API routers
-try:
-    if sio_router:
-        app.include_router(sio_router)
-except Exception as e:
-    print(f"Failed to include sio_router: {e}")
+# ── Request logging middleware ────────────────────────────────────────────────
 
-try:
-    app.include_router(wallet_analytics_router)
-    app.include_router(revenue_router)
-    app.include_router(social_router)
-    app.include_router(staking_router)
-    app.include_router(swap_router)
-    app.include_router(sio_staking_router)
-    app.include_router(guardian_router)
-    app.include_router(guardian_advanced_router)
-    app.include_router(sio_payments_router)
-    app.include_router(access_router)
-    app.include_router(neural_router)
-    app.include_router(sio_protocol_router)
-    app.include_router(services_catalog_router)
-except NameError:
-    pass  # Routers not available
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    ms = round((time.time() - start) * 1000, 1)
+    logger.info("%s %s %d %.1fms", request.method, request.url.path, response.status_code, ms)
+    return response
 
-@app.get("/")
-def read_root():
+# ── Routers ───────────────────────────────────────────────────────────────────
+
+def _include(module_name: str, attr: str = "router") -> bool:
+    try:
+        import importlib
+        mod = importlib.import_module(module_name)
+        r = getattr(mod, attr)
+        app.include_router(r)
+        logger.info("Router loaded: %s", module_name)
+        return True
+    except Exception as e:
+        logger.warning("Router unavailable: %s — %s", module_name, e)
+        return False
+
+_include("guardian_analytics")
+_include("bot_agent")
+
+# Optional routers — load if available
+for _mod in [
+    "governance",
+    "analytics",
+    "revenue",
+    "social",
+    "staking",
+    "sio_swap",
+    "sio_staking",
+    "guardian_advanced",
+    "sio_payments",
+    "access_control",
+    "neural_protected",
+    "services_catalog",
+    "leaderboard",
+    "portfolio",
+    "network",
+    "groq_chat",
+    "langchain_agent",
+]:
+    _include(_mod)
+
+# ── Core endpoints ────────────────────────────────────────────────────────────
+
+@app.get("/", include_in_schema=False)
+def root() -> Dict[str, Any]:
     return {
-        "name": "Singularity.io",
-        "version": "0.1.0",
-        "description": "Solana blockchain integration platform with SolFunMeme technology"
+        "name": "Singularity.io API",
+        "version": "0.6.0",
+        "docs": "/api/docs",
     }
+
 
 @app.get("/api/health")
-def health_check():
-    return {"status": "healthy", "service": "singularity-api"}
-
-@app.get("/api/network/stats")
-def get_network_stats():
+def health() -> Dict[str, Any]:
     return {
-        "solana_network": "mainnet-beta",
-        "connected_nodes": 0,
-        "status": "initializing"
+        "status": "healthy",
+        "service": "singularity-api",
+        "version": "0.6.0",
+        "timestamp": int(time.time()),
     }
 
-@app.get("/api/solfunmeme/status")
-def get_solfunmeme_status():
-    return {
-        "technology": "SolFunMeme",
-        "status": "development",
-        "phase": "Phase 1: Definition & Research"
-    }
 
-@app.get("/api/economy/overview")
-def get_economy_overview():
-    return {
-        "token": "SFM",
-        "total_supply": 0,
-        "active_bounties": 0,
-        "status": "pre-launch"
-    }
+@app.get("/api/wallet/{address}")
+async def get_wallet(address: str) -> Dict[str, Any]:
+    """SOL + S-IO token balances for any address."""
+    import httpx
 
-@app.get("/api/neural/network")
-@require_sio_payment(
-    amount="500000",  # 0.5 SIO tokens
-    description="Access to neural network state data"
-) if SIO_AVAILABLE else lambda: None
-def get_neural_network(request: Request = None):
-    if not NEURAL_AVAILABLE or not dqn:
-        return {"nodes": [], "connections": [], "layers": []}
-    
-    # Enhanced neural network data with S-IO protocol
-    state = dqn.get_state()
-    
-    if SIO_AVAILABLE and request:
-        # Wrap in S-IO data transmission
-        transmission = SIODataTransmission(
-            payment_proof=request.headers.get("X-SIO-PAYMENT", ""),
-            data_type="json",
-            data=state,
-            metadata={
-                "resource": "neural_network_state",
-                "timestamp": "2024-01-01T12:00:00Z"
-            }
-        )
-        return transmission.model_dump()
-    
-    return state
+    SIO_MINT = "Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump"
+    RPC = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
 
-@app.post("/api/neural/update")
-@require_sio_payment(
-    amount="1000000",  # 1 SIO token
-    description="Update neural network parameters"
-) if SIO_AVAILABLE else lambda: None
-def update_neural_network(request: Request = None):
-    if NEURAL_AVAILABLE and dqn:
-        dqn.update()
-    return {"status": "updated", "protocol": "s-io" if SIO_AVAILABLE else "standard"}
+    async def rpc(method: str, params: list):
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.post(RPC, json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params})
+            return r.json().get("result")
 
-# S-IO Protocol specific endpoints
-if SIO_AVAILABLE:
-    @app.get("/api/sio/premium-data")
-    @require_sio_payment(
-        amount="2000000",  # 2 SIO tokens
-        description="Premium Singularity.io trading data"
-    )
-    async def get_premium_data(request: Request):
-        """Premium trading data with S-IO payment"""
-        return {
-            "data": {
-                "ai_predictions": {
-                    "btc": {"trend": "bullish", "confidence": 0.87},
-                    "eth": {"trend": "neutral", "confidence": 0.72},
-                    "sol": {"trend": "bullish", "confidence": 0.91}
-                },
-                "market_signals": ["volume_spike", "rsi_oversold", "ma_crossover"],
-                "risk_assessment": "moderate"
-            },
-            "timestamp": "2024-01-01T12:00:00Z",
-            "source": "singularity-ai",
-            "protocol": "s-io"
-        }
-    
-    @app.get("/api/sio/agent-communication")
-    @require_sio_payment(
-        amount="750000",  # 0.75 SIO tokens
-        description="Agent-to-agent communication service"
-    )
-    async def agent_communication(request: Request):
-        """Secure agent communication with S-IO payment"""
-        return {
-            "service": "agent_communication",
-            "status": "active",
-            "endpoints": {
-                "send_message": "/api/sio/agent/send",
-                "receive_message": "/api/sio/agent/receive",
-                "broadcast": "/api/sio/agent/broadcast"
-            },
-            "protocol": "s-io"
-        }
-    
-    @app.get("/api/sio/discover")
-    async def discover_sio_resources():
-        """Discover available S-IO protocol resources"""
-        return {
-            "protocol": "s-io",
-            "version": 1,
-            "resources": [
-                {
-                    "endpoint": "/api/neural/network",
-                    "cost": "500000",
-                    "description": "Neural network state data",
-                    "method": "GET"
-                },
-                {
-                    "endpoint": "/api/neural/update",
-                    "cost": "1000000",
-                    "description": "Update neural network",
-                    "method": "POST"
-                },
-                {
-                    "endpoint": "/api/sio/premium-data",
-                    "cost": "2000000",
-                    "description": "Premium trading data",
-                    "method": "GET"
-                },
-                {
-                    "endpoint": "/api/sio/agent-communication",
-                    "cost": "750000",
-                    "description": "Agent communication service",
-                    "method": "GET"
-                }
-            ]
-        }
+    try:
+        sol_result = await rpc("getBalance", [address, {"commitment": "confirmed"}])
+        sol = ((sol_result or {}).get("value", sol_result) or 0) / 1e9
+
+        token_result = await rpc("getTokenAccountsByOwner", [
+            address,
+            {"mint": SIO_MINT},
+            {"encoding": "jsonParsed"},
+        ])
+        accounts = (token_result or {}).get("value", [])
+        sio = 0.0
+        if accounts:
+            sio = accounts[0]["account"]["data"]["parsed"]["info"]["tokenAmount"]["uiAmount"] or 0.0
+
+        return {"address": address, "sol": round(sol, 6), "sio": round(sio, 6)}
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"error": "RPC_ERROR", "message": str(e)})

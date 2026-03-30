@@ -13,11 +13,42 @@ class TradingAssistant {
     init() {
         this.initChat();
         this.bindEvents();
-        this.getWalletAddress();
+        this._syncWallet();
+
+        // Stay in sync with wallet events
+        window.addEventListener('walletConnected', (e) => {
+            this._syncWallet();
+            const pub = e.detail && e.detail.publicKey;
+            if (pub) this._appendSystem('Wallet connected: ' + pub.slice(0, 8) + '…' + pub.slice(-4));
+        });
+        window.addEventListener('walletDisconnected', () => {
+            this._syncWallet();
+            this._appendSystem('Wallet disconnected.');
+        });
+        window.addEventListener('balanceUpdated', () => { this._syncWallet(); });
     }
 
-    getWalletAddress() {
-        this.walletAddress = localStorage.getItem('walletAddress');
+    _syncWallet() {
+        // Read from walletManager (canonical) → globalWallet → solana → localStorage
+        this.walletAddress = window.walletManager?.publicKey
+            || (window.globalWallet && window.globalWallet.publicKey.toString())
+            || window.solana?.publicKey?.toString()
+            || localStorage.getItem('walletAddress')
+            || null;
+
+        const bal = window._cachedBalances;
+        this.solBalance = bal ? bal.sol : 0;
+        this.sioBalance = bal ? bal.sio : 0;
+    }
+
+    _appendSystem(text) {
+        const chat = document.getElementById('trading-chat');
+        if (!chat) return;
+        const el = document.createElement('div');
+        el.className = 'chat-message system';
+        el.innerHTML = '<span style="color:#555;">[SYS]</span> <span style="color:#888;">' + text + '</span>';
+        chat.appendChild(el);
+        chat.scrollTop = chat.scrollHeight;
     }
 
     initChat() {
@@ -51,7 +82,7 @@ class TradingAssistant {
         try {
             await window.dqnReady;
             if (!window.dqnInfer) return null;
-            const solPrice = window._cachedSolPrice ?? 150;
+            const solPrice = window._cachedSolPrice || 150;
             const result = await window.dqnInfer({
                 price: solPrice,
                 volume: 500_000_000,
@@ -60,7 +91,7 @@ class TradingAssistant {
                 bbUpper: solPrice * 1.04,
                 bbLower: solPrice * 0.96,
                 solTps: 3200,
-                walletBalance: 0
+                walletBalance: (window._cachedBalances && window._cachedBalances.sol) || 0
             });
             return result;
         } catch { return null; }
@@ -93,10 +124,14 @@ class TradingAssistant {
         this.addMessage('user', message);
         input.value = '';
 
-        const system = `You are an AI trading assistant for the Singularity.io platform on Solana. 
-Help users with trading decisions, market analysis, and DeFi strategies.
-User wallet: ${this.walletAddress || 'not connected'}.
-Be concise and actionable. Focus on Solana/DeFi trading.`;
+        const system = 'You are an AI trading assistant for the Singularity.io platform on Solana. ' +
+            'Help users with trading decisions, market analysis, and DeFi strategies. ' +
+            (this.walletAddress
+                ? 'Connected wallet: ' + this.walletAddress + '. ' +
+                  'SOL balance: ' + (this.solBalance || 0).toFixed(4) + ' SOL. ' +
+                  'S-IO balance: ' + (this.sioBalance || 0).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' S-IO. '
+                : 'No wallet connected. ') +
+            'Be concise and actionable. Focus on Solana/DeFi trading.';
 
         const messages = [
             ...this.chatHistory.map(h => ([
