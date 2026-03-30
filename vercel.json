@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "outputDirectory": "web/singularity-frontend",
   "builds": [
     {
       "src": "api/index.py",
@@ -36,12 +35,17 @@
       }
     },
     {
-      "src": "web/singularity-frontend/**",
+      "src": "web/singularity-frontend/(.*)",
       "use": "@vercel/static"
     }
   ],
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index.py" }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.py" },
+    { "src": "/favicon.ico", "dest": "/web/singularity-frontend/favicon.ico" },
+    { "src": "/favicon.svg", "dest": "/web/singularity-frontend/favicon.svg" },
+    { "src": "/(.*\\.(js|css|html|ico|svg|png|jpg|jpeg|gif|woff|woff2|ttf|onnx|json))", "dest": "/web/singularity-frontend/$1" },
+    { "src": "/", "dest": "/web/singularity-frontend/index.html" },
+    { "src": "/(.*)", "dest": "/web/singularity-frontend/$1.html", "status": 200 }
   ],
   "headers": [
     {
