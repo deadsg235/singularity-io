@@ -1,370 +1,237 @@
-# S-IO Protocol Implementation
+# S-IO Protocol — X402 Payment Integration
 
 ## Overview
 
-The S-IO (Singularity Input/Output) protocol is a payment-gated API system designed for the Singularity.io ecosystem. Based on the x402 protocol architecture, S-IO enables seamless SIO token transactions and advanced data transmission on the Solana blockchain.
+The S-IO payment protocol is built on the [X402 standard](https://x402.org) — an HTTP 402-based micro-payment protocol for Solana. It enables payment-gated API routes where users pay in SOL or USDC (SPL tokens) to access premium platform features.
 
-## Features
+**Token**: S-IO — `Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump`
 
-- **Payment-Gated APIs**: Secure access to premium endpoints with SIO token payments
-- **Solana Integration**: Native Solana blockchain settlement with SPL token support
-- **Advanced Data Transmission**: Encrypted and verified data delivery with payment proof
-- **Agent-to-Agent Communication**: Autonomous payment handling for AI agents
-- **Staking Integration**: Discount tiers based on SIO token staking
-- **Resource Discovery**: Automatic discovery of available paid resources
+---
 
 ## Architecture
 
 ```
-Client Request → 402 Payment Required → Payment Creation → 
-Payment Verification → Resource Access → Settlement → Response
+Browser                          API Server                    Solana
+  │                                  │                            │
+  │── GET /api/ai/query ────────────>│                            │
+  │<── 402 PaymentRequired ──────────│                            │
+  │                                  │                            │
+  │── build ExactSvmPayloadV2        │                            │
+  │── sign with Phantom wallet       │                            │
+  │── GET /api/ai/query ────────────>│                            │
+  │   X-Payment: <base64-payload>    │── verify tx on-chain ─────>│
+  │                                  │<── confirmed ──────────────│
+  │<── 200 OK ───────────────────────│                            │
+  │   X-Payment-Response: <receipt>  │                            │
 ```
 
-### Core Components
+---
 
-1. **sio_protocol.py** - Core protocol structures and handlers
-2. **sio_middleware.py** - FastAPI middleware for payment gating
-3. **sio_client.py** - Python client for payment creation
-4. **sio-protocol.js** - JavaScript client with Phantom wallet integration
+## Gated Routes
 
-## Quick Start
+| Route | Price | Asset | Description |
+|---|---|---|---|
+| `POST /api/ai/query` | `X402_PRICE_AI_QUERY` | USDC | ULTIMA AI queries |
+| `GET /api/guardian/premium` | `X402_PRICE_GUARDIAN` | USDC | Advanced Guardian analytics |
+| `GET /api/bots/signals` | `X402_PRICE_BOT_SIGNALS` | USDC | DQN trading signals |
 
-### 1. Server Setup
+Prices are configurable via environment variables (default: 0.001 USDC per query).
 
-```python
-from fastapi import FastAPI, Request
-from api.sio_middleware import require_sio_payment
-
-app = FastAPI()
-
-@app.get("/api/premium-data")
-@require_sio_payment(
-    amount="1000000",  # 1 SIO token (6 decimals)
-    description="Premium AI trading data"
-)
-async def get_premium_data(request: Request):
-    return {"data": "premium content"}
-```
-
-### 2. Python Client
-
-```python
-from api.sio_client import SIOClient, create_sio_payment_header
-from solders.keypair import Keypair
-
-# Create client
-client = SIOClient()
-
-# Create payment
-keypair = Keypair()  # Your wallet keypair
-headers = create_sio_payment_header(requirements, keypair)
-
-# Make request
-response = requests.get(url, headers=headers)
-```
-
-### 3. JavaScript Client
-
-```javascript
-// Initialize client
-const client = new SIOProtocolClient({
-    sioTokenMint: 'SioTkQxHyAs98ouRiyi1YDv3gLMSrX3eNBg61GH9xMd'
-});
-
-// Connect wallet
-await client.connectWallet();
-
-// Make payment request
-const response = await client.makePaymentRequest(url, requirements);
-```
-
-### 4. Payment Widget
-
-```javascript
-// Create payment widget
-const widget = new SIOPaymentWidget('payment-container', {
-    theme: 'dark',
-    onPaymentSuccess: (payment) => console.log('Paid:', payment),
-    onPaymentError: (error) => console.error('Error:', error)
-});
-
-// Show payment dialog
-widget.showPaymentDialog(requirements);
-```
-
-## API Endpoints
-
-### Standard Endpoints
-
-- `GET /` - API information
-- `GET /api/health` - Health check
-- `GET /api/sio/discover` - Discover S-IO resources
-
-### Payment-Gated Endpoints
-
-- `GET /api/neural/network` - Neural network state (0.5 SIO)
-- `POST /api/neural/update` - Update neural network (1 SIO)
-- `GET /api/sio/premium-data` - Premium trading data (2 SIO)
-- `GET /api/sio/agent-communication` - Agent communication (0.75 SIO)
+---
 
 ## Payment Flow
 
-### 1. Resource Request
+### 1. Initial Request → 402 Response
+
 ```http
-GET /api/premium-data
+GET /api/ai/query
 ```
 
-### 2. Payment Required Response
 ```json
 {
-  "error": "SIO payment required",
-  "protocol": "s-io",
-  "requirements": {
-    "protocol": "s-io",
-    "version": 1,
-    "amount": "1000000",
-    "token": "SioTkQxHyAs98ouRiyi1YDv3gLMSrX3eNBg61GH9xMd",
-    "recipient": "SioTreasury...",
-    "description": "Premium data access"
+  "x402Version": 2,
+  "accepts": [{
+    "scheme": "exact",
+    "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+    "maxAmountRequired": "1000",
+    "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "payTo": "<facilitator-address>",
+    "maxTimeoutSeconds": 300,
+    "extra": { "name": "ULTIMA AI Query", "description": "One AI query to ULTIMA terminal" }
+  }]
+}
+```
+
+### 2. Client Builds Payment
+
+```javascript
+// x402-client.js
+const { payload } = await buildX402Payment(requirements, payerPubkey);
+// Signs SPL TransferChecked instruction with Phantom
+// Encodes as base64 ExactSvmPayloadV2
+```
+
+### 3. Retry with Payment Header
+
+```http
+GET /api/ai/query
+X-Payment: eyJ4NDAyVmVyc2lvbiI6MiwicGF5bG9hZCI6...
+```
+
+### 4. Facilitator Verifies On-Chain
+
+The X402 middleware calls the Facilitator service which:
+1. Decodes the `X-Payment` header
+2. Verifies the SPL transfer transaction on Solana RPC
+3. Confirms amount, recipient, and token match requirements
+4. Returns settlement receipt
+
+### 5. Success Response
+
+```http
+HTTP/1.1 200 OK
+X-Payment-Response: eyJzdWNjZXNzIjp0cnVlLCJ0eCI6Ii4uLiJ9
+Content-Type: application/json
+
+{ "result": "..." }
+```
+
+---
+
+## Client Usage (JavaScript)
+
+```javascript
+// Full payment flow
+const result = await window.x402Pay({
+    serviceName: 'ultima-ai',
+    asset: window.X402_TOKENS.USDC,
+    amount: '1000',                    // in token smallest units (1000 = 0.001 USDC)
+    payTo: '<facilitator-address>',
+    payerPubkey: window.walletManager.publicKey,
+    onStatus: (msg) => console.log('[X402]', msg)
+});
+// result.signature — confirmed Solana tx signature
+
+// Check if service is unlocked (30-day window)
+const unlocked = window.x402IsUnlocked('ultima-ai', pubkey);
+
+// Get all unlocked services
+const services = window.x402GetUnlocked(pubkey);
+```
+
+---
+
+## Middleware Configuration (Next.js)
+
+```typescript
+// web/singularity-frontend/middleware.ts
+import { withPaymentRequired } from '@x402/next'
+
+export const middleware = withPaymentRequired({
+  routes: {
+    '/api/ai/query':         { amount: process.env.X402_PRICE_AI_QUERY,    asset: 'USDC' },
+    '/api/guardian/premium': { amount: process.env.X402_PRICE_GUARDIAN,    asset: 'USDC' },
+    '/api/bots/signals':     { amount: process.env.X402_PRICE_BOT_SIGNALS, asset: 'USDC' },
+  },
+  facilitatorUrl: process.env.X402_FACILITATOR_URL,
+})
+```
+
+---
+
+## Payload Schema
+
+`ExactSvmPayloadV2` (validated via Zod in `@x402/core`):
+
+```typescript
+interface ExactSvmPayloadV2 {
+  x402Version: 2
+  scheme: "exact"
+  network: string           // CAIP-2 chain ID
+  payload: {
+    transaction: string     // base64-encoded signed Solana transaction
+    signature?: string      // optional pre-extracted signature
   }
 }
 ```
 
-### 3. Payment Request
-```http
-GET /api/premium-data
-X-SIO-PAYMENT: eyJwcm90b2NvbCI6InMtaW8i...
-```
+**Serialization**: base64-encoded JSON string in `X-Payment` header.
 
-### 4. Successful Response
-```http
-HTTP/1.1 200 OK
-X-SIO-SETTLEMENT: eyJzdWNjZXNzIjp0cnVl...
+**Round-trip guarantee**: `deserialize(serialize(payload))` deep-equals original (Correctness Property 20).
 
-{
-  "data": "premium content",
-  "protocol": "s-io"
-}
-```
+**Malformed header**: SDK returns descriptive error, never throws (Correctness Property 21).
 
-## Configuration
+---
 
-### Environment Variables
+## Token Configuration
 
 ```bash
-# Solana Configuration
-SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-SIO_TOKEN_MINT=SioTkQxHyAs98ouRiyi1YDv3gLMSrX3eNBg61GH9xMd
-SIO_TREASURY_WALLET=SioTreasury1234567890123456789012345678901
-
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=8000
+# Known token mints
+USDC:  EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+S-IO:  Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump
+SOL:   So11111111111111111111111111111111111111112
 ```
 
-### Token Configuration
+---
 
-```python
-# SIO Token Details
-SIO_TOKEN_MINT = "SioTkQxHyAs98ouRiyi1YDv3gLMSrX3eNBg61GH9xMd"
-SIO_DECIMALS = 6
-SIO_SYMBOL = "SIO"
-```
+## Payment History
 
-## Testing
+All X402 payments are persisted to `localStorage` under key `sio-payments-{pubkey}`:
 
-### Run Test Suite
-
-```bash
-# Install dependencies
-pip install httpx asyncio
-
-# Run tests
-python api/test_sio_protocol.py
-```
-
-### Test Output
-
-```
-🚀 Starting S-IO Protocol Test Suite
-==================================================
-🏥 Testing API health
-✅ API is healthy
-
-🔍 Testing S-IO resource discovery
-✅ Discovery endpoint accessible
-   Protocol: s-io
-   Version: 1
-   Resources: 4
-     - /api/neural/network: 500000 SIO
-     - /api/neural/update: 1000000 SIO
-     - /api/sio/premium-data: 2000000 SIO
-     - /api/sio/agent-communication: 750000 SIO
-
-🔒 Testing payment required for /api/neural/network
-✅ Correctly returned 402 Payment Required
-   Protocol: s-io
-   Amount: 500000 SIO
-
-💰 Testing successful payment for /api/neural/network
-✅ Payment accepted, resource delivered
-   Settlement: True
-   Signature: 5j7k8l9m0n1p2q3r4s5t...
-```
-
-## Integration Examples
-
-### FastAPI Middleware
-
-```python
-from api.sio_middleware import SIOMiddleware
-
-# Initialize middleware
-sio = SIOMiddleware(
-    sio_token_mint="SioTkQxHyAs98ouRiyi1YDv3gLMSrX3eNBg61GH9xMd",
-    treasury_wallet="SioTreasury..."
-)
-
-# Apply to specific endpoints
-@app.get("/premium")
-@sio.require_sio_payment(amount="1000000", description="Premium access")
-async def premium_endpoint(request: Request):
-    return {"data": "premium"}
-```
-
-### Staking Integration
-
-```python
-@app.get("/discounted-data")
-@require_sio_payment(
-    amount="1000000",
-    description="Data with staking discount"
-)
-async def discounted_data(request: Request):
-    # Apply staking discount
-    wallet = request.headers.get("X-Wallet-Address")
-    discount = get_staking_discount(wallet)
-    
-    return {
-        "data": "premium content",
-        "discount_applied": discount,
-        "original_price": "1000000",
-        "paid_price": str(int(1000000 * (1 - discount)))
-    }
-```
-
-### Agent Communication
-
-```python
-@app.post("/agent/message")
-@require_sio_payment(amount="250000", description="Agent messaging")
-async def agent_message(request: Request):
-    body = await request.json()
-    
-    # Process agent message
-    response = process_agent_message(body)
-    
-    # Return secure transmission
-    return SIODataTransmission(
-        payment_proof=request.headers.get("X-SIO-PAYMENT"),
-        data_type="json",
-        data=response,
-        metadata={"agent_id": body.get("agent_id")}
-    ).model_dump()
-```
-
-## Security Features
-
-### Payment Verification
-- Transaction signature validation
-- Amount and recipient verification
-- Nonce-based replay protection
-- Timeout window enforcement
-
-### Data Protection
-- Payment proof verification
-- Encrypted data transmission
-- Metadata integrity checks
-- Audit trail logging
-
-## Error Handling
-
-### Error Codes
-- `SIO_001`: Invalid payment payload
-- `SIO_002`: Payment expired
-- `SIO_003`: Insufficient balance
-- `SIO_004`: Invalid signature
-- `SIO_005`: Settlement failed
-
-### Error Response Format
-```json
+```javascript
 {
-  "error": "SIO payment required",
-  "protocol": "s-io",
-  "code": "SIO_001",
-  "message": "Invalid payment payload format"
+  service: 'ultima-ai',
+  amount: 1000,
+  asset: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+  status: 'confirmed',
+  timestamp: 1743200000000,
+  signature: '5j7k8l9m...',
+  id: '5j7k8l9m0n1p2q3r'
 }
 ```
 
-## Deployment
+Viewable at `/sio-payments`.
 
-### Docker Setup
+---
 
-```dockerfile
-FROM python:3.11-slim
+## Error Codes
 
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+| Code | HTTP | Description |
+|---|---|---|
+| `PAYMENT_REQUIRED` | 402 | No valid X-Payment header |
+| `PAYMENT_VERIFICATION_FAILED` | 402 | On-chain verification failed |
+| `PAYMENT_EXPIRED` | 402 | Transaction blockhash expired |
+| `PAYMENT_AMOUNT_MISMATCH` | 402 | Amount doesn't match requirements |
+| `PAYMENT_RECIPIENT_MISMATCH` | 402 | Wrong recipient address |
 
-COPY . .
-EXPOSE 8000
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-### Production Configuration
-
-```python
-# production_config.py
-SIO_CONFIG = {
-    "token_mint": "SioTkQxHyAs98ouRiyi1YDv3gLMSrX3eNBg61GH9xMd",
-    "treasury_wallet": "SioTreasury1234567890123456789012345678901",
-    "rpc_url": "https://api.mainnet-beta.solana.com",
-    "settlement_timeout": 30,
-    "max_payment_age": 300
-}
-```
+---
 
 ## Roadmap
 
-### Version 1.1 (Planned)
-- Subscription model support
-- Batch payment processing
-- Enhanced staking integration
-- Cross-chain bridge support
+### Q2 2026
+- [ ] Subscription model — pay once, access for 30 days
+- [ ] Batch payments — single transaction for multiple service unlocks
+- [ ] SOL payment support (in addition to USDC)
 
-### Version 2.0 (Future)
-- Multi-token support
-- Payment channels
-- Dispute resolution
-- Advanced analytics
+### Q3 2026
+- [ ] S-IO token payment support with staking discount tiers
+- [ ] Payment channels — off-chain micropayments with periodic settlement
 
-## Contributing
+### Q1 2027
+- [ ] Cross-chain payments via `@x402/evm` (EVM wallets)
+- [ ] Dispute resolution mechanism
+- [ ] Public payment analytics dashboard
 
-1. Fork the repository
-2. Create feature branch
-3. Implement changes
-4. Add tests
-5. Submit pull request
+---
 
-## License
+## SDK Packages
 
-MIT License - Open source for the Singularity.io ecosystem
+| Package | Description |
+|---|---|
+| `@x402/core` | Types, Zod schemas, serialization utilities |
+| `@x402/svm` | Solana payment mechanism (`ExactSvmPayloadV2`) |
+| `@x402/evm` | EVM payment mechanism |
+| `@x402/http-next` | Next.js middleware adapter |
+| `@x402/http-paywall` | Payment UI component |
 
-## Support
-
-- Documentation: `/specs/SIO-PROTOCOL.md`
-- Examples: `/api/sio_examples.py`
-- Tests: `/api/test_sio_protocol.py`
-- Issues: GitHub Issues
+Source: `typescript/packages/` in this repo.
