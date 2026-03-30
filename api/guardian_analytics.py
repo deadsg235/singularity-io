@@ -51,13 +51,12 @@ def _get_engine():
     if _engine is not None:
         return _engine
     try:
-        import sys, pathlib
-        sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "dqn-core"))
         from dqn_core.engine import DQNReasoningEngine
-        model_path = str(pathlib.Path(__file__).parent.parent / "dqn-core" / "reasoning_dqn_model.pth")
+        from pathlib import Path as _Path
+        model_path = str(_Path(__file__).parent.parent / "dqn-core" / "reasoning_dqn_model.pth")
         _engine = DQNReasoningEngine(
             state_size=128, action_size=10,
-            model_path=model_path if pathlib.Path(model_path).exists() else None,
+            model_path=model_path if _Path(model_path).exists() else None,
             mode="trading",
         )
         logger.info("DQN engine loaded for Guardian")

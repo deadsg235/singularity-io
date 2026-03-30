@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import time
+from pathlib import Path
 from typing import Any, Dict
 
 from fastapi import FastAPI, Request
@@ -17,6 +19,27 @@ from fastapi.responses import JSONResponse
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+# ── Path bootstrap — make dqn_core importable ─────────────────────────────────
+_repo_root = Path(__file__).parent.parent
+for _p in [str(_repo_root), str(_repo_root / "dqn-core"), str(Path(__file__).parent)]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+# If dqn-core can't be imported as dqn_core (hyphen issue), register alias
+try:
+    import dqn_core  # noqa: F401
+except ModuleNotFoundError:
+    import importlib.util as _ilu
+    _spec = _ilu.spec_from_file_location(
+        "dqn_core",
+        str(_repo_root / "dqn-core" / "__init__.py"),
+        submodule_search_locations=[str(_repo_root / "dqn-core")],
+    )
+    _mod = _ilu.module_from_spec(_spec)
+    sys.modules["dqn_core"] = _mod
+    _spec.loader.exec_module(_mod)
+    logger.info("dqn_core registered via importlib alias")
 
 # ── App ───────────────────────────────────────────────────────────────────────
 
