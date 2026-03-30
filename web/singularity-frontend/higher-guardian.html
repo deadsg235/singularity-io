@@ -207,8 +207,25 @@
                 <span class="metric-value risk-critical" id="exfiltrationAlerts">1</span>
             </div>
         </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h3>🔍 Wallet Risk Analysis</h3>
+            <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+                <input id="guardian-address-input" type="text" placeholder="Enter any Solana address…"
+                    style="flex:1;min-width:200px;background:rgba(0,0,0,0.5);border:1px solid rgba(0,212,255,0.3);color:#fff;border-radius:6px;padding:.5rem .75rem;font-size:.9rem;outline:none;" />
+                <button onclick="window.guardianAnalytics && window.guardianAnalytics.scanAddress()"
+                    style="background:#00d4ff;color:#000;border:none;border-radius:6px;padding:.5rem 1.25rem;cursor:pointer;font-weight:700;">Scan</button>
+                <button id="scan-my-wallet-btn"
+                    style="background:rgba(0,212,255,0.15);color:#00d4ff;border:1px solid rgba(0,212,255,0.4);border-radius:6px;padding:.5rem 1.25rem;cursor:pointer;font-weight:600;">My Wallet</button>
+            </div>
+            <div id="wallet-analysis" style="color:#555;font-size:.9rem;">Connect wallet or enter an address to scan.</div>
+        </div>
     </div>
 
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="wallet-balance-loader.js"></script>
+    <script src="wallet-manager.js"></script>
+    <script src="higher-guardian.js"></script>
     <script>
         let startTime = Date.now();
         let baseMetrics = {

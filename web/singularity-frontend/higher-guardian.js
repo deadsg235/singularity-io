@@ -1,41 +1,102 @@
 class HigherGuardianAnalytics {
     constructor() {
-        this.apiBase = 'http://localhost:8000/api/guardian';
-        this.refreshInterval = 2000;
+        // Use relative URL so it works on Vercel and localhost
+        this.apiBase = '/api/guardian';
+        this.refreshInterval = 30000;  // 30s — was 2s which hammered the API
         this.isConnected = false;
         this.lastUpdate = Date.now();
+        this.walletAddress = null;
         this.init();
     }
 
     async init() {
+        this._syncWallet();
+        window.addEventListener('walletConnected', (e) => {
+            this.walletAddress = e.detail && e.detail.publicKey;
+            this.loadWalletAnalysis();
+        });
+        window.addEventListener('walletDisconnected', () => {
+            this.walletAddress = null;
+        });
         await this.loadData();
         this.startAutoRefresh();
         this.setupEventListeners();
-        this.startRealTimeUpdates();
+    }
+
+    _syncWallet() {
+        this.walletAddress = window.walletManager?.publicKey
+            || window.solana?.publicKey?.toString()
+            || localStorage.getItem('walletAddress')
+            || null;
+    }
+
+    async loadWalletAnalysis() {
+        if (!this.walletAddress) return;
+        try {
+            const res = await fetch('/api/guardian/analyze/' + this.walletAddress);
+            if (!res.ok) return;
+            const data = await res.json();
+            this._renderWalletAnalysis(data);
+        } catch (e) {
+            console.warn('Guardian wallet analysis failed:', e.message);
+        }
+    }
+
+    _renderWalletAnalysis(data) {
+        const container = document.getElementById('wallet-analysis');
+        if (!container) return;
+        container.innerHTML =
+            '<div style="padding:1rem;background:rgba(0,0,0,0.5);border-radius:8px;border:1px solid rgba(220,38,38,0.3)">' +
+            '<div style="display:flex;justify-content:space-between;margin-bottom:.75rem">' +
+            '<span style="color:#888">Risk Score</span>' +
+            '<span style="color:' + this._riskColor(data.risk_score) + ';font-weight:700;font-size:1.2rem">' +
+            data.risk_score.toFixed(1) + ' — ' + data.risk_label + '</span></div>' +
+            '<div style="display:flex;justify-content:space-between;margin-bottom:.5rem">' +
+            '<span style="color:#888">SOL Balance</span><span style="color:#fff">' + (data.sol_balance || 0).toFixed(4) + ' SOL</span></div>' +
+            '<div style="display:flex;justify-content:space-between;margin-bottom:.5rem">' +
+            '<span style="color:#888">Tokens Held</span><span style="color:#fff">' + (data.token_count || 0) + '</span></div>' +
+            '<div style="display:flex;justify-content:space-between;margin-bottom:.5rem">' +
+            '<span style="color:#888">Flagged Txs</span>' +
+            '<span style="color:' + (data.flagged_transactions.length > 0 ? '#ff4444' : '#00ff88') + '">' +
+            data.flagged_transactions.length + '</span></div>' +
+            '<div style="display:flex;justify-content:space-between">' +
+            '<span style="color:#888">DQN Engine</span>' +
+            '<span style="color:' + (data.dqn_available ? '#00ff88' : '#888') + '">' +
+            (data.dqn_available ? 'ACTIVE' : 'FALLBACK') + '</span></div>' +
+            '</div>';
+    }
+
+    _riskColor(score) {
+        if (score < 15) return '#00ff88';
+        if (score < 35) return '#66ff99';
+        if (score < 55) return '#ffaa00';
+        if (score < 75) return '#ff6600';
+        return '#ff4444';
     }
 
     async loadData() {
         try {
-            console.log('Fetching Guardian data...');
             const [overview, activity, tunnels, security, aiSystems] = await Promise.all([
-                fetch(`${this.apiBase}/overview`).then(r => r.json()),
-                fetch(`${this.apiBase}/activity`).then(r => r.json()),
-                fetch(`${this.apiBase}/tunnels`).then(r => r.json()),
-                fetch(`${this.apiBase}/security`).then(r => r.json()),
-                fetch(`${this.apiBase}/ai-systems`).then(r => r.json())
+                fetch(this.apiBase + '/overview').then(r => r.ok ? r.json() : null).catch(() => null),
+                fetch(this.apiBase + '/activity').then(r => r.ok ? r.json() : null).catch(() => null),
+                fetch(this.apiBase + '/tunnels').then(r => r.ok ? r.json() : null).catch(() => null),
+                fetch(this.apiBase + '/security').then(r => r.ok ? r.json() : null).catch(() => null),
+                fetch(this.apiBase + '/ai-systems').then(r => r.ok ? r.json() : null).catch(() => null),
             ]);
 
-            console.log('Data received:', { overview, activity, tunnels, security, aiSystems });
-            
-            this.updateOverview(overview);
-            this.updateActivity(activity);
-            this.updateTunnels(tunnels);
-            this.updateSecurity(security);
-            this.updateAISystems(aiSystems);
-            this.updateConnectionStatus(true);
+            if (overview)  this.updateOverview(overview);
+            if (activity)  this.updateActivity(activity);
+            if (tunnels)   this.updateTunnels(tunnels);
+            if (security)  this.updateSecurity(security);
+            if (aiSystems) this.updateAISystems(aiSystems);
+
+            this.updateConnectionStatus(!!(overview || activity));
             this.lastUpdate = Date.now();
+
+            // Also load wallet-specific analysis if connected
+            if (this.walletAddress) this.loadWalletAnalysis();
         } catch (error) {
-            console.error('Failed to load Guardian data:', error);
+            console.warn('Guardian data load failed:', error.message);
             this.updateConnectionStatus(false);
         }
     }
@@ -210,27 +271,7 @@ class HigherGuardianAnalytics {
     }
 
     startAutoRefresh() {
-        setInterval(() => {
-            this.loadData();
-        }, this.refreshInterval);
-    }
-
-    startRealTimeUpdates() {
-        // Remove simulation - just refresh data
-    }
-
-    async simulateEvent() {
-        const events = ['blocked', 'alert', 'approved', 'ethics', 'tunnel'];
-        const eventType = events[Math.floor(Math.random() * events.length)];
-        
-        try {
-            await fetch(`${this.apiBase}/simulate-event?event_type=${eventType}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-        } catch (error) {
-            console.log('Simulation event failed:', error);
-        }
+        setInterval(() => { this.loadData(); }, this.refreshInterval);
     }
 
     setupEventListeners() {
@@ -243,14 +284,44 @@ class HigherGuardianAnalytics {
             });
         }
 
+        // "My Wallet" button
+        const myWalletBtn = document.getElementById('scan-my-wallet-btn');
+        if (myWalletBtn) {
+            myWalletBtn.addEventListener('click', () => {
+                const pub = window.walletManager?.publicKey || window.solana?.publicKey?.toString();
+                if (!pub) { alert('Connect your wallet first'); return; }
+                const input = document.getElementById('guardian-address-input');
+                if (input) input.value = pub;
+                this.scanAddress(pub);
+            });
+        }
+
         // Real-time status indicator
         setInterval(() => {
             const statusDot = document.querySelector('.status-dot');
-            if (this.isConnected) {
+            if (statusDot && this.isConnected) {
                 statusDot.style.opacity = '0.5';
                 setTimeout(() => statusDot.style.opacity = '1', 200);
             }
         }, 3000);
+    }
+
+    async scanAddress(address) {
+        const input = document.getElementById('guardian-address-input');
+        const addr = address || (input && input.value.trim());
+        if (!addr) { alert('Enter a Solana address'); return; }
+
+        const container = document.getElementById('wallet-analysis');
+        if (container) container.innerHTML = '<span style="color:#888">Scanning on-chain…</span>';
+
+        try {
+            const res = await fetch('/api/guardian/analyze/' + addr);
+            if (!res.ok) throw new Error('API returned ' + res.status);
+            const data = await res.json();
+            this._renderWalletAnalysis(data);
+        } catch (e) {
+            if (container) container.innerHTML = '<span style="color:#ff4444">Scan failed: ' + e.message + '</span>';
+        }
     }
 }
 
