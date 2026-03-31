@@ -1,5 +1,7 @@
 __pycache__/
 *.pyc
-*.pth
 *.onnx
 .pytest_cache/
+training_data/
+_train_local.py
+train_log.txt
