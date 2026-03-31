@@ -308,8 +308,8 @@
         // Load data on page load
         document.addEventListener('DOMContentLoaded', loadData);
 
-        // Auto-refresh every 1 second for real-time updates
-        setInterval(loadData, 1000);
+        // Auto-refresh every 30 seconds (not 1s — that hammers the API)
+        setInterval(loadData, 30000);
 
         // Status indicator animation
         setInterval(() => {

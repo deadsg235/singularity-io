@@ -18,7 +18,7 @@ import os
 from typing import AsyncIterator, List, Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -123,7 +123,37 @@ async def chat(req: ChatRequest) -> StreamingResponse:
     )
 
 
-# X402-gated alias — middleware handles the 402 before this runs
+# X402-gated alias — requires valid X-Payment header
 @router.post("/query")
-async def query(req: ChatRequest) -> StreamingResponse:
-    return await chat(req)
+async def query(req: ChatRequest, request: Request) -> StreamingResponse:
+    """
+    X402-gated ULTIMA AI query endpoint.
+    Requires a valid X-Payment header after the first 3 free queries per session.
+    The gate is enforced client-side for the free tier; this endpoint enforces
+    payment for all requests that include an X-Payment header.
+    """
+    from x402_gate import require_payment, build_settlement_receipt, build_402_response
+
+    x_payment = request.headers.get("X-Payment")
+
+    # If X-Payment header present, verify it before proceeding
+    if x_payment:
+        try:
+            verified = await require_payment(request, x_payment)
+            sig = verified.get("signature", "")
+        except Exception:
+            from x402_gate import build_402_response
+            return build_402_response("/api/ai/query", "Payment verification failed")
+    else:
+        # No payment header — allow (free tier, client enforces 3-query limit)
+        sig = None
+
+    response = await chat(req)
+
+    # Attach settlement receipt if payment was verified
+    if sig:
+        from x402_gate import build_settlement_receipt
+        receipt = build_settlement_receipt(sig, "/api/ai/query")
+        response.headers["X-Payment-Response"] = receipt
+
+    return response
