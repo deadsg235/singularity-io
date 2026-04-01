@@ -524,7 +524,9 @@ function describeLocation() {
     gap();
 
     if (loc.items && loc.items.length) {
-        print('<span class="t-amber">Items visible: ' + loc.items.map(itemName).join(', ') + '</span>');
+        print('<span class="t-amber">Items here: ' + loc.items.map(function (id) {
+            return itemName(id) + ' <span style="color:var(--dim)">[' + id + ']</span>';
+        }).join(', ') + '</span>');
     }
 
     var exits = Object.keys(loc.exits || {});
@@ -575,52 +577,145 @@ function move(dir) {
 }
 
 // ── Item pickup ───────────────────────────────────────────────
+function resolveItemAlias(raw) {
+    // Normalise common player-typed aliases to internal item keys
+    var aliases = {
+        // chip
+        'chip': 'data_chip', 'data_chip': 'data_chip',
+        // ammo aliases
+        '9mm': 'ammo_9mm', 'ammo_9mm': 'ammo_9mm', 'ammo_9': 'ammo_9mm',
+        '556': 'ammo_556', 'ammo_556': 'ammo_556', '5.56': 'ammo_556', 'ammo_5.56': 'ammo_556',
+        '545': 'ammo_545', 'ammo_545': 'ammo_545', '5.45': 'ammo_545',
+        '762': 'ammo_762nato', 'ammo_762': 'ammo_762nato', 'ammo_762nato': 'ammo_762nato', '7.62': 'ammo_762nato',
+        '50ae': 'ammo_50ae', 'ammo_50ae': 'ammo_50ae', '.50ae': 'ammo_50ae',
+        '50bmg': 'ammo_50bmg', 'ammo_50bmg': 'ammo_50bmg', '.50bmg': 'ammo_50bmg',
+        '12ga': 'ammo_12ga', 'ammo_12ga': 'ammo_12ga', 'shells': 'ammo_12ga', 'shotgun_shells': 'ammo_12ga',
+        '57': 'ammo_57', 'ammo_57': 'ammo_57', '5.7': 'ammo_57',
+        // armor
+        'kevlar': 'kevlar', 'vest': 'kevlar',
+        'tactical': 'tactical', 'tacvest': 'tactical',
+        'exo': 'exo', 'exoframe': 'exo', 'exo_frame': 'exo',
+        // consumables
+        'medkit': 'medkit', 'med': 'medkit', 'kit': 'medkit',
+        'stim': 'stim', 'stimpack': 'stim', 'stim_pack': 'stim',
+        // weapons — accept both key and short name
+        'm9': 'm9', 'beretta': 'm9', 'm9a3': 'm9',
+        'm17': 'm17', 'sig': 'm17', 'sigm17': 'm17',
+        'deagle': 'deagle', 'deserteagle': 'deagle', 'desert_eagle': 'deagle',
+        'glock': 'glock19', 'glock19': 'glock19', 'g19': 'glock19',
+        'm870': 'm870', 'remington': 'm870', '870': 'm870',
+        'aa12': 'aa12', 'aa-12': 'aa12',
+        'm4': 'm4a1', 'm4a1': 'm4a1', 'colt': 'm4a1',
+        'ak74': 'ak74', 'ak': 'ak74', 'ak-74': 'ak74',
+        'hk416': 'hk416', 'hk': 'hk416',
+        'scarh': 'scar_h', 'scar': 'scar_h', 'scar_h': 'scar_h',
+        'm24': 'm24', 'sniper': 'm24',
+        'barrett': 'barrett', 'm82': 'barrett',
+        'mp5': 'mp5', 'mp5sd': 'mp5',
+        'p90': 'p90',
+        'm249': 'm249', 'saw': 'm249',
+        // attachments
+        'red_dot': 'red_dot', 'reddot': 'red_dot', 'dot': 'red_dot',
+        'acog': 'acog',
+        'lpvo': 'lpvo',
+        'thermal': 'thermal',
+        'suppressor': 'suppressor_9mm', 'silencer': 'suppressor_9mm',
+        'suppressor_9mm': 'suppressor_9mm', 'suppressor_556': 'suppressor_556', 'suppressor_762': 'suppressor_762',
+        'angled_grip': 'angled_grip', 'angled': 'angled_grip', 'afg': 'angled_grip',
+        'vertical_grip': 'vertical_grip', 'vertical': 'vertical_grip',
+        'folding_stock': 'folding_stock', 'stock': 'folding_stock',
+        'weapon_light': 'weapon_light', 'light': 'weapon_light', 'flashlight': 'weapon_light',
+        'extended_mag': 'extended_mag', 'extmag': 'extended_mag',
+        'drum_mag': 'drum_mag', 'drum': 'drum_mag',
+        'bipod': 'bipod',
+        'choke': 'choke_tight', 'choke_tight': 'choke_tight',
+    };
+    var key = (raw || '').toLowerCase().replace(/\s+/g, '_');
+    return aliases[key] || key;
+}
+
 function takeItem(name) {
     var loc = G.world[G.location];
-    var idx = loc.items ? loc.items.indexOf(name) : -1;
-    if (idx === -1) { print('<span class="t-red">No "' + name + '" here.</span>'); return; }
+    if (!loc) { print('<span class="t-red">No location data.</span>'); return; }
+    loc.items = loc.items || [];
+
+    // Try exact match first, then fuzzy scan
+    var idx = loc.items.indexOf(name);
+    if (idx === -1) {
+        // Try resolving aliases against what's actually on the floor
+        for (var i = 0; i < loc.items.length; i++) {
+            if (resolveItemAlias(loc.items[i]) === name || loc.items[i] === name) {
+                idx = i;
+                name = loc.items[i]; // use the canonical floor key
+                break;
+            }
+        }
+    }
+
+    if (idx === -1) {
+        // Show what IS here to help the player
+        var here = loc.items.length ? loc.items.map(itemName).join(', ') : 'nothing';
+        print('<span class="t-red">No "' + name + '" here. Items present: ' + here + '</span>');
+        return;
+    }
+
     loc.items.splice(idx, 1);
     var p = G.player;
 
-    // Weapon pickup
+    // ── Weapon ──
     if (WEAPONS[name]) {
         if (p.ownedWeapons[name]) {
             print('<span class="t-amber">You already have a ' + WEAPONS[name].name + '.</span>');
-            loc.items.splice(idx, 0, name); // put back
+            loc.items.splice(idx, 0, name);
             return;
         }
         var w = WEAPONS[name];
         p.ownedWeapons[name] = { attachments: {} };
         Object.keys(w.slots || {}).forEach(function (s) { p.ownedWeapons[name].attachments[s] = null; });
-        print('<span class="t-green">Picked up ' + w.name + '. [' + w.caliber + '] ' + w.desc + '</span>');
-        print('<span class="t-dim t-indent">Type EQUIP ' + name + ' to switch to it.</span>');
+        print('<span class="t-green">Picked up ' + w.name + ' [' + w.caliber + '].</span>');
+        print('<span class="t-white t-indent">' + w.desc + '</span>');
+        print('<span class="t-dim t-indent">Type EQUIP ' + name + ' to switch to it. Type INSPECT ' + name + ' for full stats.</span>');
+        updateHUD();
         return;
     }
 
-    // Attachment pickup
+    // ── Attachment ──
     if (ATTACHMENTS[name]) {
+        p.inventory.attachments = p.inventory.attachments || {};
         p.inventory.attachments[name] = (p.inventory.attachments[name] || 0) + 1;
-        print('<span class="t-green">Picked up ' + ATTACHMENTS[name].name + '. ' + ATTACHMENTS[name].desc + '</span>');
+        var att = ATTACHMENTS[name];
+        print('<span class="t-green">Picked up ' + att.name + '.</span>');
+        print('<span class="t-white t-indent">' + att.desc + '</span>');
         print('<span class="t-dim t-indent">Type ATTACH ' + name + ' [weapon] to install it.</span>');
+        updateHUD();
         return;
     }
 
-    // Ammo
-    var ammoQty = { ammo_9mm:15, ammo_556:30, ammo_545:30, ammo_762nato:20, ammo_50ae:7, ammo_50bmg:5, ammo_12ga:6, ammo_57:50 };
+    // ── Ammo ──
+    var ammoQty = {
+        ammo_9mm: 15, ammo_556: 30, ammo_545: 30, ammo_762nato: 20,
+        ammo_50ae: 7, ammo_50bmg: 5, ammo_12ga: 6, ammo_57: 50
+    };
     if (ammoQty[name] !== undefined) {
         p.inventory[name] = (p.inventory[name] || 0) + ammoQty[name];
         print('<span class="t-green">Picked up ' + itemName(name) + '. Total: ' + p.inventory[name] + '</span>');
+        updateHUD();
         return;
     }
 
-    // Consumables / armor
-    if (name === 'medkit')   { p.inventory.medkit++;   print('<span class="t-green">Picked up Medkit.</span>'); }
-    else if (name === 'stim')     { p.inventory.stim++;     print('<span class="t-green">Picked up Stim Pack.</span>'); }
-    else if (name === 'kevlar')   { p.inventory.kevlar++;   print('<span class="t-green">Picked up Kevlar Vest.</span>'); }
-    else if (name === 'tactical') { p.inventory.tactical++; print('<span class="t-green">Picked up Tactical Vest.</span>'); }
-    else if (name === 'exo')      { p.inventory.exo++;      print('<span class="t-green">Picked up Exo-Frame.</span>'); }
-    else { print('<span class="t-dim">Picked up ' + name + '.</span>'); }
-
+    // ── Consumables / Armor ──
+    var consumables = {
+        medkit:   function () { p.inventory.medkit++;   print('<span class="t-green">Picked up Medkit. (' + p.inventory.medkit + ' total)</span>'); },
+        stim:     function () { p.inventory.stim++;     print('<span class="t-green">Picked up Stim Pack. (' + p.inventory.stim + ' total)</span>'); },
+        kevlar:   function () { p.inventory.kevlar++;   print('<span class="t-green">Picked up Kevlar Vest.</span>'); },
+        tactical: function () { p.inventory.tactical++; print('<span class="t-green">Picked up Tactical Vest.</span>'); },
+        exo:      function () { p.inventory.exo++;      print('<span class="t-green">Picked up Exo-Frame. Military grade.</span>'); },
+    };
+    if (consumables[name]) {
+        consumables[name]();
+    } else {
+        print('<span class="t-dim">Picked up ' + itemName(name) + '.</span>');
+    }
     updateHUD();
 }
 
@@ -1195,9 +1290,11 @@ function parse(raw) {
             break;
 
         // ── Take ──
-        case 'take': case 'pick': case 'grab':
-            if (!arg1) { print('<span class="t-red">Take what?</span>'); break; }
-            var itemKey = arg1 === 'chip' ? 'data_chip' : arg1;
+        case 'take': case 'pick': case 'grab': case 'get':
+            if (!arg1) { print('<span class="t-red">Take what? (type LOOK to see items)</span>'); break; }
+            // Normalise multi-word aliases the player might type
+            var rawArg = parts.slice(1).join('_');   // "ammo 9mm" → "ammo_9mm"
+            var itemKey = resolveItemAlias(rawArg);
             if (itemKey === 'data_chip') {
                 var dloc = G.world[G.location];
                 if (dloc && dloc.items && dloc.items.indexOf('data_chip') !== -1) {
@@ -1207,7 +1304,7 @@ function parse(raw) {
                     gap();
                     setTimeout(epilogue, 800);
                 } else {
-                    takeItem(itemKey);
+                    print('<span class="t-red">No data chip here.</span>');
                 }
             } else {
                 takeItem(itemKey);
