@@ -132,17 +132,16 @@ async def query(req: ChatRequest, request: Request) -> StreamingResponse:
     The gate is enforced client-side for the free tier; this endpoint enforces
     payment for all requests that include an X-Payment header.
     """
-    from x402_gate import require_payment, build_settlement_receipt, build_402_response
+    from x402_gate import verify_x_payment, build_402_response, build_payment_response_header
 
     x_payment = request.headers.get("X-Payment")
 
     # If X-Payment header present, verify it before proceeding
     if x_payment:
         try:
-            verified = await require_payment(request, x_payment)
+            verified = await verify_x_payment(x_payment, "/api/ai/query")
             sig = verified.get("signature", "")
         except Exception:
-            from x402_gate import build_402_response
             return build_402_response("/api/ai/query", "Payment verification failed")
     else:
         # No payment header — allow (free tier, client enforces 3-query limit)
@@ -152,8 +151,7 @@ async def query(req: ChatRequest, request: Request) -> StreamingResponse:
 
     # Attach settlement receipt if payment was verified
     if sig:
-        from x402_gate import build_settlement_receipt
-        receipt = build_settlement_receipt(sig, "/api/ai/query")
-        response.headers["X-Payment-Response"] = receipt
+        from x402_gate import build_payment_response_header
+        response.headers["X-Payment-Response"] = build_payment_response_header(sig, "/api/ai/query")
 
     return response

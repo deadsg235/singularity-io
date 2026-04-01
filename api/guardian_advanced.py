@@ -1,10 +1,16 @@
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 from datetime import datetime, timedelta
 import json
 import asyncio
 import random
 from typing import Dict, List, Any, Set
 from dataclasses import dataclass, asdict
+
+try:
+    from x402_gate import build_402_response, verify_x_payment, build_payment_response_header
+    _X402_AVAILABLE = True
+except ImportError:
+    _X402_AVAILABLE = False
 
 router = APIRouter(prefix="/api/guardian", tags=["guardian"])
 
@@ -163,3 +169,47 @@ async def log_ai_action(ai_id: str, action_type: str, description: str = ""):
     """Log AI action for behavior analysis"""
     await guardian_store.analyze_ai_behavior(ai_id, action_type)
     return {"status": "logged", "ai_id": ai_id, "action": action_type}
+
+
+# ── X402-gated premium endpoint ───────────────────────────────────────────────
+
+@router.get("/premium")
+async def guardian_premium(request: Request):
+    """
+    X402-gated premium Guardian analytics.
+    Requires a valid X-Payment header (ExactSvmPayloadV2).
+    Returns HTTP 402 with PaymentRequired body if no payment provided.
+    """
+    if not _X402_AVAILABLE:
+        raise HTTPException(status_code=503, detail="X402 gate not available")
+
+    x_payment = request.headers.get("X-Payment")
+    if not x_payment:
+        return build_402_response("/api/guardian/premium")
+
+    try:
+        payment = await verify_x_payment(x_payment, "/api/guardian/premium")
+    except HTTPException as e:
+        return build_402_response("/api/guardian/premium", error=str(e.detail))
+
+    # Premium analytics payload
+    guardian_store.update_performance_metrics()
+    data = {
+        "premium": True,
+        "payment_signature": payment.get("signature", ""),
+        "threats":     [asdict(t) for t in guardian_store.threat_events[:20]],
+        "performance": guardian_store.performance_metrics,
+        "ai_patterns": {
+            ai_id: [asdict(p) for p in patterns]
+            for ai_id, patterns in guardian_store.ai_patterns.items()
+        },
+        "network_topology": guardian_store.network_topology,
+        "generated_at": int(datetime.now().timestamp()),
+    }
+
+    from fastapi.responses import JSONResponse
+    response = JSONResponse(content=data)
+    sig = payment.get("signature", "")
+    if sig:
+        response.headers["X-Payment-Response"] = build_payment_response_header(sig, "/api/guardian/premium")
+    return response

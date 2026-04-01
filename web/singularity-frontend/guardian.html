@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0a0a">
+    <title>Guardian — Singularity.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .guardian-wrap { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+
+        /* Search bar */
+        .search-bar {
+            display: flex; gap: .75rem; align-items: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .search-bar input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-family: var(--font-mono);
+            font-size: .9rem;
+        }
+        .search-bar input::placeholder { color: var(--text-3); }
+        .search-bar input:focus { color: var(--text); }
+
+        /* Risk gauge */
+        .risk-gauge-wrap {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 1.5rem 1rem;
+        }
+        .risk-score-num {
+            font-family: var(--font-hud);
+            font-size: 3.5rem;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: .25rem;
+        }
+        .risk-label-badge {
+            font-family: var(--font-hud);
+            font-size: .72rem;
+            letter-spacing: .12em;
+            padding: .25rem .75rem;
+            border-radius: 20px;
+            border: 1px solid;
+            margin-bottom: 1rem;
+        }
+        .risk-bar-track {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,.06);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .risk-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width .6s ease;
+        }
+
+        /* Main grid */
+        .guardian-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+        .guardian-left { display: flex; flex-direction: column; gap: 1.25rem; }
+
+        /* Portfolio table */
+        .portfolio-table { width: 100%; border-collapse: collapse; }
+        .portfolio-table th {
+            font-family: var(--font-hud); font-size: .62rem;
+            letter-spacing: .1em; color: var(--text-3);
+            text-align: left; padding: .5rem .75rem;
+            border-bottom: 1px solid var(--border-dim);
+        }
+        .portfolio-table td {
+            padding: .6rem .75rem;
+            font-size: .82rem;
+            border-bottom: 1px solid var(--border-dim);
+            font-family: var(--font-mono);
+        }
+        .portfolio-table tr:last-child td { border-bottom: none; }
+        .portfolio-table tr:hover td { background: rgba(220,38,38,.04); }
+        .pct-bar-wrap { display: flex; align-items: center; gap: .5rem; }
+        .pct-bar { height: 4px; border-radius: 2px; background: var(--red); min-width: 2px; }
+
+        /* Tx list */
+        .tx-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: .55rem 0;
+            border-bottom: 1px solid var(--border-dim);
+            font-size: .78rem;
+        }
+        .tx-item:last-child { border-bottom: none; }
+        .tx-sig {
+            font-family: var(--font-mono);
+            color: var(--red);
+            font-size: .72rem;
+            cursor: pointer;
+        }
+        .tx-sig:hover { text-decoration: underline; }
+        .tx-err { color: #ff4444; font-size: .68rem; }
+        .tx-ok  { color: #00ff88; font-size: .68rem; }
+
+        /* Metric rows */
+        .metric-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: .55rem 0;
+            border-bottom: 1px solid var(--border-dim);
+            font-size: .82rem;
+        }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-row .lbl { color: var(--text-3); }
+        .metric-row .val { font-family: var(--font-mono); font-weight: 600; }
+
+        /* State panels */
+        .state-idle {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; padding: 3rem 1rem;
+            color: var(--text-3); text-align: center; gap: .75rem;
+        }
+        .state-idle .icon { font-size: 2.5rem; }
+        .state-loading {
+            display: flex; align-items: center; justify-content: center;
+            padding: 2rem; gap: .75rem; color: var(--text-3);
+        }
+        .spinner {
+            width: 20px; height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--red);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Flagged tx badge */
+        .flagged-badge {
+            background: rgba(255,68,68,.15);
+            border: 1px solid rgba(255,68,68,.4);
+            color: #ff4444;
+            font-size: .65rem;
+            font-family: var(--font-hud);
+            padding: .1rem .4rem;
+            border-radius: 3px;
+            letter-spacing: .06em;
+        }
+
+        /* DQN badge */
+        .dqn-badge {
+            font-size: .65rem; font-family: var(--font-hud);
+            padding: .1rem .4rem; border-radius: 3px;
+            letter-spacing: .06em;
+        }
+        .dqn-active   { background: rgba(0,255,136,.12); border: 1px solid rgba(0,255,136,.3); color: #00ff88; }
+        .dqn-fallback { background: rgba(255,255,255,.05); border: 1px solid var(--border); color: var(--text-3); }
+
+        /* Responsive */
+        @media(max-width:900px) {
+            .guardian-grid { grid-template-columns: 1fr; }
+        }
+        @media(max-width:600px) {
+            .guardian-wrap { padding: .75rem; }
+            .search-bar { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+<canvas id="matrix-bg"></canvas>
+
+<!-- Header -->
+<header class="page-header">
+    <div class="page-header-inner">
+        <div class="page-header-left">
+            <a href="index.html" class="nav-logo">
+                <div class="nav-logo-mark">S</div>
+                <span class="nav-logo-text">SINGULARITY<span>.io</span></span>
+            </a>
+            <span style="color:var(--text-3);font-size:.75rem;font-family:var(--font-hud);letter-spacing:.1em;">/ GUARDIAN</span>
+        </div>
+        <div class="page-header-right">
+            <a href="analytics.html" class="header-link">Analytics</a>
+            <a href="swap.html"      class="header-link">Swap</a>
+            <a href="staking.html"   class="header-link">Staking</a>
+            <a href="ultima.html"    class="header-link">ULTIMA</a>
+            <button id="wallet-btn" class="wallet-btn">Connect Wallet</button>
+            <div id="balance-display" class="balance-display hidden">
+                <div class="balance-item">
+                    <span class="balance-label">SOL</span>
+                    <span id="sol-balance" class="balance-value">0</span>
+                </div>
+                <div class="balance-sep"></div>
+                <div class="balance-item">
+                    <span class="balance-label">S-IO</span>
+                    <span id="sio-balance" class="balance-value">0</span>
+                </div>
+                <button id="refresh-balance-btn" class="refresh-btn" title="Refresh">↻</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="guardian-wrap">
+
+    <!-- Search -->
+    <div class="search-bar">
+        <span style="color:var(--red);font-family:var(--font-hud);font-size:.8rem;white-space:nowrap;">🛡 SCAN</span>
+        <input id="address-input" type="text" placeholder="Enter any Solana wallet address…" autocomplete="off" spellcheck="false">
+        <button id="my-wallet-btn" class="btn btn-ghost btn-sm">My Wallet</button>
+        <button id="scan-btn" class="btn btn-primary btn-sm">Analyze</button>
+    </div>
+
+    <!-- Idle state -->
+    <div id="state-idle">
+        <div class="state-idle">
+            <span class="icon">🛡️</span>
+            <span style="font-family:var(--font-hud);font-size:.85rem;color:var(--text-2);">GUARDIAN ANALYTICS</span>
+            <span style="font-size:.85rem;">Enter any Solana address or connect your wallet to run a full on-chain risk analysis.</span>
+        </div>
+    </div>
+
+    <!-- Loading state -->
+    <div id="state-loading" class="hidden">
+        <div class="state-loading">
+            <div class="spinner"></div>
+            <span style="font-family:var(--font-hud);font-size:.8rem;">SCANNING ON-CHAIN…</span>
+        </div>
+    </div>
+
+    <!-- Error state -->
+    <div id="state-error" class="hidden" style="padding:1.5rem;text-align:center;color:#ff4444;font-family:var(--font-hud);font-size:.82rem;"></div>
+
+    <!-- Results -->
+    <div id="state-results" class="hidden">
+
+        <!-- Top summary bar -->
+        <div class="kpi-bar" style="margin-bottom:1.25rem;" id="summary-bar">
+            <div class="kpi-item">
+                <span class="kpi-label">Wallet</span>
+                <span class="kpi-value" id="res-address" style="font-size:.72rem;word-break:break-all;">—</span>
+            </div>
+            <div class="kpi-item">
+                <span class="kpi-label">SOL Balance</span>
+                <span class="kpi-value" id="res-sol">—</span>
+            </div>
+            <div class="kpi-item">
+                <span class="kpi-label">Tokens Held</span>
+                <span class="kpi-value" id="res-tokens">—</span>
+            </div>
+            <div class="kpi-item">
+                <span class="kpi-label">Transactions</span>
+                <span class="kpi-value" id="res-txcount">—</span>
+            </div>
+            <div class="kpi-item">
+                <span class="kpi-label">Flagged Txs</span>
+                <span class="kpi-value" id="res-flagged">—</span>
+            </div>
+            <div class="kpi-item">
+                <span class="kpi-label">DQN Engine</span>
+                <span class="kpi-value" id="res-dqn">—</span>
+            </div>
+        </div>
+
+        <div class="guardian-grid">
+            <!-- Left: risk gauge + wallet stats -->
+            <div class="guardian-left">
+
+                <!-- Risk score card -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">RISK ASSESSMENT</span>
+                        <span id="res-analyzed-at" style="font-size:.65rem;color:var(--text-3);font-family:var(--font-mono);"></span>
+                    </div>
+                    <div class="card-body">
+                        <div class="risk-gauge-wrap">
+                            <div class="risk-score-num" id="res-risk-score">—</div>
+                            <div class="risk-label-badge" id="res-risk-label">—</div>
+                            <div class="risk-bar-track" style="width:100%;">
+                                <div class="risk-bar-fill" id="res-risk-bar" style="width:0%;"></div>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;width:100%;margin-top:.35rem;">
+                                <span style="font-size:.62rem;color:#00ff88;font-family:var(--font-hud);">SAFE</span>
+                                <span style="font-size:.62rem;color:#ff4444;font-family:var(--font-hud);">CRITICAL</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wallet stats -->
+                <div class="card">
+                    <div class="card-header"><span class="card-title">WALLET STATS</span></div>
+                    <div class="card-body" id="wallet-stats-body">
+                        <div class="metric-row"><span class="lbl">SOL Balance</span><span class="val" id="ws-sol">—</span></div>
+                        <div class="metric-row"><span class="lbl">Token Accounts</span><span class="val" id="ws-tokens">—</span></div>
+                        <div class="metric-row"><span class="lbl">Transactions</span><span class="val" id="ws-txcount">—</span></div>
+                        <div class="metric-row"><span class="lbl">Flagged</span><span class="val" id="ws-flagged">—</span></div>
+                        <div class="metric-row"><span class="lbl">Risk Score</span><span class="val" id="ws-risk">—</span></div>
+                        <div class="metric-row"><span class="lbl">Risk Label</span><span class="val" id="ws-label">—</span></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right: portfolio + transactions -->
+            <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+                <!-- Portfolio -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">PORTFOLIO BREAKDOWN</span>
+                        <span id="res-total-usd" style="font-family:var(--font-mono);font-size:.78rem;color:var(--text-2);"></span>
+                    </div>
+                    <div class="card-body" style="padding:0;">
+                        <div id="portfolio-empty" class="state-idle" style="padding:1.5rem;">
+                            <span style="font-size:.82rem;">No token holdings found.</span>
+                        </div>
+                        <div id="portfolio-table-wrap" class="hidden" style="overflow-x:auto;">
+                            <table class="portfolio-table">
+                                <thead>
+                                    <tr>
+                                        <th>TOKEN</th>
+                                        <th>BALANCE</th>
+                                        <th>USD VALUE</th>
+                                        <th>PORTFOLIO %</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="portfolio-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction history -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">RECENT TRANSACTIONS</span>
+                        <span style="font-size:.65rem;color:var(--text-3);font-family:var(--font-hud);">LAST 50</span>
+                    </div>
+                    <div class="card-body" id="tx-body">
+                        <div class="state-idle" style="padding:1rem;">
+                            <span style="font-size:.82rem;">No transactions found.</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Flagged transactions (shown only if any) -->
+        <div id="flagged-section" class="hidden" style="margin-bottom:1.25rem;">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title" style="color:#ff4444;">⚠ FLAGGED TRANSACTIONS</span>
+                    <span id="flagged-count-badge" class="flagged-badge"></span>
+                </div>
+                <div class="card-body" id="flagged-body"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<footer>
+    <p>Singularity.io | Guardian Analytics — On-chain data via Solana RPC · Jupiter Price API</p>
+</footer>
+
+<script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+<script src="wallet-balance-loader.js"></script>
+<script src="wallet-manager.js"></script>
+<script src="matrix.js"></script>
+<script src="guardian.js"></script>
+</body>
+</html>

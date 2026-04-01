@@ -784,3 +784,36 @@ footer a{color:var(--red)}
   .feature-card:hover { transform: none; }
   .btn-primary:hover { transform: none; }
 }
+
+/* ══════════════════════════════════════════
+   KPI BAR — shared by analytics + guardian
+══════════════════════════════════════════ */
+.kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.kpi-item {
+  background: var(--bg-card);
+  padding: .9rem 1.1rem;
+  display: flex; flex-direction: column; gap: .2rem;
+}
+.kpi-label {
+  font-size: .65rem; color: var(--text-3);
+  font-family: var(--font-hud); letter-spacing: .1em; text-transform: uppercase;
+}
+.kpi-value {
+  font-family: var(--font-hud); font-size: 1.1rem; font-weight: 700; color: var(--text);
+}
+.kpi-change { font-size: .72rem; font-family: var(--font-mono); }
+.kpi-change.up   { color: #00ff88; }
+.kpi-change.down { color: #ff4444; }
+.kpi-change.neu  { color: var(--text-3); }
+
+/* DQN status badges (guardian) */
+.dqn-active   { background: rgba(0,255,136,.12); border: 1px solid rgba(0,255,136,.3); color: #00ff88; padding: .1rem .4rem; border-radius: 3px; font-size: .65rem; font-family: var(--font-hud); letter-spacing: .06em; }
+.dqn-fallback { background: rgba(255,255,255,.05); border: 1px solid var(--border); color: var(--text-3); padding: .1rem .4rem; border-radius: 3px; font-size: .65rem; font-family: var(--font-hud); letter-spacing: .06em; }
