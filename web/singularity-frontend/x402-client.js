@@ -36,8 +36,9 @@
 
     var RPC_POOL = [
         'https://api.mainnet-beta.solana.com',
-        'https://solana-mainnet.phantom.tech',
-        'https://rpc.ankr.com/solana'
+        'https://mainnet.helius-rpc.com/?api-key=public',
+        'https://solana-rpc.publicnode.com',
+        'https://rpc.hellomoon.io/public'
     ];
 
     // ── RPC helper ────────────────────────────────────────────

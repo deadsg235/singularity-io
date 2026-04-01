@@ -8,10 +8,10 @@ const SIO_MINT = 'Fuj6EDWQHBnQ3eEvYDujNQ4rPLSkhm3pBySbQ79Bpump';
 
 const RPC_POOL = [
     'https://api.mainnet-beta.solana.com',
-    'https://solana-mainnet.phantom.tech',
-    'https://rpc.ankr.com/solana',
-    'https://api.metaplex.solana.com',
-    'https://solana-mainnet-public.allthatnode.com'
+    'https://mainnet.helius-rpc.com/?api-key=public',
+    'https://solana-rpc.publicnode.com',
+    'https://rpc.hellomoon.io/public',
+    'https://api.metaplex.solana.com'
 ];
 
 async function _rpcCall(endpoint, method, params) {
